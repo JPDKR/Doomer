@@ -6,11 +6,11 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>wads.ico</ApplicationIcon>
+    <ApplicationIcon>Doomer.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="wads.ico" />
+    <Content Include="Doomer.ico" />
   </ItemGroup>
 
   <ItemGroup>

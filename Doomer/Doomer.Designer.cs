@@ -1,6 +1,6 @@
 ﻿namespace Doomer
 {
-    partial class Form1
+    partial class Doomer
     {
         /// <summary>
         ///  Required designer variable.
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Doomer));
             flowLayoutPanel1 = new FlowLayoutPanel();
             SuspendLayout();
             // 
@@ -39,22 +39,20 @@
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.Location = new Point(0, 0);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(979, 504);
+            flowLayoutPanel1.Size = new Size(1038, 608);
             flowLayoutPanel1.TabIndex = 0;
             // 
-            // Form1
+            // Doomer
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(979, 504);
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            ClientSize = new Size(1038, 608);
             Controls.Add(flowLayoutPanel1);
             Icon = (Icon)resources.GetObject("$this.Icon");
-            MaximizeBox = false;
-            MinimizeBox = false;
-            Name = "Form1";
+            Name = "Doomer";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Doomer";
-            WindowState = FormWindowState.Maximized;
             Load += MainForm_Load;
             ResumeLayout(false);
         }

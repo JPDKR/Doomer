@@ -1,10 +1,10 @@
 ﻿namespace Doomer
 {
-    public class Configuracion
+    public class Configuration
     {
         public string Batchs { get; set; } = string.Empty;
-        public string Imagenes { get; set; } = string.Empty;
-        public string ImagenesExtension { get; set; } = string.Empty;
         public string BatchsExtension { get; set; } = string.Empty;
+        public string Images { get; set; } = string.Empty;
+        public string ImagesExtension { get; set; } = string.Empty;
     }
 }

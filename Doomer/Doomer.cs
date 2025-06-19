@@ -1,14 +1,18 @@
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Doomer
 {
     public partial class Doomer : Form
     {
-        private readonly string folderBatchs;
-        private readonly string folderImages;
-        private readonly string extension;
+        private readonly string batchsLocation;
+        private readonly string imagesLocation;
+        private readonly string batchsExtension;
         private readonly string imagesExtension;
+        private readonly int iconWidth;
+        private readonly int iconHeight;
+        private readonly int iconPadding;
 
         public Doomer()
         {
@@ -19,10 +23,13 @@ namespace Doomer
                 .AddJsonFile("appsettings.json")
                 .Build();
 
-            folderBatchs = config["Folders:Batchs"]!;
-            extension = config["Folders:BatchsExtension"]!;
-            folderImages = config["Folders:Images"]!;
-            imagesExtension = config["Folders:ImagesExtension"]!;
+            batchsLocation = config["Batchs:Location"]!;
+            batchsExtension = config["Batchs:Extension"]!;
+            imagesLocation = config["Images:Location"]!;
+            imagesExtension = config["Images:Extension"]!;
+            iconWidth = int.Parse(config["Icons:Width"]!);
+            iconHeight = int.Parse(config["Icons:Height"]!);
+            iconPadding = int.Parse(config["Icons:Padding"]!);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -32,10 +39,7 @@ namespace Doomer
 
         private void LoadButtonsBatch()
         {
-            string[] files = Directory.GetFiles(folderBatchs, extension);
-            int iconWidth = 120;
-            int iconHeight = 100;
-            int iconPadding = 5;
+            string[] files = Directory.GetFiles(batchsLocation, $"*{batchsExtension}");
 
             int index = 0;
 
@@ -43,7 +47,7 @@ namespace Doomer
             {
                 string fileName = Path.GetFileName(file);
                 string baseName = Path.GetFileNameWithoutExtension(file);
-                string iconPath = Path.Combine(folderImages, baseName + imagesExtension);
+                string iconPath = Path.Combine(imagesLocation, baseName + imagesExtension);
 
                 Button boton = new()
                 {

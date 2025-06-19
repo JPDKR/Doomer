@@ -50,8 +50,11 @@ namespace Doomer
                     Width = iconWidth + 10,
                     Height = iconHeight + 10,
                     Tag = file,
-                    Margin = new Padding(iconPadding)
+                    Margin = new Padding(iconPadding),
                 };
+
+                ToolTip tooltip = new();
+                tooltip.SetToolTip(boton, baseName);
 
                 if (File.Exists(iconPath))
                 {

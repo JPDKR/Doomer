@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
+using System.Windows.Forms;
 
 namespace Doomer
 {
@@ -23,10 +23,10 @@ namespace Doomer
                 .AddJsonFile("appsettings.json")
                 .Build();
 
-            batchsLocation = config["Batchs:Location"]!;
-            batchsExtension = config["Batchs:Extension"]!;
-            imagesLocation = config["Images:Location"]!;
-            imagesExtension = config["Images:Extension"]!;
+            batchsLocation = config["GZDoom:Batchs:Location"]!;
+            batchsExtension = config["GZDoom:Batchs:Extension"]!;
+            imagesLocation = config["GZDoom:Images:Location"]!;
+            imagesExtension = config["GZDoom:Images:Extension"]!;
             iconWidth = int.Parse(config["Icons:Width"]!);
             iconHeight = int.Parse(config["Icons:Height"]!);
             iconPadding = int.Parse(config["Icons:Padding"]!);
@@ -39,6 +39,8 @@ namespace Doomer
 
         private void LoadButtonsBatch()
         {
+            flowLayoutPanel1.Controls.Clear();
+
             string[] files = Directory.GetFiles(batchsLocation, $"*{batchsExtension}");
 
             int index = 0;
@@ -97,6 +99,21 @@ namespace Doomer
                     MessageBox.Show($"Can't execute file:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private void addBatchFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using var form = new BatchCreatorForm();
+
+            if (form.ShowDialog() == DialogResult.OK)
+            {                
+                LoadButtonsBatch();
+            }
+        }
+
+        private void refreshListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            LoadButtonsBatch();
         }
     }
 }

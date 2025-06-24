@@ -1,4 +1,5 @@
 # GZDoom Batch Launcher (a.k.a. Doomer)
+![Doomer.](/Doomer/Doomer.ico)</br>
 This is a small proyect I've made while playing some Doom. I've always wandered whay would happen if I had a simple UI with all of my <ins>.bat</ins> listed and can choose everything I wanted, so this.
 The main configuration starts with the <ins>appsettings.json</ins>.
 

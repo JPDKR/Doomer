@@ -37,3 +37,6 @@ Those four text boxes can be completed as follow:
   - [ ] Add option for multiple files.
 * <ins>Plugins (OPTIONAL)</ins>: I've put this one just in cases you needed extra files, for example SmoothDoom, Corruption Cards or IDClever.
   - [ ] Add option for multiple files.
+
+ The end result should be something like this:
+ <pre>D:\gzdoom\gzdoom -iwad "wads/doom2" -file "wads/Ancient Aliens/aaliens.wad"</pre>

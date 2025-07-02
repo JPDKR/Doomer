@@ -61,14 +61,14 @@
             addBatchFileToolStripMenuItem.Name = "addBatchFileToolStripMenuItem";
             addBatchFileToolStripMenuItem.Size = new Size(119, 24);
             addBatchFileToolStripMenuItem.Text = "Add Batch File";
-            addBatchFileToolStripMenuItem.Click += addBatchFileToolStripMenuItem_Click;
+            addBatchFileToolStripMenuItem.Click += AddBatchFileToolStripMenuItem_Click;
             // 
             // refreshListToolStripMenuItem
             // 
             refreshListToolStripMenuItem.Name = "refreshListToolStripMenuItem";
             refreshListToolStripMenuItem.Size = new Size(98, 24);
             refreshListToolStripMenuItem.Text = "Refresh List";
-            refreshListToolStripMenuItem.Click += refreshListToolStripMenuItem_Click;
+            refreshListToolStripMenuItem.Click += RefreshListToolStripMenuItem_Click;
             // 
             // Doomer
             // 

@@ -1,18 +1,13 @@
+using Doomer.Options;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
-using System.Windows.Forms;
 
 namespace Doomer
 {
     public partial class Doomer : Form
     {
-        private readonly string batchsLocation;
-        private readonly string imagesLocation;
-        private readonly string batchsExtension;
-        private readonly string imagesExtension;
-        private readonly int iconWidth;
-        private readonly int iconHeight;
-        private readonly int iconPadding;
+        private readonly GZDoomSettings _gzdoomSettings;
+        private readonly IconsSettings _iconsSettings;
 
         public Doomer()
         {
@@ -20,16 +15,11 @@ namespace Doomer
 
             var config = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
 
-            batchsLocation = config["GZDoom:Batchs:Location"]!;
-            batchsExtension = config["GZDoom:Batchs:Extension"]!;
-            imagesLocation = config["GZDoom:Images:Location"]!;
-            imagesExtension = config["GZDoom:Images:Extension"]!;
-            iconWidth = int.Parse(config["Icons:Width"]!);
-            iconHeight = int.Parse(config["Icons:Height"]!);
-            iconPadding = int.Parse(config["Icons:Padding"]!);
+            _gzdoomSettings = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
+            _iconsSettings = config.GetSection("Icons").Get<IconsSettings>()!;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -41,7 +31,7 @@ namespace Doomer
         {
             flowLayoutPanel1.Controls.Clear();
 
-            string[] files = Directory.GetFiles(batchsLocation, $"*{batchsExtension}");
+            string[] files = Directory.GetFiles(_gzdoomSettings.Batchs.Location, $"*{_gzdoomSettings.Batchs.Extension}");
 
             int index = 0;
 
@@ -49,14 +39,14 @@ namespace Doomer
             {
                 string fileName = Path.GetFileName(file);
                 string baseName = Path.GetFileNameWithoutExtension(file);
-                string iconPath = Path.Combine(imagesLocation, baseName + imagesExtension);
+                string iconPath = Path.Combine(_gzdoomSettings.Images.Location, baseName + _gzdoomSettings.Images.Extension);
 
                 Button boton = new()
                 {
-                    Width = iconWidth + 10,
-                    Height = iconHeight + 10,
+                    Width = _iconsSettings.Width+ 10,
+                    Height = _iconsSettings.Height + 10,
                     Tag = file,
-                    Margin = new Padding(iconPadding),
+                    Margin = new Padding(_iconsSettings.Padding),
                 };
 
                 ToolTip tooltip = new();
@@ -67,7 +57,7 @@ namespace Doomer
                     try
                     {
                         Image img = Image.FromFile(iconPath);
-                        boton.Image = new Bitmap(img, new Size(iconWidth, iconHeight));
+                        boton.Image = new Bitmap(img, new Size(_iconsSettings.Width, _iconsSettings.Height));
                         boton.ImageAlign = ContentAlignment.MiddleCenter;
                     }
                     catch
@@ -101,7 +91,7 @@ namespace Doomer
             }
         }
 
-        private void addBatchFileToolStripMenuItem_Click(object sender, EventArgs e)
+        private void AddBatchFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using var form = new BatchCreatorForm();
 
@@ -111,7 +101,7 @@ namespace Doomer
             }
         }
 
-        private void refreshListToolStripMenuItem_Click(object sender, EventArgs e)
+        private void RefreshListToolStripMenuItem_Click(object sender, EventArgs e)
         {
             LoadButtonsBatch();
         }

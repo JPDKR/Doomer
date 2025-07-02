@@ -111,7 +111,7 @@
             btnCreate.TabIndex = 8;
             btnCreate.Text = "Create";
             btnCreate.UseVisualStyleBackColor = true;
-            btnCreate.Click += btnCreate_Click;
+            btnCreate.Click += BtnCreate_Click;
             // 
             // BatchCreatorForm
             // 

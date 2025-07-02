@@ -1,21 +1,11 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using Doomer.Options;
+using Microsoft.Extensions.Configuration;
 
 namespace Doomer
 {
     public partial class BatchCreatorForm : Form
     {
-        private readonly string gzdoomLocation;
-        private readonly string batchsLocation;
-        private readonly string pluginsLocation;
+        private readonly GZDoomSettings _gzdoomSettings;
 
         public BatchCreatorForm()
         {
@@ -26,12 +16,10 @@ namespace Doomer
                 .AddJsonFile("appsettings.json")
                 .Build();
 
-            gzdoomLocation = config["GZDoom:Location"]!;
-            batchsLocation = config["GZDoom:Batchs:Location"]!;
-            pluginsLocation= config["GZDoom:Plugins"]!;
+            _gzdoomSettings = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
         }
 
-        private void btnCreate_Click(object sender, EventArgs e)
+        private void BtnCreate_Click(object sender, EventArgs e)
         {
             var iwad = txtIWad.Text.Trim();
             var wadFile = txtWad.Text.Trim();
@@ -45,7 +33,7 @@ namespace Doomer
             }
 
             // Armar el comando
-            var command = $"{gzdoomLocation} -iwad \"{iwad}\" -file \"{wadFile}\"";
+            var command = $"{_gzdoomSettings.Location} -iwad \"{iwad}\" -file \"{wadFile}.wad\"";
 
             if (!string.IsNullOrWhiteSpace(plugins))
             {
@@ -53,14 +41,14 @@ namespace Doomer
             }
 
             // Guardar el archivo .bat
-            var path = Path.Combine($"{batchsLocation}\\{fileName}.bat");
+            var path = Path.Combine($"{_gzdoomSettings.Batchs.Location}\\{fileName}.bat");
 
             try
             {
                 File.WriteAllText(path, command);
                 MessageBox.Show("Batch creado correctamente.");
-                this.DialogResult = DialogResult.OK;
-                this.Close();
+                DialogResult = DialogResult.OK;
+                Close();
             }
             catch (Exception ex)
             {

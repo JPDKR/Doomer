@@ -46,13 +46,13 @@ namespace Doomer
             try
             {
                 File.WriteAllText(path, command);
-                MessageBox.Show("Batch creado correctamente.");
+                MessageBox.Show("Batch creation", "Batch created succesfully.", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 DialogResult = DialogResult.OK;
                 Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al guardar el batch: " + ex.Message);
+                MessageBox.Show("Batch creation", "Error al guardar el batch: " + ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
     }

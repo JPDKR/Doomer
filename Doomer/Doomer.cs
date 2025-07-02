@@ -33,8 +33,6 @@ namespace Doomer
 
             string[] files = Directory.GetFiles(_gzdoomSettings.Batchs.Location, $"*{_gzdoomSettings.Batchs.Extension}");
 
-            int index = 0;
-
             foreach (var file in files)
             {
                 string fileName = Path.GetFileName(file);
@@ -72,7 +70,6 @@ namespace Doomer
 
                 boton.Click += Boton_Click!;
                 flowLayoutPanel1.Controls.Add(boton);
-                index++;
             }
         }
 

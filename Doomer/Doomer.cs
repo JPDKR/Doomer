@@ -1,6 +1,7 @@
 using Doomer.Options;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
+using System.IO;
 
 namespace Doomer
 {
@@ -27,11 +28,25 @@ namespace Doomer
             LoadButtonsBatch();
         }
 
-        private void LoadButtonsBatch()
+        private void LoadButtonsBatch(string filter = "")
         {
             flowLayoutPanel1.Controls.Clear();
 
-            string[] files = Directory.GetFiles(_gzdoomSettings.Batchs.Location, $"*{_gzdoomSettings.Batchs.Extension}");
+            string[] files;
+
+            try
+            {
+                files = [.. Directory
+                .GetFiles(_gzdoomSettings.Batchs.Location, $"*{_gzdoomSettings.Batchs.Extension}")
+                .Where(f =>
+                    Path.GetFileNameWithoutExtension(f)
+                        .Contains(filter, StringComparison.OrdinalIgnoreCase))];
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                MessageBox.Show($"Batchs directory not found:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                throw;
+            }
 
             foreach (var file in files)
             {
@@ -41,7 +56,7 @@ namespace Doomer
 
                 Button boton = new()
                 {
-                    Width = _iconsSettings.Width+ 10,
+                    Width = _iconsSettings.Width + 10,
                     Height = _iconsSettings.Height + 10,
                     Tag = file,
                     Margin = new Padding(_iconsSettings.Padding),
@@ -93,7 +108,7 @@ namespace Doomer
             using var form = new BatchCreatorForm();
 
             if (form.ShowDialog() == DialogResult.OK)
-            {                
+            {
                 LoadButtonsBatch();
             }
         }
@@ -101,6 +116,11 @@ namespace Doomer
         private void RefreshListToolStripMenuItem_Click(object sender, EventArgs e)
         {
             LoadButtonsBatch();
+        }
+
+        private void SearchWad(object sender, EventArgs e)
+        {
+            LoadButtonsBatch(txtSearch.Text);
         }
     }
 }

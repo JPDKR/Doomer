@@ -1,4 +1,4 @@
-﻿using Doomer.Options;
+using Doomer.Options;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 
@@ -18,6 +18,42 @@ namespace Doomer
                 .Build();
 
             _gzdoomSettings = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
+
+            ApplyDarkTheme();
+        }
+
+        private void ApplyDarkTheme()
+        {
+            BackColor = Color.FromArgb(18, 18, 18);
+            ForeColor = Color.FromArgb(220, 220, 220);
+
+            foreach (Control ctrl in Controls)
+            {
+                switch (ctrl)
+                {
+                    case TextBox tb:
+                        tb.BackColor = Color.FromArgb(38, 38, 38);
+                        tb.ForeColor = Color.FromArgb(220, 220, 220);
+                        tb.BorderStyle = BorderStyle.FixedSingle;
+                        break;
+                    case Label lbl:
+                        lbl.ForeColor = Color.FromArgb(170, 170, 170);
+                        break;
+                    case Button btn:
+                        btn.FlatStyle = FlatStyle.Flat;
+                        btn.BackColor = Color.FromArgb(160, 15, 15);
+                        btn.ForeColor = Color.White;
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(200, 25, 25);
+                        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(200, 25, 25);
+                        btn.Cursor = Cursors.Hand;
+                        break;
+                }
+            }
+
+            txtFileName.PlaceholderText = "ej: my-doom-mod";
+            txtIWad.PlaceholderText = "ej: doom2.wad";
+            txtWad.PlaceholderText = "ej: brutal-doom";
+            txtPlugins.PlaceholderText = "ej: smoothed (opcional)";
         }
 
         private void BtnCreate_Click(object sender, EventArgs e)
@@ -33,7 +69,6 @@ namespace Doomer
                 return;
             }
 
-            // Armar el comando
             var command = $"{_gzdoomSettings.Location} -iwad \"{iwad}\" -file \"{wadFile}.wad\"";
 
             if (!string.IsNullOrWhiteSpace(plugins))
@@ -41,19 +76,18 @@ namespace Doomer
                 command += $" \"{plugins}/{plugins}\"";
             }
 
-            // Guardar el archivo .bat
             var path = Path.Combine($"{_gzdoomSettings.Batchs.Location}\\{fileName}.bat");
 
             try
             {
                 File.WriteAllText(path, command);
-                MessageBox.Show("Batch creation", "Batch created succesfully.", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Batch creado exitosamente.", "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 DialogResult = DialogResult.OK;
                 Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Batch creation", "Error al guardar el batch: " + ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Error al guardar el batch: " + ex.Message, "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

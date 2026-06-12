@@ -15,13 +15,18 @@ namespace Doomer
         private static readonly Color TextColor = Color.FromArgb(220, 220, 220);
         private static readonly Color MutedColor = Color.FromArgb(140, 140, 140);
 
-        private readonly GZDoomSettings _gzdoomSettings;
-        private readonly IconsSettings _iconsSettings;
+        private GZDoomSettings _gzdoomSettings = default!;
+        private IconsSettings _iconsSettings = default!;
 
         public Doomer()
         {
             InitializeComponent();
+            LoadConfiguration();
+            ApplyDarkTheme();
+        }
 
+        private void LoadConfiguration()
+        {
             var config = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -29,8 +34,6 @@ namespace Doomer
 
             _gzdoomSettings = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
             _iconsSettings = config.GetSection("Icons").Get<IconsSettings>()!;
-
-            ApplyDarkTheme();
         }
 
         private void ApplyDarkTheme()
@@ -47,7 +50,7 @@ namespace Doomer
 
             txtSearch.BackColor = Color.FromArgb(48, 48, 48);
             txtSearch.ForeColor = TextColor;
-            txtSearch.TextBox.PlaceholderText = "Buscar WAD...";
+            txtSearch.TextBox.PlaceholderText = "Search WAD...";
 
             flowLayoutPanel1.BackColor = BgColor;
 
@@ -131,7 +134,7 @@ namespace Doomer
 
             int count = flowLayoutPanel1.Controls.Count;
             string plural = count != 1 ? "s" : "";
-            lblStatus.Text = $"  {count} WAD{plural} cargado{plural}   |   {_gzdoomSettings.Batchs.Location}";
+            lblStatus.Text = $"  {count} WAD{plural} loaded   |   {_gzdoomSettings.Batchs.Location}";
         }
 
         private void Boton_Click(object sender, EventArgs e)
@@ -166,14 +169,11 @@ namespace Doomer
 
         private void SettingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
-            try
+            using var form = new SettingsForm();
+            if (form.ShowDialog() == DialogResult.OK)
             {
-                Process.Start(new ProcessStartInfo("notepad.exe", settingsPath) { UseShellExecute = true });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"No se pudo abrir settings:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                LoadConfiguration();
+                LoadButtonsBatch();
             }
         }
 

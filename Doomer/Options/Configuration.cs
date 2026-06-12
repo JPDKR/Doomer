@@ -1,5 +1,11 @@
 ﻿namespace Doomer.Options
 {
+    public class AppSettingsRoot
+    {
+        public GZDoomSettings GZDoom { get; set; } = new();
+        public IconsSettings Icons { get; set; } = new();
+    }
+
     public class GZDoomSettings
     {
         public string Location { get; set; } = default!;

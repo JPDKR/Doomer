@@ -6,7 +6,7 @@ Doomer is a small WinForms app I built while playing some Doom. I always wondere
 
 ## Requirements
 
-* Windows with the .NET 10 desktop runtime.
+* Windows (x64). The installer bundles the .NET 10 runtime, so no separate .NET install is needed.
 * [GZDoom](https://zdoom.org/downloads) installed somewhere on disk.
 * Your IWADs, WADs and batch files organized in folders (see Configuration below).
 
@@ -75,6 +75,18 @@ dotnet test
 ```
 
 `Doomer.Tests` covers the batch command building, parsing and file name validation logic in `Doomer/Services/BatchFileService.cs`.
+
+## Creating an installer
+
+To build a distributable installer that doesn't require .NET or Visual Studio on the target machine:
+
+1. Install [Inno Setup](https://jrsoftware.org/isinfo.php) (one-time, on the machine building the installer).
+2. Run:
+   ```powershell
+   .\installer\publish.ps1 -Version 1.0.0
+   ```
+
+This publishes a self-contained, single-file build of the app (bundling the .NET runtime) and, if Inno Setup is found, compiles it into `installer\Output\DoomerSetup-<version>.exe`. That single file is all you need to hand out — it installs the app, creates Start Menu/desktop shortcuts, and registers an uninstaller.
 
 ## Roadmap
 

@@ -1,7 +1,5 @@
 using Doomer.Options;
-using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
-using System.IO;
 
 namespace Doomer
 {
@@ -17,23 +15,20 @@ namespace Doomer
 
         private GZDoomSettings _gzdoomSettings = default!;
         private IconsSettings _iconsSettings = default!;
+        private readonly ToolTip _wadTooltip = new();
 
         public Doomer()
         {
             InitializeComponent();
+            components?.Add(_wadTooltip);
             LoadConfiguration();
             ApplyDarkTheme();
         }
 
         private void LoadConfiguration()
         {
-            var config = new ConfigurationBuilder()
-                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .Build();
-
-            _gzdoomSettings = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
-            _iconsSettings = config.GetSection("Icons").Get<IconsSettings>()!;
+            _gzdoomSettings = AppConfiguration.GZDoom;
+            _iconsSettings = AppConfiguration.Icons;
         }
 
         private void ApplyDarkTheme()
@@ -66,6 +61,17 @@ namespace Doomer
 
         private void LoadButtonsBatch(string filter = "")
         {
+            foreach (Control control in flowLayoutPanel1.Controls)
+            {
+                if (control is Button boton)
+                {
+                    boton.Image?.Dispose();
+                    boton.ContextMenuStrip?.Dispose();
+                }
+
+                control.Dispose();
+            }
+
             flowLayoutPanel1.Controls.Clear();
 
             string[] files;
@@ -80,8 +86,9 @@ namespace Doomer
             }
             catch (DirectoryNotFoundException ex)
             {
-                MessageBox.Show($"Batchs directory not found:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                throw;
+                MessageBox.Show($"Batchs directory not found:\n{ex.Message}\n\nOpen Settings to fix the path.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                files = [];
             }
 
             foreach (var file in files)
@@ -105,8 +112,8 @@ namespace Doomer
                 boton.FlatAppearance.BorderSize = 1;
                 boton.FlatAppearance.MouseOverBackColor = ButtonHoverColor;
 
-                ToolTip tooltip = new();
-                tooltip.SetToolTip(boton, baseName);
+                _wadTooltip.SetToolTip(boton, baseName);
+                boton.ContextMenuStrip = BuildWadContextMenu(file);
 
                 if (File.Exists(iconPath))
                 {
@@ -135,6 +142,59 @@ namespace Doomer
             int count = flowLayoutPanel1.Controls.Count;
             string plural = count != 1 ? "s" : "";
             lblStatus.Text = $"  {count} WAD{plural} loaded   |   {_gzdoomSettings.Batchs.Location}";
+        }
+
+        private ContextMenuStrip BuildWadContextMenu(string filePath)
+        {
+            var menu = new ContextMenuStrip();
+
+            var editItem = new ToolStripMenuItem("Edit...");
+            editItem.Click += (s, e) => EditBatch(filePath);
+
+            var deleteItem = new ToolStripMenuItem("Delete");
+            deleteItem.Click += (s, e) => DeleteBatch(filePath);
+
+            menu.Items.Add(editItem);
+            menu.Items.Add(deleteItem);
+
+            return menu;
+        }
+
+        private void EditBatch(string filePath)
+        {
+            using var form = new BatchCreatorForm(filePath);
+
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                LoadButtonsBatch(txtSearch.Text);
+            }
+        }
+
+        private void DeleteBatch(string filePath)
+        {
+            var name = Path.GetFileNameWithoutExtension(filePath);
+            var imagePath = Path.Combine(_gzdoomSettings.Images.Location, name + _gzdoomSettings.Images.Extension);
+
+            var confirm = MessageBox.Show(
+                $"Delete \"{name}\"? This will also remove its icon image, if any. This cannot be undone.",
+                "Delete batch", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (confirm != DialogResult.Yes)
+                return;
+
+            try
+            {
+                File.Delete(filePath);
+
+                if (File.Exists(imagePath))
+                    File.Delete(imagePath);
+
+                LoadButtonsBatch(txtSearch.Text);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Can't delete file:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void Boton_Click(object sender, EventArgs e)

@@ -173,8 +173,11 @@ namespace Doomer
         private void DeleteBatch(string filePath)
         {
             var name = Path.GetFileNameWithoutExtension(filePath);
-            var confirm = MessageBox.Show($"Delete \"{name}\"? This cannot be undone.", "Delete batch",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            var imagePath = Path.Combine(_gzdoomSettings.Images.Location, name + _gzdoomSettings.Images.Extension);
+
+            var confirm = MessageBox.Show(
+                $"Delete \"{name}\"? This will also remove its icon image, if any. This cannot be undone.",
+                "Delete batch", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (confirm != DialogResult.Yes)
                 return;
@@ -182,6 +185,10 @@ namespace Doomer
             try
             {
                 File.Delete(filePath);
+
+                if (File.Exists(imagePath))
+                    File.Delete(imagePath);
+
                 LoadButtonsBatch(txtSearch.Text);
             }
             catch (Exception ex)

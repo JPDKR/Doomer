@@ -44,8 +44,17 @@ namespace Doomer.Tests
             var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Ancient Aliens/aaliens", "");
 
             Assert.Equal(
-                "\"D:\\gzdoom\\gzdoom\" -iwad \"wads/doom2\" -file \"wads/Ancient Aliens/aaliens.wad\"",
+                "\"D:\\gzdoom\\gzdoom\" -iwad \"wads/doom2.wad\" -file \"wads/Ancient Aliens/aaliens.wad\"",
                 command);
+        }
+
+        [Theory]
+        [InlineData("wads/doom2", "wads/doom2.wad")]
+        [InlineData("wads/doom2.wad", "wads/doom2.wad")]
+        [InlineData("wads/doom2.WAD", "wads/doom2.WAD")]
+        public void EnsureWadExtension_AppendsOnlyWhenMissing(string input, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.EnsureWadExtension(input));
         }
 
         [Fact]
@@ -74,6 +83,16 @@ namespace Doomer.Tests
             Assert.Equal("wads/doom2", iwad);
             Assert.Equal("wads/Ancient Aliens/aaliens", wad);
             Assert.Equal("smoothed", plugins);
+        }
+
+        [Fact]
+        public void TryParseCommand_StripsExtensionRegardlessOfHowItWasEntered()
+        {
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2.wad", "aaliens.wad", "");
+
+            Assert.True(BatchFileService.TryParseCommand(command, out var iwad, out var wad, out _));
+            Assert.Equal("wads/doom2", iwad);
+            Assert.Equal("aaliens", wad);
         }
 
         [Fact]

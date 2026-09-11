@@ -46,7 +46,7 @@ The app reads its settings from <ins>appsettings.json</ins> on startup. You can 
 
 The main window lists one button per batch file found in `GZDoom.Batchs.Location`, using the matching image from `GZDoom.Images.Location` (same file name, different extension) as its icon — falling back to plain text if no image is found. Use the search box in the menu to filter the list by name.
 
-Right-click any WAD button to **Edit** or **Delete** its batch file.
+Right-click any WAD button to **Edit** or **Delete** its batch file. Deleting a batch also removes its icon image, if one exists.
 
 ## Adding a new batch file
 
@@ -55,11 +55,11 @@ Whenever you download a new WAD and want a launcher for it, use **Add Batch File
 ![Add Batch File Form](https://i.ibb.co/pjQzFDcG/Add-New-Batch-File.png)
 
 * <ins>File Name</ins>: the name the batch file (and its button) will use. **Note**: it must match the name of the icon image for that WAD.
-* <ins>IWAD</ins>: the full path to the IWAD your WAD was made from, **including its `.wad` extension**. For example, if your IWADs are under `D:\GZDoom\wads\doom2.wad`, enter `wads/doom2.wad`.
-* <ins>WAD</ins>: the full path to the WAD itself, **without the `.wad` extension** — it's added automatically. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
+* <ins>IWAD</ins>: the path to the IWAD your WAD was made from. The `.wad` extension is optional — it's added automatically if you leave it out. For example, if your IWADs are under `D:\GZDoom\wads\doom2.wad`, enter `wads/doom2`.
+* <ins>WAD</ins>: the path to the WAD itself, same rule — with or without `.wad`. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
 * <ins>Plugins (optional)</ins>: just the file name of an extra file you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever). It's combined with the `GZDoom.Plugins` folder from your settings, so don't include a path here.
 
-If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten.
+If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD or WAD that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by GZDoom at launch time, not by Doomer.
 
 The end result is a `.bat` file with a command like this:
 

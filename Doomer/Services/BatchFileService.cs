@@ -6,8 +6,11 @@ namespace Doomer.Services
     public static class BatchFileService
     {
         private static readonly Regex CommandPattern = new(
-            "-iwad \"(?<iwad>.*?)\" -file \"(?<wad>.*?)\\.wad\"(?: \"(?<pluginsPath>.*?)\")?",
+            "-iwad \"(?<iwad>.*?)\\.wad\" -file \"(?<wad>.*?)\\.wad\"(?: \"(?<pluginsPath>.*?)\")?",
             RegexOptions.Compiled);
+
+        public static string EnsureWadExtension(string path) =>
+            path.EndsWith(".wad", StringComparison.OrdinalIgnoreCase) ? path : path + ".wad";
 
         public static bool IsValidFileName(string fileName, out string error)
         {
@@ -32,7 +35,7 @@ namespace Doomer.Services
             if (ContainsQuote(iwad) || ContainsQuote(wad) || ContainsQuote(plugins))
                 throw new ArgumentException("IWAD, WAD and plugin paths cannot contain quote characters.");
 
-            var command = $"\"{settings.Location}\" -iwad \"{iwad}\" -file \"{wad}.wad\"";
+            var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"";
 
             if (!string.IsNullOrWhiteSpace(plugins))
                 command += $" \"{settings.Plugins}/{plugins}\"";

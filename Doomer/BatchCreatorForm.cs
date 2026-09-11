@@ -80,9 +80,21 @@ namespace Doomer
             }
 
             txtFileName.PlaceholderText = "e.g. my-doom-mod";
-            txtIWad.PlaceholderText = "e.g. doom2.wad";
+            txtIWad.PlaceholderText = "e.g. wads/doom2";
             txtWad.PlaceholderText = "e.g. brutal-doom";
             txtPlugins.PlaceholderText = "e.g. smoothed (optional)";
+        }
+
+        private static bool ConfirmPathIfMissing(string label, string path)
+        {
+            if (!Path.IsPathRooted(path) || File.Exists(path))
+                return true;
+
+            var proceed = MessageBox.Show(
+                $"{label} file not found:\n{path}\n\nCreate the batch anyway?",
+                "Batch creation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            return proceed == DialogResult.Yes;
         }
 
         private void BtnCreate_Click(object sender, EventArgs e)
@@ -102,6 +114,12 @@ namespace Doomer
             if (!BatchFileService.IsValidFileName(fileName, out var fileNameError))
             {
                 MessageBox.Show(fileNameError, "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!ConfirmPathIfMissing("IWAD", BatchFileService.EnsureWadExtension(iwad)) ||
+                !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)))
+            {
                 return;
             }
 

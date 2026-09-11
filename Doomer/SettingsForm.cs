@@ -1,15 +1,10 @@
 using Doomer.Options;
-using Microsoft.Extensions.Configuration;
-using System.IO;
 using System.Text.Json;
 
 namespace Doomer
 {
     public partial class SettingsForm : Form
     {
-        private static readonly string SettingsPath =
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
-
         private static readonly Color BgColor = Color.FromArgb(18, 18, 18);
         private static readonly Color SurfaceColor = Color.FromArgb(38, 38, 38);
         private static readonly Color TextColor = Color.FromArgb(220, 220, 220);
@@ -29,13 +24,8 @@ namespace Doomer
 
         private void LoadSettings()
         {
-            var config = new ConfigurationBuilder()
-                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json")
-                .Build();
-
-            var gzdoom = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
-            var icons = config.GetSection("Icons").Get<IconsSettings>()!;
+            var gzdoom = AppConfiguration.GZDoom;
+            var icons = AppConfiguration.Icons;
 
             txtGZDoomLocation.Text = gzdoom.Location;
             txtGZDoomPlugins.Text = gzdoom.Plugins;
@@ -77,7 +67,8 @@ namespace Doomer
             };
 
             var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SettingsPath, json);
+            File.WriteAllText(AppConfiguration.FilePath, json);
+            AppConfiguration.Load();
         }
 
         private void ApplyDarkTheme()
@@ -165,14 +156,44 @@ namespace Doomer
                 target.Text = dlg.SelectedPath;
         }
 
+        private static bool ExecutableExists(string path) =>
+            File.Exists(path) || File.Exists(path + ".exe");
+
         private void BtnSave_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtGZDoomLocation.Text) ||
-                string.IsNullOrWhiteSpace(txtBatchsLocation.Text))
+            var gzdoomLocation = txtGZDoomLocation.Text.Trim();
+            var batchsLocation = txtBatchsLocation.Text.Trim();
+            var imagesLocation = txtImagesLocation.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(gzdoomLocation) || string.IsNullOrWhiteSpace(batchsLocation))
             {
                 MessageBox.Show("GZDoom executable and batch directory are required.", "Validation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+
+            if (!ExecutableExists(gzdoomLocation))
+            {
+                MessageBox.Show($"GZDoom executable not found:\n{gzdoomLocation}", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!Directory.Exists(batchsLocation))
+            {
+                MessageBox.Show($"Batch files directory not found:\n{batchsLocation}", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(imagesLocation) && !Directory.Exists(imagesLocation))
+            {
+                var proceed = MessageBox.Show(
+                    $"Images directory not found:\n{imagesLocation}\n\nWAD buttons will show text instead of icons. Save anyway?",
+                    "Validation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                if (proceed != DialogResult.Yes)
+                    return;
             }
 
             try

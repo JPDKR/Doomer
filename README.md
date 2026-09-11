@@ -1,12 +1,24 @@
 # GZDoom Batch Launcher (a.k.a. Doomer)
-![Doomer.](/Doomer/Doomer.ico)</br>
-This is a small proyect I've made while playing some Doom. I've always wandered whay would happen if I had a simple UI with all of my <ins>.bat</ins> listed and can choose everything I wanted, so this.
-The main configuration starts with the <ins>appsettings.json</ins>.
 
-<pre csharp>{
+![Doomer.](/Doomer/Doomer.ico)</br>
+
+Doomer is a small WinForms app I built while playing some Doom. I always wondered what it would look like to have a simple UI listing all of my <ins>.bat</ins> launchers as clickable icons, instead of digging through a folder — so here it is.
+
+## Requirements
+
+* Windows with the .NET 10 desktop runtime.
+* [GZDoom](https://zdoom.org/downloads) installed somewhere on disk.
+* Your IWADs, WADs and batch files organized in folders (see Configuration below).
+
+## Configuration
+
+The app reads its settings from <ins>appsettings.json</ins> on startup. You can edit that file directly, or open **Settings** from the app's menu to change everything (including browsing for the GZDoom executable and folders) without touching JSON.
+
+```json
+{
   "GZDoom": {
     "Location": "D:\\gzdoom\\gzdoom",
-    "Plugins":  "plugins",
+    "Plugins": "plugins",
     "Batchs": {
       "Location": "D:\\GZDoom\\batchs",
       "Extension": ".bat"
@@ -21,23 +33,49 @@ The main configuration starts with the <ins>appsettings.json</ins>.
     "Height": 100,
     "Padding": 5
   }
-} </pre>
+}
+```
 
-You can customize the icons, and everything related to GZDoom, starting with the GZDoom location, the plugins you have (just some extra files you wanted to use, SmoothDoom, Corruption Cards, for example) and also the Batchs and Images location and extension.
+* **GZDoom.Location**: full path to your `gzdoom.exe`.
+* **GZDoom.Plugins**: the folder (relative to your GZDoom install) where optional extra files live, e.g. SmoothDoom, Corruption Cards.
+* **GZDoom.Batchs**: where your `.bat` launchers live, and their extension.
+* **GZDoom.Images**: where the button icons live, and their extension.
+* **Icons**: size and spacing of the buttons in the main window.
 
-## Add new Batch File
+## Using the app
 
-Another thing I got accross was whenever I downloaded a new wad and wanted to make the new batch file for that file. I came across with this solution:
+The main window lists one button per batch file found in `GZDoom.Batchs.Location`, using the matching image from `GZDoom.Images.Location` (same file name, different extension) as its icon — falling back to plain text if no image is found. Use the search box in the menu to filter the list by name.
+
+Right-click any WAD button to **Edit** or **Delete** its batch file.
+
+## Adding a new batch file
+
+Whenever you download a new WAD and want a launcher for it, use **Add Batch File** from the menu:
 
 ![Add Batch File Form](https://i.ibb.co/pjQzFDcG/Add-New-Batch-File.png)
 
-Those four text boxes can be completed as follow:
-* <ins>File Name</ins>: The name of the batch file you want your WAD to be presented. NOTE: Has to be the same as your image file for the button.
-* <ins>IWad</ins>: The full path for the IWAD your WAD was made from. For example, my wads are on D:\GZDoom\wads\doom2.wad, so the result should be wads/doom2.wad.
-* <ins>Wad</ins>: The WAD itself, like the IWads has to have the same full path. For the Ancient Aliens, the result should be wads/Ancient Aliens/aaliens.wad.
-  - [ ] Add option for multiple files.
-* <ins>Plugins (OPTIONAL)</ins>: I've put this one just in cases you needed extra files, for example SmoothDoom, Corruption Cards or IDClever.
-  - [ ] Add option for multiple files.
+* <ins>File Name</ins>: the name the batch file (and its button) will use. **Note**: it must match the name of the icon image for that WAD.
+* <ins>IWAD</ins>: the full path to the IWAD your WAD was made from, **including its `.wad` extension**. For example, if your IWADs are under `D:\GZDoom\wads\doom2.wad`, enter `wads/doom2.wad`.
+* <ins>WAD</ins>: the full path to the WAD itself, **without the `.wad` extension** — it's added automatically. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
+* <ins>Plugins (optional)</ins>: just the file name of an extra file you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever). It's combined with the `GZDoom.Plugins` folder from your settings, so don't include a path here.
 
- The end result should be something like this:
- <pre>D:\gzdoom\gzdoom -iwad "wads/doom2" -file "wads/Ancient Aliens/aaliens.wad"</pre>
+If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten.
+
+The end result is a `.bat` file with a command like this:
+
+```
+"D:\gzdoom\gzdoom" -iwad "wads/doom2.wad" -file "wads/Ancient Aliens/aaliens.wad"
+```
+
+## Building and testing
+
+```
+dotnet build
+dotnet test
+```
+
+`Doomer.Tests` covers the batch command building, parsing and file name validation logic in `Doomer/Services/BatchFileService.cs`.
+
+## Roadmap
+
+- [ ] Support multiple WAD/plugin files per batch.

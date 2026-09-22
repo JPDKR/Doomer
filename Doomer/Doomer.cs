@@ -16,6 +16,7 @@ namespace Doomer
         private GZDoomSettings _gzdoomSettings = default!;
         private IconsSettings _iconsSettings = default!;
         private readonly ToolTip _wadTooltip = new();
+        private readonly Font _wadButtonFont = new("Segoe UI", 8.5f);
 
         public Doomer()
         {
@@ -76,19 +77,26 @@ namespace Doomer
 
             string[] files;
 
-            try
+            if (string.IsNullOrWhiteSpace(_gzdoomSettings.Batchs.Location))
             {
-                files = [.. Directory
-                .GetFiles(_gzdoomSettings.Batchs.Location, $"*{_gzdoomSettings.Batchs.Extension}")
-                .Where(f =>
-                    Path.GetFileNameWithoutExtension(f)
-                        .Contains(filter, StringComparison.OrdinalIgnoreCase))];
-            }
-            catch (DirectoryNotFoundException ex)
-            {
-                MessageBox.Show($"Batchs directory not found:\n{ex.Message}\n\nOpen Settings to fix the path.",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 files = [];
+            }
+            else
+            {
+                try
+                {
+                    files = [.. Directory
+                    .GetFiles(_gzdoomSettings.Batchs.Location, $"*{_gzdoomSettings.Batchs.Extension}")
+                    .Where(f =>
+                        Path.GetFileNameWithoutExtension(f)
+                            .Contains(filter, StringComparison.OrdinalIgnoreCase))];
+                }
+                catch (Exception ex) when (ex is DirectoryNotFoundException or ArgumentException)
+                {
+                    MessageBox.Show($"Batchs directory not found:\n{ex.Message}\n\nOpen Settings to fix the path.",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    files = [];
+                }
             }
 
             foreach (var file in files)
@@ -119,20 +127,20 @@ namespace Doomer
                 {
                     try
                     {
-                        Image img = Image.FromFile(iconPath);
+                        using var img = Image.FromFile(iconPath);
                         boton.Image = new Bitmap(img, new Size(_iconsSettings.Width, _iconsSettings.Height));
                         boton.ImageAlign = ContentAlignment.MiddleCenter;
                     }
                     catch
                     {
                         boton.Text = baseName;
-                        boton.Font = new Font("Segoe UI", 8.5f);
+                        boton.Font = _wadButtonFont;
                     }
                 }
                 else
                 {
                     boton.Text = baseName;
-                    boton.Font = new Font("Segoe UI", 8.5f);
+                    boton.Font = _wadButtonFont;
                 }
 
                 boton.Click += Boton_Click!;
@@ -140,8 +148,7 @@ namespace Doomer
             }
 
             int count = flowLayoutPanel1.Controls.Count;
-            string plural = count != 1 ? "s" : "";
-            lblStatus.Text = $"  {count} WAD{plural} loaded   |   {_gzdoomSettings.Batchs.Location}";
+            lblStatus.Text = $"  {count} WAD{(count != 1 ? "s" : "")} loaded   |   {_gzdoomSettings.Batchs.Location}";
         }
 
         private ContextMenuStrip BuildWadContextMenu(string filePath)

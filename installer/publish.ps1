@@ -32,6 +32,13 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Published to $publishDir"
 
 $innoCompiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+if (-not (Test-Path $innoCompiler)) {
+    $onPath = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
+    if ($onPath) {
+        $innoCompiler = $onPath.Source
+    }
+}
+
 $issFile = Join-Path $PSScriptRoot "Doomer.iss"
 
 if (Test-Path $innoCompiler) {

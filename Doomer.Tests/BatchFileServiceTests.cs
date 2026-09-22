@@ -75,6 +75,14 @@ namespace Doomer.Tests
         }
 
         [Fact]
+        public void BuildCommand_RejectsQuoteCharactersInSettings()
+        {
+            var settings = new GZDoomSettings { Location = "D:\\gzdoom\\evil\" -exec calc", Plugins = "plugins" };
+
+            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(settings, "iwad", "wad", ""));
+        }
+
+        [Fact]
         public void TryParseCommand_RoundTripsBuildCommand()
         {
             var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Ancient Aliens/aaliens", "smoothed");

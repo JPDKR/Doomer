@@ -32,8 +32,9 @@ namespace Doomer.Services
 
         public static string BuildCommand(GZDoomSettings settings, string iwad, string wad, string plugins)
         {
-            if (ContainsQuote(iwad) || ContainsQuote(wad) || ContainsQuote(plugins))
-                throw new ArgumentException("IWAD, WAD and plugin paths cannot contain quote characters.");
+            if (ContainsQuote(settings.Location) || ContainsQuote(settings.Plugins) ||
+                ContainsQuote(iwad) || ContainsQuote(wad) || ContainsQuote(plugins))
+                throw new ArgumentException("GZDoom location, plugins folder, IWAD, WAD and plugin paths cannot contain quote characters.");
 
             var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"";
 

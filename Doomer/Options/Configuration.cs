@@ -12,6 +12,7 @@ namespace Doomer.Options
         public static readonly string FilePath = Path.Combine(DirectoryPath, FileName);
 
         public static GZDoomSettings GZDoom { get; private set; } = default!;
+        public static DSDADoomSettings DSDADoom { get; private set; } = default!;
         public static IconsSettings Icons { get; private set; } = default!;
 
         static AppConfiguration() => Load();
@@ -26,6 +27,8 @@ namespace Doomer.Options
                 .Build();
 
             GZDoom = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
+            // Older config files predate DSDA Doom support and have no section for it.
+            DSDADoom = config.GetSection("DSDADoom").Get<DSDADoomSettings>() ?? new();
             Icons = config.GetSection("Icons").Get<IconsSettings>()!;
         }
 
@@ -59,6 +62,9 @@ namespace Doomer.Options
                   "Extension": ".png"
                 }
               },
+              "DSDADoom": {
+                "Location": ""
+              },
               "Icons": {
                 "Width": 120,
                 "Height": 100,
@@ -71,6 +77,7 @@ namespace Doomer.Options
     public class AppSettingsRoot
     {
         public GZDoomSettings GZDoom { get; set; } = new();
+        public DSDADoomSettings DSDADoom { get; set; } = new();
         public IconsSettings Icons { get; set; } = new();
     }
 
@@ -80,6 +87,11 @@ namespace Doomer.Options
         public string Plugins { get; set; } = default!;
         public BatchSettings Batchs { get; set; } = new();
         public ImageSettings Images { get; set; } = new();
+    }
+
+    public class DSDADoomSettings
+    {
+        public string Location { get; set; } = string.Empty;
     }
 
     public class BatchSettings

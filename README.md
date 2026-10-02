@@ -7,7 +7,7 @@ Doomer is a small WinForms app I built while playing some Doom. I always wondere
 ## Requirements
 
 * Windows (x64). The installer bundles the .NET 10 runtime, so no separate .NET install is needed.
-* [GZDoom](https://zdoom.org/downloads) installed somewhere on disk.
+* [GZDoom](https://zdoom.org/downloads) and/or [DSDA Doom](https://github.com/kraflab/dsda-doom) installed somewhere on disk.
 * Your IWADs, WADs and batch files organized in folders (see Configuration below).
 
 ## Configuration
@@ -28,6 +28,9 @@ The app reads its settings from <ins>appsettings.json</ins> on startup. You can 
       "Extension": ".png"
     }
   },
+  "DSDADoom": {
+    "Location": "E:\\DSDA\\dsda-doom"
+  },
   "Icons": {
     "Width": 120,
     "Height": 100,
@@ -40,6 +43,7 @@ The app reads its settings from <ins>appsettings.json</ins> on startup. You can 
 * **GZDoom.Plugins**: the folder (relative to your GZDoom install) where optional extra files live, e.g. SmoothDoom, Corruption Cards.
 * **GZDoom.Batchs**: where your `.bat` launchers live, and their extension.
 * **GZDoom.Images**: where the button icons live, and their extension.
+* **DSDADoom.Location**: full path to your `dsda-doom.exe` (optional — only needed for DSDA Doom batches). At least one of the two executables must be set.
 * **Icons**: size and spacing of the buttons in the main window.
 
 ## Using the app
@@ -55,16 +59,20 @@ Whenever you download a new WAD and want a launcher for it, use **Add Batch File
 ![Add Batch File Form](https://i.ibb.co/pjQzFDcG/Add-New-Batch-File.png)
 
 * <ins>File Name</ins>: the name the batch file (and its button) will use. **Note**: it must match the name of the icon image for that WAD.
+* <ins>Source Port</ins>: **GZDoom** or **DSDA Doom**. It picks which executable from your settings the batch launches, and how the command is written.
 * <ins>IWAD</ins>: the path to the IWAD your WAD was made from. The `.wad` extension is optional — it's added automatically if you leave it out. For example, if your IWADs are under `D:\GZDoom\wads\doom2.wad`, enter `wads/doom2`.
-* <ins>WAD</ins>: the path to the WAD itself, same rule — with or without `.wad`. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
-* <ins>Plugins (optional)</ins>: just the file name of an extra file you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever). It's combined with the `GZDoom.Plugins` folder from your settings, so don't include a path here.
+* <ins>WAD</ins>: the path to the WAD itself, same rule — with or without `.wad`. Other extensions (e.g. `.pk3`) are kept as-is. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
+* <ins>Plugins (optional, GZDoom only)</ins>: just the file name of an extra file you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever). It's combined with the `GZDoom.Plugins` folder from your settings, so don't include a path here.
 
 If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD or WAD that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by GZDoom at launch time, not by Doomer.
+
+Both IWAD and WAD have a **Browse...** button to pick the file instead of typing the path.
 
 The end result is a `.bat` file with a command like this:
 
 ```
-"D:\gzdoom\gzdoom" -iwad "wads/doom2.wad" -file "wads/Ancient Aliens/aaliens.wad"
+GZDoom:    "D:\gzdoom\gzdoom" -iwad "wads/doom2.wad" -file "wads/Ancient Aliens/aaliens.wad"
+DSDA Doom: "E:\DSDA\dsda-doom" "WadSmoosh/source_wads/tnt.wad" "wads/D.O.O.M\DrakeRC2.wad"
 ```
 
 ## Building and testing

@@ -18,12 +18,16 @@ namespace Doomer
         private void InitializeComponent()
         {
             lblFileName = new Label();
+            lblSourcePort = new Label();
             lblIWad = new Label();
             lblWad = new Label();
             lblPlugins = new Label();
             txtFileName = new TextBox();
+            cmbSourcePort = new ComboBox();
             txtIWad = new TextBox();
+            btnBrowseIWad = new Button();
             txtWad = new TextBox();
+            btnBrowseWad = new Button();
             txtPlugins = new TextBox();
             btnCreate = new Button();
             SuspendLayout();
@@ -33,75 +37,112 @@ namespace Doomer
             lblFileName.AutoSize = false;
             lblFileName.Location = new Point(8, 16);
             lblFileName.Name = "lblFileName";
-            lblFileName.Size = new Size(80, 27);
+            lblFileName.Size = new Size(90, 27);
             lblFileName.TabIndex = 0;
             lblFileName.Text = "File Name";
             lblFileName.TextAlign = ContentAlignment.MiddleRight;
             //
+            // lblSourcePort
+            //
+            lblSourcePort.AutoSize = false;
+            lblSourcePort.Location = new Point(8, 52);
+            lblSourcePort.Name = "lblSourcePort";
+            lblSourcePort.Size = new Size(90, 27);
+            lblSourcePort.TabIndex = 1;
+            lblSourcePort.Text = "Source Port";
+            lblSourcePort.TextAlign = ContentAlignment.MiddleRight;
+            //
             // lblIWad
             //
             lblIWad.AutoSize = false;
-            lblIWad.Location = new Point(8, 52);
+            lblIWad.Location = new Point(8, 88);
             lblIWad.Name = "lblIWad";
-            lblIWad.Size = new Size(80, 27);
-            lblIWad.TabIndex = 1;
+            lblIWad.Size = new Size(90, 27);
+            lblIWad.TabIndex = 2;
             lblIWad.Text = "IWAD";
             lblIWad.TextAlign = ContentAlignment.MiddleRight;
             //
             // lblWad
             //
             lblWad.AutoSize = false;
-            lblWad.Location = new Point(8, 88);
+            lblWad.Location = new Point(8, 124);
             lblWad.Name = "lblWad";
-            lblWad.Size = new Size(80, 27);
-            lblWad.TabIndex = 2;
+            lblWad.Size = new Size(90, 27);
+            lblWad.TabIndex = 3;
             lblWad.Text = "WAD";
             lblWad.TextAlign = ContentAlignment.MiddleRight;
             //
             // lblPlugins
             //
             lblPlugins.AutoSize = false;
-            lblPlugins.Location = new Point(8, 124);
+            lblPlugins.Location = new Point(8, 160);
             lblPlugins.Name = "lblPlugins";
-            lblPlugins.Size = new Size(80, 27);
-            lblPlugins.TabIndex = 3;
+            lblPlugins.Size = new Size(90, 27);
+            lblPlugins.TabIndex = 4;
             lblPlugins.Text = "Plugins";
             lblPlugins.TextAlign = ContentAlignment.MiddleRight;
             //
             // txtFileName
             //
-            txtFileName.Location = new Point(96, 16);
+            txtFileName.Location = new Point(106, 16);
             txtFileName.Name = "txtFileName";
-            txtFileName.Size = new Size(340, 27);
-            txtFileName.TabIndex = 4;
+            txtFileName.Size = new Size(380, 27);
+            txtFileName.TabIndex = 5;
+            //
+            // cmbSourcePort
+            //
+            cmbSourcePort.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbSourcePort.Location = new Point(106, 52);
+            cmbSourcePort.Name = "cmbSourcePort";
+            cmbSourcePort.Size = new Size(180, 28);
+            cmbSourcePort.TabIndex = 6;
+            cmbSourcePort.SelectedIndexChanged += CmbSourcePort_SelectedIndexChanged;
             //
             // txtIWad
             //
-            txtIWad.Location = new Point(96, 52);
+            txtIWad.Location = new Point(106, 88);
             txtIWad.Name = "txtIWad";
-            txtIWad.Size = new Size(340, 27);
-            txtIWad.TabIndex = 5;
+            txtIWad.Size = new Size(296, 27);
+            txtIWad.TabIndex = 7;
+            //
+            // btnBrowseIWad
+            //
+            btnBrowseIWad.Location = new Point(408, 88);
+            btnBrowseIWad.Name = "btnBrowseIWad";
+            btnBrowseIWad.Size = new Size(78, 27);
+            btnBrowseIWad.TabIndex = 8;
+            btnBrowseIWad.Text = "Browse...";
+            btnBrowseIWad.Click += BtnBrowseIWad_Click;
             //
             // txtWad
             //
-            txtWad.Location = new Point(96, 88);
+            txtWad.Location = new Point(106, 124);
             txtWad.Name = "txtWad";
-            txtWad.Size = new Size(340, 27);
-            txtWad.TabIndex = 6;
+            txtWad.Size = new Size(296, 27);
+            txtWad.TabIndex = 9;
+            //
+            // btnBrowseWad
+            //
+            btnBrowseWad.Location = new Point(408, 124);
+            btnBrowseWad.Name = "btnBrowseWad";
+            btnBrowseWad.Size = new Size(78, 27);
+            btnBrowseWad.TabIndex = 10;
+            btnBrowseWad.Text = "Browse...";
+            btnBrowseWad.Click += BtnBrowseWad_Click;
             //
             // txtPlugins
             //
-            txtPlugins.Location = new Point(96, 124);
+            txtPlugins.Location = new Point(106, 160);
             txtPlugins.Name = "txtPlugins";
-            txtPlugins.Size = new Size(340, 27);
-            txtPlugins.TabIndex = 7;
+            txtPlugins.Size = new Size(380, 27);
+            txtPlugins.TabIndex = 11;
             //
             // btnCreate
             //
-            btnCreate.Location = new Point(242, 168);
+            btnCreate.Location = new Point(246, 204);
             btnCreate.Name = "btnCreate";
             btnCreate.Size = new Size(100, 30);
-            btnCreate.TabIndex = 8;
+            btnCreate.TabIndex = 12;
             btnCreate.Text = "Create";
             btnCreate.UseVisualStyleBackColor = true;
             btnCreate.Click += BtnCreate_Click;
@@ -110,15 +151,19 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(452, 214);
+            ClientSize = new Size(502, 250);
             Controls.Add(btnCreate);
             Controls.Add(txtPlugins);
+            Controls.Add(btnBrowseWad);
             Controls.Add(txtWad);
+            Controls.Add(btnBrowseIWad);
             Controls.Add(txtIWad);
+            Controls.Add(cmbSourcePort);
             Controls.Add(txtFileName);
             Controls.Add(lblPlugins);
             Controls.Add(lblWad);
             Controls.Add(lblIWad);
+            Controls.Add(lblSourcePort);
             Controls.Add(lblFileName);
             MaximizeBox = false;
             MinimizeBox = false;
@@ -134,12 +179,16 @@ namespace Doomer
         #endregion
 
         private Label lblFileName;
+        private Label lblSourcePort;
         private Label lblIWad;
         private Label lblWad;
         private Label lblPlugins;
         private TextBox txtFileName;
+        private ComboBox cmbSourcePort;
         private TextBox txtIWad;
+        private Button btnBrowseIWad;
         private TextBox txtWad;
+        private Button btnBrowseWad;
         private TextBox txtPlugins;
         private Button btnCreate;
     }

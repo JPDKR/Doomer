@@ -1,4 +1,4 @@
-namespace Doomer
+﻿namespace Doomer
 {
     partial class SettingsForm
     {
@@ -23,6 +23,10 @@ namespace Doomer
             btnBrowseExe = new Button();
             lblGZDoomPlugins = new Label();
             txtGZDoomPlugins = new TextBox();
+            grpDSDADoom = new GroupBox();
+            lblDSDADoomExe = new Label();
+            txtDSDADoomLocation = new TextBox();
+            btnBrowseDSDAExe = new Button();
             grpBatchs = new GroupBox();
             lblBatchsLocation = new Label();
             txtBatchsLocation = new TextBox();
@@ -45,6 +49,7 @@ namespace Doomer
             btnCancel = new Button();
             btnSave = new Button();
             grpGZDoom.SuspendLayout();
+            grpDSDADoom.SuspendLayout();
             grpBatchs.SuspendLayout();
             grpImages.SuspendLayout();
             grpIcons.SuspendLayout();
@@ -108,6 +113,43 @@ namespace Doomer
             txtGZDoomPlugins.Size = new Size(308, 27);
             txtGZDoomPlugins.TabIndex = 2;
             //
+            // grpDSDADoom
+            //
+            grpDSDADoom.Controls.Add(lblDSDADoomExe);
+            grpDSDADoom.Controls.Add(txtDSDADoomLocation);
+            grpDSDADoom.Controls.Add(btnBrowseDSDAExe);
+            grpDSDADoom.Location = new Point(8, 116);
+            grpDSDADoom.Name = "grpDSDADoom";
+            grpDSDADoom.Size = new Size(524, 64);
+            grpDSDADoom.TabIndex = 1;
+            grpDSDADoom.TabStop = false;
+            grpDSDADoom.Text = "DSDA Doom";
+            //
+            // lblDSDADoomExe
+            //
+            lblDSDADoomExe.AutoSize = false;
+            lblDSDADoomExe.Location = new Point(8, 22);
+            lblDSDADoomExe.Name = "lblDSDADoomExe";
+            lblDSDADoomExe.Size = new Size(85, 27);
+            lblDSDADoomExe.Text = "Executable";
+            lblDSDADoomExe.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtDSDADoomLocation
+            //
+            txtDSDADoomLocation.Location = new Point(98, 22);
+            txtDSDADoomLocation.Name = "txtDSDADoomLocation";
+            txtDSDADoomLocation.Size = new Size(308, 27);
+            txtDSDADoomLocation.TabIndex = 0;
+            //
+            // btnBrowseDSDAExe
+            //
+            btnBrowseDSDAExe.Location = new Point(412, 22);
+            btnBrowseDSDAExe.Name = "btnBrowseDSDAExe";
+            btnBrowseDSDAExe.Size = new Size(90, 27);
+            btnBrowseDSDAExe.TabIndex = 1;
+            btnBrowseDSDAExe.Text = "Browse...";
+            btnBrowseDSDAExe.Click += BtnBrowseDSDAExe_Click;
+            //
             // grpBatchs
             //
             grpBatchs.Controls.Add(lblBatchsLocation);
@@ -115,10 +157,10 @@ namespace Doomer
             grpBatchs.Controls.Add(btnBrowseBatchs);
             grpBatchs.Controls.Add(lblBatchsExtension);
             grpBatchs.Controls.Add(txtBatchsExtension);
-            grpBatchs.Location = new Point(8, 116);
+            grpBatchs.Location = new Point(8, 188);
             grpBatchs.Name = "grpBatchs";
             grpBatchs.Size = new Size(524, 100);
-            grpBatchs.TabIndex = 1;
+            grpBatchs.TabIndex = 2;
             grpBatchs.TabStop = false;
             grpBatchs.Text = "Batch Files";
             //
@@ -170,10 +212,10 @@ namespace Doomer
             grpImages.Controls.Add(btnBrowseImages);
             grpImages.Controls.Add(lblImagesExtension);
             grpImages.Controls.Add(txtImagesExtension);
-            grpImages.Location = new Point(8, 224);
+            grpImages.Location = new Point(8, 296);
             grpImages.Name = "grpImages";
             grpImages.Size = new Size(524, 100);
-            grpImages.TabIndex = 2;
+            grpImages.TabIndex = 3;
             grpImages.TabStop = false;
             grpImages.Text = "Images";
             //
@@ -226,10 +268,10 @@ namespace Doomer
             grpIcons.Controls.Add(nudHeight);
             grpIcons.Controls.Add(lblIconsPadding);
             grpIcons.Controls.Add(nudPadding);
-            grpIcons.Location = new Point(8, 332);
+            grpIcons.Location = new Point(8, 404);
             grpIcons.Name = "grpIcons";
             grpIcons.Size = new Size(524, 66);
-            grpIcons.TabIndex = 3;
+            grpIcons.TabIndex = 4;
             grpIcons.TabStop = false;
             grpIcons.Text = "Icons";
             //
@@ -291,7 +333,7 @@ namespace Doomer
             //
             // btnCancel
             //
-            btnCancel.Location = new Point(346, 412);
+            btnCancel.Location = new Point(346, 484);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(90, 30);
             btnCancel.TabIndex = 12;
@@ -300,7 +342,7 @@ namespace Doomer
             //
             // btnSave
             //
-            btnSave.Location = new Point(442, 412);
+            btnSave.Location = new Point(442, 484);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(90, 30);
             btnSave.TabIndex = 13;
@@ -311,8 +353,9 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(540, 454);
+            ClientSize = new Size(540, 526);
             Controls.Add(grpGZDoom);
+            Controls.Add(grpDSDADoom);
             Controls.Add(grpBatchs);
             Controls.Add(grpImages);
             Controls.Add(grpIcons);
@@ -326,6 +369,7 @@ namespace Doomer
             StartPosition = FormStartPosition.CenterParent;
             Text = "Settings";
             grpGZDoom.ResumeLayout(false);
+            grpDSDADoom.ResumeLayout(false);
             grpBatchs.ResumeLayout(false);
             grpImages.ResumeLayout(false);
             grpIcons.ResumeLayout(false);
@@ -343,6 +387,10 @@ namespace Doomer
         private Button btnBrowseExe;
         private Label lblGZDoomPlugins;
         private TextBox txtGZDoomPlugins;
+        private GroupBox grpDSDADoom;
+        private Label lblDSDADoomExe;
+        private TextBox txtDSDADoomLocation;
+        private Button btnBrowseDSDAExe;
         private GroupBox grpBatchs;
         private Label lblBatchsLocation;
         private TextBox txtBatchsLocation;

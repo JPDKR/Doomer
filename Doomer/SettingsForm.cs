@@ -1,4 +1,4 @@
-using Doomer.Options;
+﻿using Doomer.Options;
 using System.Text.Json;
 
 namespace Doomer
@@ -29,6 +29,7 @@ namespace Doomer
 
             txtGZDoomLocation.Text = gzdoom.Location;
             txtGZDoomPlugins.Text = gzdoom.Plugins;
+            txtDSDADoomLocation.Text = AppConfiguration.DSDADoom.Location;
             txtBatchsLocation.Text = gzdoom.Batchs.Location;
             txtBatchsExtension.Text = gzdoom.Batchs.Extension;
             txtImagesLocation.Text = gzdoom.Images.Location;
@@ -57,6 +58,10 @@ namespace Doomer
                         Location = txtImagesLocation.Text.Trim(),
                         Extension = txtImagesExtension.Text.Trim()
                     }
+                },
+                DSDADoom = new DSDADoomSettings
+                {
+                    Location = txtDSDADoomLocation.Text.Trim()
                 },
                 Icons = new IconsSettings
                 {
@@ -123,18 +128,28 @@ namespace Doomer
 
         private void BtnBrowseExe_Click(object sender, EventArgs e)
         {
+            BrowseExecutable(txtGZDoomLocation, "Select GZDoom executable", "GZDoom|gzdoom.exe");
+        }
+
+        private void BtnBrowseDSDAExe_Click(object sender, EventArgs e)
+        {
+            BrowseExecutable(txtDSDADoomLocation, "Select DSDA Doom executable", "DSDA Doom|dsda-doom.exe");
+        }
+
+        private static void BrowseExecutable(TextBox target, string title, string filter)
+        {
             using var dlg = new OpenFileDialog
             {
-                Title = "Select GZDoom executable",
-                Filter = "GZDoom|gzdoom.exe|Executables|*.exe|All files|*.*"
+                Title = title,
+                Filter = $"{filter}|Executables|*.exe|All files|*.*"
             };
 
-            var dir = Path.GetDirectoryName(txtGZDoomLocation.Text);
+            var dir = Path.GetDirectoryName(target.Text);
             if (Directory.Exists(dir))
                 dlg.InitialDirectory = dir;
 
             if (dlg.ShowDialog() == DialogResult.OK)
-                txtGZDoomLocation.Text = dlg.FileName;
+                target.Text = dlg.FileName;
         }
 
         private void BtnBrowseBatchs_Click(object sender, EventArgs e)
@@ -162,17 +177,26 @@ namespace Doomer
         private void BtnSave_Click(object sender, EventArgs e)
         {
             var gzdoomLocation = txtGZDoomLocation.Text.Trim();
+            var dsdaDoomLocation = txtDSDADoomLocation.Text.Trim();
             var batchsLocation = txtBatchsLocation.Text.Trim();
             var imagesLocation = txtImagesLocation.Text.Trim();
 
-            if (string.IsNullOrWhiteSpace(gzdoomLocation) || string.IsNullOrWhiteSpace(batchsLocation))
+            if ((string.IsNullOrWhiteSpace(gzdoomLocation) && string.IsNullOrWhiteSpace(dsdaDoomLocation)) ||
+                string.IsNullOrWhiteSpace(batchsLocation))
             {
-                MessageBox.Show("GZDoom executable and batch directory are required.", "Validation",
+                MessageBox.Show("At least one executable (GZDoom or DSDA Doom) and the batch directory are required.", "Validation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (!ExecutableExists(gzdoomLocation))
+            if (!string.IsNullOrWhiteSpace(dsdaDoomLocation) && !ExecutableExists(dsdaDoomLocation))
+            {
+                MessageBox.Show($"DSDA Doom executable not found:\n{dsdaDoomLocation}", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(gzdoomLocation) && !ExecutableExists(gzdoomLocation))
             {
                 MessageBox.Show($"GZDoom executable not found:\n{gzdoomLocation}", "Validation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);

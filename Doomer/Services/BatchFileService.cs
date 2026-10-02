@@ -3,14 +3,38 @@ using System.Text.RegularExpressions;
 
 namespace Doomer.Services
 {
+    public enum SourcePort
+    {
+        GZDoom,
+        DSDADoom
+    }
+
     public static class BatchFileService
     {
-        private static readonly Regex CommandPattern = new(
-            "-iwad \"(?<iwad>.*?)\\.wad\" -file \"(?<wad>.*?)\\.wad\"(?: \"(?<pluginsPath>.*?)\")?",
+        private const string WadExtension = ".wad";
+
+        // "<exe>" -iwad "<iwad>" -file "<wad>" ["<plugin>"]
+        private static readonly Regex GZDoomPattern = new(
+            "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<pluginsPath>[^\"]*)\")?",
             RegexOptions.Compiled);
 
+        // <exe> "<iwad>" "<wad>" — the executable may or may not be quoted.
+        private static readonly Regex DSDADoomPattern = new(
+            "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"",
+            RegexOptions.Compiled);
+
+        public static string GetDisplayName(SourcePort port) => port switch
+        {
+            SourcePort.DSDADoom => "DSDA Doom",
+            _ => "GZDoom"
+        };
+
+        // Appends ".wad" only when the path has no extension, so .pk3/.zip/etc. are kept as-is.
         public static string EnsureWadExtension(string path) =>
-            path.EndsWith(".wad", StringComparison.OrdinalIgnoreCase) ? path : path + ".wad";
+            Path.HasExtension(path) ? path : path + WadExtension;
+
+        public static string StripWadExtension(string path) =>
+            path.EndsWith(WadExtension, StringComparison.OrdinalIgnoreCase) ? path[..^WadExtension.Length] : path;
 
         public static bool IsValidFileName(string fileName, out string error)
         {
@@ -44,23 +68,43 @@ namespace Doomer.Services
             return command;
         }
 
-        public static bool TryParseCommand(string command, out string iwad, out string wad, out string plugins)
+        public static string BuildCommand(DSDADoomSettings settings, string iwad, string wad)
         {
-            var match = CommandPattern.Match(command);
+            if (ContainsQuote(settings.Location) || ContainsQuote(iwad) || ContainsQuote(wad))
+                throw new ArgumentException("DSDA Doom location, IWAD and WAD paths cannot contain quote characters.");
 
-            if (!match.Success)
+            return $"\"{settings.Location}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"";
+        }
+
+        public static bool TryParseCommand(string command, out SourcePort port, out string iwad, out string wad, out string plugins)
+        {
+            var match = GZDoomPattern.Match(command);
+
+            if (match.Success)
             {
-                iwad = wad = plugins = string.Empty;
-                return false;
+                port = SourcePort.GZDoom;
+                iwad = StripWadExtension(match.Groups["iwad"].Value);
+                wad = StripWadExtension(match.Groups["wad"].Value);
+                plugins = match.Groups["pluginsPath"].Success
+                    ? Path.GetFileName(match.Groups["pluginsPath"].Value)
+                    : string.Empty;
+                return true;
             }
 
-            iwad = match.Groups["iwad"].Value;
-            wad = match.Groups["wad"].Value;
-            plugins = match.Groups["pluginsPath"].Success
-                ? Path.GetFileName(match.Groups["pluginsPath"].Value)
-                : string.Empty;
+            match = DSDADoomPattern.Match(command);
 
-            return true;
+            if (match.Success)
+            {
+                port = SourcePort.DSDADoom;
+                iwad = StripWadExtension(match.Groups["iwad"].Value);
+                wad = StripWadExtension(match.Groups["wad"].Value);
+                plugins = string.Empty;
+                return true;
+            }
+
+            port = SourcePort.GZDoom;
+            iwad = wad = plugins = string.Empty;
+            return false;
         }
 
         private static bool ContainsQuote(string value) => value.Contains('"');

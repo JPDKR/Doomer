@@ -1,4 +1,4 @@
-using Doomer.Options;
+﻿using Doomer.Options;
 using Doomer.Services;
 
 namespace Doomer.Tests
@@ -87,7 +87,8 @@ namespace Doomer.Tests
         {
             var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Ancient Aliens/aaliens", "smoothed");
 
-            Assert.True(BatchFileService.TryParseCommand(command, out var iwad, out var wad, out var plugins));
+            Assert.True(BatchFileService.TryParseCommand(command, out var port, out var iwad, out var wad, out var plugins));
+            Assert.Equal(SourcePort.GZDoom, port);
             Assert.Equal("wads/doom2", iwad);
             Assert.Equal("wads/Ancient Aliens/aaliens", wad);
             Assert.Equal("smoothed", plugins);
@@ -98,7 +99,7 @@ namespace Doomer.Tests
         {
             var command = BatchFileService.BuildCommand(Settings, "wads/doom2.wad", "aaliens.wad", "");
 
-            Assert.True(BatchFileService.TryParseCommand(command, out var iwad, out var wad, out _));
+            Assert.True(BatchFileService.TryParseCommand(command, out _, out var iwad, out var wad, out _));
             Assert.Equal("wads/doom2", iwad);
             Assert.Equal("aaliens", wad);
         }
@@ -108,17 +109,91 @@ namespace Doomer.Tests
         {
             var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "aaliens", "");
 
-            Assert.True(BatchFileService.TryParseCommand(command, out _, out _, out var plugins));
+            Assert.True(BatchFileService.TryParseCommand(command, out _, out _, out _, out var plugins));
             Assert.Empty(plugins);
         }
 
         [Fact]
         public void TryParseCommand_UnrecognizedFormat_ReturnsFalse()
         {
-            Assert.False(BatchFileService.TryParseCommand("not a gzdoom command", out var iwad, out var wad, out var plugins));
+            Assert.False(BatchFileService.TryParseCommand("not a gzdoom command", out _, out var iwad, out var wad, out var plugins));
             Assert.Empty(iwad);
             Assert.Empty(wad);
             Assert.Empty(plugins);
+        }
+
+        private static readonly DSDADoomSettings DsdaSettings = new() { Location = "E:\\DSDA\\dsda-doom" };
+
+        [Theory]
+        [InlineData("E:\\dsda\\wads\\My House\\myhouse.pk3", "E:\\dsda\\wads\\My House\\myhouse.pk3")]
+        [InlineData("mods/brutal.pk7", "mods/brutal.pk7")]
+        public void EnsureWadExtension_KeepsOtherExtensions(string input, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.EnsureWadExtension(input));
+        }
+
+        [Fact]
+        public void BuildCommand_GZDoom_KeepsPk3Extension()
+        {
+            var settings = new GZDoomSettings { Location = "E:\\GZDoom\\gzdoom", Plugins = "plugins" };
+
+            var command = BatchFileService.BuildCommand(settings, "E:\\dsda\\wads\\doom2", "E:\\dsda\\wads\\My House\\myhouse.pk3", "");
+
+            Assert.Equal(
+                "\"E:\\GZDoom\\gzdoom\" -iwad \"E:\\dsda\\wads\\doom2.wad\" -file \"E:\\dsda\\wads\\My House\\myhouse.pk3\"",
+                command);
+        }
+
+        [Fact]
+        public void BuildCommand_DSDADoom_PassesIWadAndWadPositionally()
+        {
+            var command = BatchFileService.BuildCommand(DsdaSettings, "WadSmoosh/source_wads/tnt", "wads/D.O.O.M\\DrakeRC2");
+
+            Assert.Equal(
+                "\"E:\\DSDA\\dsda-doom\" \"WadSmoosh/source_wads/tnt.wad\" \"wads/D.O.O.M\\DrakeRC2.wad\"",
+                command);
+        }
+
+        [Theory]
+        [InlineData("evil\" -exec calc", "wad")]
+        [InlineData("iwad", "evil\" -exec calc")]
+        public void BuildCommand_DSDADoom_RejectsQuoteCharacters(string iwad, string wad)
+        {
+            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(DsdaSettings, iwad, wad));
+        }
+
+        [Fact]
+        public void TryParseCommand_DSDADoom_RoundTripsBuildCommand()
+        {
+            var command = BatchFileService.BuildCommand(DsdaSettings, "WadSmoosh/source_wads/tnt", "wads/D.O.O.M\\DrakeRC2");
+
+            Assert.True(BatchFileService.TryParseCommand(command, out var port, out var iwad, out var wad, out var plugins));
+            Assert.Equal(SourcePort.DSDADoom, port);
+            Assert.Equal("WadSmoosh/source_wads/tnt", iwad);
+            Assert.Equal("wads/D.O.O.M\\DrakeRC2", wad);
+            Assert.Empty(plugins);
+        }
+
+        [Fact]
+        public void TryParseCommand_DSDADoom_AcceptsUnquotedExecutable()
+        {
+            const string command = "E:\\DSDA\\dsda-doom \"WadSmoosh/source_wads/tnt.wad\" \"wads/D.O.O.M\\DrakeRC2.wad\"";
+
+            Assert.True(BatchFileService.TryParseCommand(command, out var port, out var iwad, out var wad, out _));
+            Assert.Equal(SourcePort.DSDADoom, port);
+            Assert.Equal("WadSmoosh/source_wads/tnt", iwad);
+            Assert.Equal("wads/D.O.O.M\\DrakeRC2", wad);
+        }
+
+        [Fact]
+        public void TryParseCommand_GZDoom_AcceptsUnquotedExecutableAndPk3()
+        {
+            const string command = "E:\\GZDoom\\gzdoom -iwad \"E:\\dsda\\wads\\doom2.wad\" -file \"E:\\dsda\\wads\\My House\\myhouse.pk3\"";
+
+            Assert.True(BatchFileService.TryParseCommand(command, out var port, out var iwad, out var wad, out _));
+            Assert.Equal(SourcePort.GZDoom, port);
+            Assert.Equal("E:\\dsda\\wads\\doom2", iwad);
+            Assert.Equal("E:\\dsda\\wads\\My House\\myhouse.pk3", wad);
         }
     }
 }

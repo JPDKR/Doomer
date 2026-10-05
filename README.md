@@ -96,6 +96,19 @@ To build a distributable installer that doesn't require .NET or Visual Studio on
 
 This publishes a self-contained, single-file build of the app (bundling the .NET runtime) and, if Inno Setup is found, compiles it into `installer\Output\DoomerSetup-<version>.exe`. That single file is all you need to hand out — it installs the app, creates Start Menu/desktop shortcuts, and registers an uninstaller.
 
+## Releasing an update
+
+On startup, Doomer checks the [latest GitHub release](https://github.com/JPDKR/Doomer/releases/latest). If its tag is newer than the installed version, the app offers to update: it downloads the `DoomerSetup-<version>.exe` attached to the release, installs it silently and relaunches. Your settings live in `%AppData%\Doomer`, so updating doesn't touch them.
+
+To publish a new version, push a version tag:
+
+```
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+The `Release` workflow builds the installer for that version and attaches it to a new GitHub release.
+
 ## Roadmap
 
 - [ ] Support multiple WAD/plugin files per batch.

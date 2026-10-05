@@ -23,6 +23,9 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\{#MyAppExeName}
+; Lets the in-app updater replace files while Doomer is still running.
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -40,3 +43,5 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+; Silent installs come from the in-app updater: relaunch the app when it finishes.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifnotsilent runasoriginaluser

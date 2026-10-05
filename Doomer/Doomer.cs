@@ -1,4 +1,5 @@
 using Doomer.Options;
+using Doomer.Services;
 using System.Diagnostics;
 
 namespace Doomer
@@ -55,9 +56,41 @@ namespace Doomer
             lblStatus.ForeColor = MutedColor;
         }
 
-        private void MainForm_Load(object sender, EventArgs e)
+        private async void MainForm_Load(object sender, EventArgs e)
         {
             LoadButtonsBatch();
+            await CheckForUpdateAsync();
+        }
+
+        private async Task CheckForUpdateAsync()
+        {
+            var update = await UpdateService.CheckForUpdateAsync();
+            if (update is null)
+                return;
+
+            var answer = MessageBox.Show(
+                $"A new version of Doomer is available ({update.Version}). You have {UpdateService.CurrentVersion}.\n\nUpdate now?",
+                "Update available", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (answer != DialogResult.Yes)
+                return;
+
+            var previousStatus = lblStatus.Text;
+            try
+            {
+                lblStatus.Text = $"  Downloading Doomer {update.Version}...";
+                UseWaitCursor = true;
+
+                var installerPath = await UpdateService.DownloadInstallerAsync(update);
+                UpdateService.RunInstaller(installerPath);
+                Close();
+            }
+            catch (Exception ex)
+            {
+                UseWaitCursor = false;
+                lblStatus.Text = previousStatus;
+                MessageBox.Show($"The update could not be installed:\n{ex.Message}", "Update failed",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void LoadButtonsBatch(string filter = "")

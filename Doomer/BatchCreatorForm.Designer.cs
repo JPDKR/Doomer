@@ -29,6 +29,9 @@ namespace Doomer
             txtWad = new TextBox();
             btnBrowseWad = new Button();
             txtPlugins = new TextBox();
+            lblImage = new Label();
+            txtImage = new TextBox();
+            btnBrowseImage = new Button();
             btnCreate = new Button();
             SuspendLayout();
             //
@@ -137,12 +140,39 @@ namespace Doomer
             txtPlugins.Size = new Size(380, 27);
             txtPlugins.TabIndex = 11;
             //
+            // lblImage
+            //
+            lblImage.AutoSize = false;
+            lblImage.Location = new Point(8, 196);
+            lblImage.Name = "lblImage";
+            lblImage.Size = new Size(90, 27);
+            lblImage.TabIndex = 12;
+            lblImage.Text = "Image";
+            lblImage.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtImage
+            //
+            txtImage.Location = new Point(106, 196);
+            txtImage.Name = "txtImage";
+            txtImage.ReadOnly = true;
+            txtImage.Size = new Size(296, 27);
+            txtImage.TabIndex = 13;
+            //
+            // btnBrowseImage
+            //
+            btnBrowseImage.Location = new Point(408, 196);
+            btnBrowseImage.Name = "btnBrowseImage";
+            btnBrowseImage.Size = new Size(78, 27);
+            btnBrowseImage.TabIndex = 14;
+            btnBrowseImage.Text = "Browse...";
+            btnBrowseImage.Click += BtnBrowseImage_Click;
+            //
             // btnCreate
             //
-            btnCreate.Location = new Point(246, 204);
+            btnCreate.Location = new Point(246, 240);
             btnCreate.Name = "btnCreate";
             btnCreate.Size = new Size(100, 30);
-            btnCreate.TabIndex = 12;
+            btnCreate.TabIndex = 15;
             btnCreate.Text = "Create";
             btnCreate.UseVisualStyleBackColor = true;
             btnCreate.Click += BtnCreate_Click;
@@ -151,8 +181,11 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(502, 250);
+            ClientSize = new Size(502, 286);
             Controls.Add(btnCreate);
+            Controls.Add(btnBrowseImage);
+            Controls.Add(txtImage);
+            Controls.Add(lblImage);
             Controls.Add(txtPlugins);
             Controls.Add(btnBrowseWad);
             Controls.Add(txtWad);
@@ -190,6 +223,9 @@ namespace Doomer
         private TextBox txtWad;
         private Button btnBrowseWad;
         private TextBox txtPlugins;
+        private Label lblImage;
+        private TextBox txtImage;
+        private Button btnBrowseImage;
         private Button btnCreate;
     }
 }

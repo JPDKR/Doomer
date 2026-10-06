@@ -6,10 +6,12 @@ namespace Doomer
     public partial class BatchCreatorForm : Form
     {
         private const string WadFileFilter = "Doom files|*.wad;*.pk3;*.pk7;*.zip;*.deh;*.bex|All files|*.*";
+        private const string ImageFileFilter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*";
 
         private readonly GZDoomSettings _gzdoomSettings = AppConfiguration.GZDoom;
         private readonly DSDADoomSettings _dsdaDoomSettings = AppConfiguration.DSDADoom;
         private readonly string? _editingFilePath;
+        private bool _hasExistingImage;
 
         public BatchCreatorForm() : this(null) { }
 
@@ -42,6 +44,17 @@ namespace Doomer
             Text = "Edit Batch File";
             btnCreate.Text = "Save";
             txtFileName.Text = Path.GetFileNameWithoutExtension(path);
+
+            // The batch name is fixed once created, and so is its image once it has one.
+            txtFileName.ReadOnly = true;
+            var imagePath = GetImagePath(txtFileName.Text);
+            _hasExistingImage = imagePath is not null && File.Exists(imagePath);
+
+            if (_hasExistingImage)
+            {
+                btnBrowseImage.Enabled = false;
+                txtImage.Text = imagePath;
+            }
 
             string command;
 
@@ -113,6 +126,7 @@ namespace Doomer
             txtFileName.PlaceholderText = "e.g. my-doom-mod";
             txtIWad.PlaceholderText = "e.g. wads/doom2";
             txtWad.PlaceholderText = "e.g. brutal-doom or mods/myhouse.pk3";
+            txtImage.PlaceholderText = "Optional icon for the WAD button";
             UpdatePluginsState();
         }
 
@@ -142,6 +156,69 @@ namespace Doomer
             if (dlg.ShowDialog() == DialogResult.OK)
                 target.Text = BatchFileService.StripWadExtension(dlg.FileName);
         }
+
+        private void BtnBrowseImage_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location))
+            {
+                MessageBox.Show("The images directory isn't configured. Set it in Settings first.",
+                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var dlg = new OpenFileDialog { Title = "Select image", Filter = ImageFileFilter };
+
+            if (dlg.ShowDialog() != DialogResult.OK)
+                return;
+
+            try
+            {
+                using var _ = Image.FromFile(dlg.FileName);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("The selected file isn't a valid image.", "Batch creation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            txtImage.Text = dlg.FileName;
+        }
+
+        private string? GetImagePath(string name) =>
+            string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location)
+                ? null
+                : Path.Combine(_gzdoomSettings.Images.Location, name + _gzdoomSettings.Images.Extension);
+
+        // Moves the picked image into the images folder named after the WAD. If its format
+        // differs from the configured extension, it's re-encoded so the icon loads correctly.
+        private static void MoveImage(string source, string destination)
+        {
+            if (string.Equals(Path.GetFullPath(source), Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var sourceExt = Path.GetExtension(source);
+            var destExt = Path.GetExtension(destination);
+
+            if (string.Equals(sourceExt, destExt, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Move(source, destination, overwrite: true);
+                return;
+            }
+
+            using (var img = Image.FromFile(source))
+                img.Save(destination, GetImageFormat(destExt));
+
+            File.Delete(source);
+        }
+
+        private static System.Drawing.Imaging.ImageFormat GetImageFormat(string extension) => extension.ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => System.Drawing.Imaging.ImageFormat.Jpeg,
+            ".bmp" => System.Drawing.Imaging.ImageFormat.Bmp,
+            ".gif" => System.Drawing.Imaging.ImageFormat.Gif,
+            _ => System.Drawing.Imaging.ImageFormat.Png
+        };
 
         private static bool ConfirmPathIfMissing(string label, string path)
         {
@@ -205,11 +282,30 @@ namespace Doomer
                 return;
             }
 
-            var path = Path.Combine(_gzdoomSettings.Batchs.Location, fileName + _gzdoomSettings.Batchs.Extension);
-            var isRename = _editingFilePath is not null &&
-                !string.Equals(Path.GetFullPath(_editingFilePath), Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase);
+            var path = _editingFilePath ?? Path.Combine(_gzdoomSettings.Batchs.Location, fileName + _gzdoomSettings.Batchs.Extension);
 
-            if (File.Exists(path) && (_editingFilePath is null || isRename))
+            // An existing image is never replaced; one can only be added if the batch has none yet.
+            var imageSource = _hasExistingImage ? string.Empty : txtImage.Text.Trim();
+            var imageDestination = string.IsNullOrEmpty(imageSource) ? null : GetImagePath(fileName);
+
+            if (!string.IsNullOrEmpty(imageSource))
+            {
+                if (imageDestination is null || !Directory.Exists(_gzdoomSettings.Images.Location))
+                {
+                    MessageBox.Show($"Images directory not found:\n{_gzdoomSettings.Images.Location}\n\nFix it in Settings first.",
+                        "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (!File.Exists(imageSource))
+                {
+                    MessageBox.Show($"Image file not found:\n{imageSource}", "Batch creation",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
+            if (File.Exists(path) && _editingFilePath is null)
             {
                 var overwrite = MessageBox.Show(
                     $"A batch file named \"{fileName}\" already exists. Overwrite it?",
@@ -222,19 +318,33 @@ namespace Doomer
             try
             {
                 File.WriteAllText(path, command);
-
-                if (isRename)
-                    File.Delete(_editingFilePath!);
-
-                MessageBox.Show(_editingFilePath is null ? "Batch created successfully." : "Batch updated successfully.",
-                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error saving the batch: " + ex.Message, "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
+
+            var imageMoved = true;
+
+            try
+            {
+                if (imageDestination is not null)
+                    MoveImage(imageSource, imageDestination);
+            }
+            catch (Exception ex)
+            {
+                imageMoved = false;
+                MessageBox.Show("The batch was saved, but the image couldn't be moved: " + ex.Message,
+                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            if (imageMoved)
+                MessageBox.Show(_editingFilePath is null ? "Batch created successfully." : "Batch updated successfully.",
+                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            DialogResult = DialogResult.OK;
+            Close();
         }
     }
 }

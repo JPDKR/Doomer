@@ -33,6 +33,22 @@ namespace Doomer
                 LoadExistingBatch(_editingFilePath);
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            // TextBoxes size their height to the font after DPI scaling, so match the buttons at runtime.
+            AlignToTextBox(btnBrowseIWad, txtIWad);
+            AlignToTextBox(btnBrowseWad, txtWad);
+            AlignToTextBox(btnBrowseImage, txtImage);
+        }
+
+        private static void AlignToTextBox(Button button, TextBox textBox)
+        {
+            button.Top = textBox.Top;
+            button.Height = textBox.Height;
+        }
+
         private SourcePort SelectedPort
         {
             get => (SourcePort)cmbSourcePort.SelectedIndex;

@@ -34,6 +34,7 @@ namespace Doomer
             txtBatchsExtension.Text = gzdoom.Batchs.Extension;
             txtImagesLocation.Text = gzdoom.Images.Location;
             txtImagesExtension.Text = gzdoom.Images.Extension;
+            txtWadsLocation.Text = gzdoom.Wads.Location;
 
             nudWidth.Value = Math.Clamp(icons.Width, (int)nudWidth.Minimum, (int)nudWidth.Maximum);
             nudHeight.Value = Math.Clamp(icons.Height, (int)nudHeight.Minimum, (int)nudHeight.Maximum);
@@ -57,6 +58,10 @@ namespace Doomer
                     {
                         Location = txtImagesLocation.Text.Trim(),
                         Extension = txtImagesExtension.Text.Trim()
+                    },
+                    Wads = new WadSettings
+                    {
+                        Location = txtWadsLocation.Text.Trim()
                     }
                 },
                 DSDADoom = new DSDADoomSettings
@@ -162,6 +167,11 @@ namespace Doomer
             BrowseFolder(txtImagesLocation, "Select images directory");
         }
 
+        private void BtnBrowseWads_Click(object sender, EventArgs e)
+        {
+            BrowseFolder(txtWadsLocation, "Select WADs directory");
+        }
+
         private void BrowseFolder(TextBox target, string description)
         {
             using var dlg = new FolderBrowserDialog { Description = description, UseDescriptionForTitle = true };
@@ -180,6 +190,7 @@ namespace Doomer
             var dsdaDoomLocation = txtDSDADoomLocation.Text.Trim();
             var batchsLocation = txtBatchsLocation.Text.Trim();
             var imagesLocation = txtImagesLocation.Text.Trim();
+            var wadsLocation = txtWadsLocation.Text.Trim();
 
             if ((string.IsNullOrWhiteSpace(gzdoomLocation) && string.IsNullOrWhiteSpace(dsdaDoomLocation)) ||
                 string.IsNullOrWhiteSpace(batchsLocation))
@@ -206,6 +217,13 @@ namespace Doomer
             if (!Directory.Exists(batchsLocation))
             {
                 MessageBox.Show($"Batch files directory not found:\n{batchsLocation}", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(wadsLocation) && !Directory.Exists(wadsLocation))
+            {
+                MessageBox.Show($"WADs directory not found:\n{wadsLocation}", "Validation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }

@@ -60,6 +60,9 @@ namespace Doomer.Options
                 "Images": {
                   "Location": "",
                   "Extension": ".png"
+                },
+                "Wads": {
+                  "Location": ""
                 }
               },
               "DSDADoom": {
@@ -87,6 +90,8 @@ namespace Doomer.Options
         public string Plugins { get; set; } = default!;
         public BatchSettings Batchs { get; set; } = new();
         public ImageSettings Images { get; set; } = new();
+        // Older config files have no Wads section, so it falls back to an empty location.
+        public WadSettings Wads { get; set; } = new();
     }
 
     public class DSDADoomSettings
@@ -104,6 +109,11 @@ namespace Doomer.Options
     {
         public string Location { get; set; } = default!;
         public string Extension { get; set; } = default!;
+    }
+
+    public class WadSettings
+    {
+        public string Location { get; set; } = string.Empty;
     }
 
     public class IconsSettings

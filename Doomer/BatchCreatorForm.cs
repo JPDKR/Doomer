@@ -284,6 +284,34 @@ namespace Doomer
                 return;
             }
 
+            // A WAD outside the WADs directory gets moved into it, and the batch points to its new location.
+            var wadSource = BatchFileService.EnsureWadExtension(wadFile);
+            var wadDestination = File.Exists(wadSource)
+                ? BatchFileService.GetWadDestination(wadSource, _gzdoomSettings.Wads.Location)
+                : null;
+
+            if (wadDestination is not null)
+            {
+                if (!Directory.Exists(_gzdoomSettings.Wads.Location))
+                {
+                    MessageBox.Show($"WADs directory not found:\n{_gzdoomSettings.Wads.Location}\n\nFix it in Settings first.",
+                        "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (File.Exists(wadDestination))
+                {
+                    var replace = MessageBox.Show(
+                        $"A WAD named \"{Path.GetFileName(wadDestination)}\" already exists in the WADs directory. Replace it?",
+                        "Batch creation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                    if (replace != DialogResult.Yes)
+                        return;
+                }
+
+                wadFile = BatchFileService.StripWadExtension(wadDestination);
+            }
+
             string command;
 
             try
@@ -329,6 +357,22 @@ namespace Doomer
 
                 if (overwrite != DialogResult.Yes)
                     return;
+            }
+
+            if (wadDestination is not null)
+            {
+                try
+                {
+                    File.Move(wadSource, wadDestination, overwrite: true);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error moving the WAD to the WADs directory: " + ex.Message, "Batch creation",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                txtWad.Text = wadFile;
             }
 
             try

@@ -57,6 +57,25 @@ namespace Doomer.Tests
             Assert.Equal(expected, BatchFileService.EnsureWadExtension(input));
         }
 
+        [Theory]
+        [InlineData("C:\\Downloads\\aaliens.wad", "E:\\dsda\\wads", "E:\\dsda\\wads\\aaliens.wad")]
+        [InlineData("C:\\Downloads\\myhouse.pk3", "E:\\dsda\\wads\\", "E:\\dsda\\wads\\myhouse.pk3")]
+        [InlineData("E:\\dsda\\wads-old\\aaliens.wad", "E:\\dsda\\wads", "E:\\dsda\\wads\\aaliens.wad")]
+        public void GetWadDestination_MovesIntoWadsDirectory(string wad, string wadsDirectory, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.GetWadDestination(wad, wadsDirectory));
+        }
+
+        [Theory]
+        [InlineData("E:\\dsda\\wads\\aaliens.wad", "E:\\dsda\\wads")]
+        [InlineData("E:\\DSDA\\Wads\\Ancient Aliens\\aaliens.wad", "E:\\dsda\\wads")]
+        [InlineData("wads/aaliens.wad", "E:\\dsda\\wads")]
+        [InlineData("C:\\Downloads\\aaliens.wad", "")]
+        public void GetWadDestination_ReturnsNullWhenNothingToMove(string wad, string wadsDirectory)
+        {
+            Assert.Null(BatchFileService.GetWadDestination(wad, wadsDirectory));
+        }
+
         [Fact]
         public void BuildCommand_AppendsPluginsWhenProvided()
         {

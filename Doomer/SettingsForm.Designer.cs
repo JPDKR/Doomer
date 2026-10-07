@@ -39,6 +39,10 @@
             btnBrowseImages = new Button();
             lblImagesExtension = new Label();
             txtImagesExtension = new TextBox();
+            grpWads = new GroupBox();
+            lblWadsLocation = new Label();
+            txtWadsLocation = new TextBox();
+            btnBrowseWads = new Button();
             grpIcons = new GroupBox();
             lblIconsWidth = new Label();
             nudWidth = new NumericUpDown();
@@ -52,6 +56,7 @@
             grpDSDADoom.SuspendLayout();
             grpBatchs.SuspendLayout();
             grpImages.SuspendLayout();
+            grpWads.SuspendLayout();
             grpIcons.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudWidth).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudHeight).BeginInit();
@@ -260,6 +265,43 @@
             txtImagesExtension.Size = new Size(100, 27);
             txtImagesExtension.TabIndex = 8;
             //
+            // grpWads
+            //
+            grpWads.Controls.Add(lblWadsLocation);
+            grpWads.Controls.Add(txtWadsLocation);
+            grpWads.Controls.Add(btnBrowseWads);
+            grpWads.Location = new Point(8, 404);
+            grpWads.Name = "grpWads";
+            grpWads.Size = new Size(524, 64);
+            grpWads.TabIndex = 4;
+            grpWads.TabStop = false;
+            grpWads.Text = "Wads";
+            //
+            // lblWadsLocation
+            //
+            lblWadsLocation.AutoSize = false;
+            lblWadsLocation.Location = new Point(8, 22);
+            lblWadsLocation.Name = "lblWadsLocation";
+            lblWadsLocation.Size = new Size(85, 27);
+            lblWadsLocation.Text = "Directory";
+            lblWadsLocation.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtWadsLocation
+            //
+            txtWadsLocation.Location = new Point(98, 22);
+            txtWadsLocation.Name = "txtWadsLocation";
+            txtWadsLocation.Size = new Size(308, 27);
+            txtWadsLocation.TabIndex = 0;
+            //
+            // btnBrowseWads
+            //
+            btnBrowseWads.Location = new Point(412, 22);
+            btnBrowseWads.Name = "btnBrowseWads";
+            btnBrowseWads.Size = new Size(90, 27);
+            btnBrowseWads.TabIndex = 1;
+            btnBrowseWads.Text = "Browse...";
+            btnBrowseWads.Click += BtnBrowseWads_Click;
+            //
             // grpIcons
             //
             grpIcons.Controls.Add(lblIconsWidth);
@@ -268,10 +310,10 @@
             grpIcons.Controls.Add(nudHeight);
             grpIcons.Controls.Add(lblIconsPadding);
             grpIcons.Controls.Add(nudPadding);
-            grpIcons.Location = new Point(8, 404);
+            grpIcons.Location = new Point(8, 476);
             grpIcons.Name = "grpIcons";
             grpIcons.Size = new Size(524, 66);
-            grpIcons.TabIndex = 4;
+            grpIcons.TabIndex = 5;
             grpIcons.TabStop = false;
             grpIcons.Text = "Icons";
             //
@@ -333,7 +375,7 @@
             //
             // btnCancel
             //
-            btnCancel.Location = new Point(346, 484);
+            btnCancel.Location = new Point(346, 556);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(90, 30);
             btnCancel.TabIndex = 12;
@@ -342,7 +384,7 @@
             //
             // btnSave
             //
-            btnSave.Location = new Point(442, 484);
+            btnSave.Location = new Point(442, 556);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(90, 30);
             btnSave.TabIndex = 13;
@@ -353,11 +395,12 @@
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(540, 526);
+            ClientSize = new Size(540, 598);
             Controls.Add(grpGZDoom);
             Controls.Add(grpDSDADoom);
             Controls.Add(grpBatchs);
             Controls.Add(grpImages);
+            Controls.Add(grpWads);
             Controls.Add(grpIcons);
             Controls.Add(btnCancel);
             Controls.Add(btnSave);
@@ -372,6 +415,7 @@
             grpDSDADoom.ResumeLayout(false);
             grpBatchs.ResumeLayout(false);
             grpImages.ResumeLayout(false);
+            grpWads.ResumeLayout(false);
             grpIcons.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)nudWidth).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudHeight).EndInit();
@@ -403,6 +447,10 @@
         private Button btnBrowseImages;
         private Label lblImagesExtension;
         private TextBox txtImagesExtension;
+        private GroupBox grpWads;
+        private Label lblWadsLocation;
+        private TextBox txtWadsLocation;
+        private Button btnBrowseWads;
         private GroupBox grpIcons;
         private Label lblIconsWidth;
         private NumericUpDown nudWidth;

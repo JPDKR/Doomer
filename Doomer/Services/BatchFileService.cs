@@ -36,6 +36,21 @@ namespace Doomer.Services
         public static string StripWadExtension(string path) =>
             path.EndsWith(WadExtension, StringComparison.OrdinalIgnoreCase) ? path[..^WadExtension.Length] : path;
 
+        // Where a WAD should be moved inside the WADs directory, or null when it's already in it
+        // (subfolders included) or isn't an absolute path we can locate.
+        public static string? GetWadDestination(string wadFile, string wadsDirectory)
+        {
+            if (!Path.IsPathRooted(wadFile) || string.IsNullOrWhiteSpace(wadsDirectory))
+                return null;
+
+            var source = Path.GetFullPath(wadFile);
+            var directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(wadsDirectory)) + Path.DirectorySeparatorChar;
+
+            return source.StartsWith(directory, StringComparison.OrdinalIgnoreCase)
+                ? null
+                : Path.Combine(directory, Path.GetFileName(source));
+        }
+
         public static bool IsValidFileName(string fileName, out string error)
         {
             if (string.IsNullOrWhiteSpace(fileName))

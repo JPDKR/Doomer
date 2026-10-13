@@ -48,6 +48,7 @@ namespace Doomer
             menuStrip1.Items.AddRange(new ToolStripItem[] { addBatchFileToolStripMenuItem, refreshListToolStripMenuItem, settingsToolStripMenuItem, txtSearch });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
+            menuStrip1.ShowItemToolTips = true;
             menuStrip1.Padding = new Padding(5, 2, 0, 2);
             menuStrip1.Size = new Size(908, 27);
             menuStrip1.TabIndex = 1;
@@ -70,8 +71,11 @@ namespace Doomer
             // settingsToolStripMenuItem
             //
             settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            settingsToolStripMenuItem.Size = new Size(61, 23);
-            settingsToolStripMenuItem.Text = "Settings";
+            settingsToolStripMenuItem.AccessibleName = "Settings";
+            settingsToolStripMenuItem.Font = new Font("Segoe MDL2 Assets", 11F);
+            settingsToolStripMenuItem.Size = new Size(32, 23);
+            settingsToolStripMenuItem.Text = "\uE713"; // Gear glyph
+            settingsToolStripMenuItem.ToolTipText = "Settings";
             settingsToolStripMenuItem.Click += SettingsToolStripMenuItem_Click;
             //
             // txtSearch

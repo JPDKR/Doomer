@@ -135,7 +135,7 @@ namespace Doomer
             foreach (var file in files)
             {
                 string baseName = Path.GetFileNameWithoutExtension(file);
-                string iconPath = Path.Combine(_gzdoomSettings.Images.Location, baseName + _gzdoomSettings.Images.Extension);
+                string iconPath = BatchFileService.GetImagePath(file, _gzdoomSettings.Images);
 
                 Button boton = new()
                 {
@@ -213,7 +213,7 @@ namespace Doomer
         private void DeleteBatch(string filePath)
         {
             var name = Path.GetFileNameWithoutExtension(filePath);
-            var imagePath = Path.Combine(_gzdoomSettings.Images.Location, name + _gzdoomSettings.Images.Extension);
+            var imagePath = BatchFileService.GetImagePath(filePath, _gzdoomSettings.Images);
 
             var confirm = MessageBox.Show(
                 $"Delete \"{name}\"? This will also remove its icon image, if any. This cannot be undone.",

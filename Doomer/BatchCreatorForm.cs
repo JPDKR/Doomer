@@ -63,12 +63,13 @@ namespace Doomer
 
             // The batch name is fixed once created, and so is its image once it has one.
             txtFileName.ReadOnly = true;
-            var imagePath = GetImagePath(txtFileName.Text);
+            var imagePath = GetImagePath(path);
             _hasExistingImage = imagePath is not null && File.Exists(imagePath);
 
             if (_hasExistingImage)
             {
                 btnBrowseImage.Enabled = false;
+                txtImage.ReadOnly = true;
                 txtImage.Text = imagePath;
             }
 
@@ -142,7 +143,7 @@ namespace Doomer
             txtFileName.PlaceholderText = "e.g. my-doom-mod";
             txtIWad.PlaceholderText = "e.g. wads/doom2";
             txtWad.PlaceholderText = "e.g. brutal-doom or mods/myhouse.pk3";
-            txtImage.PlaceholderText = "Optional icon for the WAD button";
+            txtImage.PlaceholderText = "Optional icon: Browse..., an image URL, or Ctrl+V a copied image";
             UpdatePluginsState();
         }
 
@@ -173,6 +174,118 @@ namespace Doomer
                 target.Text = BatchFileService.StripWadExtension(dlg.FileName);
         }
 
+        // Extracts a downloaded archive into its own folder in the WADs directory and fills
+        // in the WAD (and the file name, for a new batch) from what's inside.
+        private async void BtnFromArchive_Click(object sender, EventArgs e)
+        {
+            var wadsLocation = _gzdoomSettings.Wads.Location;
+
+            if (string.IsNullOrWhiteSpace(wadsLocation) || !Directory.Exists(wadsLocation))
+            {
+                MessageBox.Show($"WADs directory not found:\n{wadsLocation}\n\nFix it in Settings first.",
+                    "Extract archive", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var dlg = new OpenFileDialog { Title = "Select archive", Filter = ArchiveService.FileFilter };
+
+            if (dlg.ShowDialog() != DialogResult.OK)
+                return;
+
+            var folderName = AskForWadName(ArchiveService.GetFolderName(dlg.FileName));
+
+            if (folderName is null)
+                return;
+
+            var destination = Path.Combine(wadsLocation, folderName);
+
+            if (Directory.Exists(destination) && Directory.EnumerateFileSystemEntries(destination).Any())
+            {
+                var proceed = MessageBox.Show(
+                    $"The folder \"{folderName}\" already exists in the WADs directory. Extract anyway, overwriting files with the same name?",
+                    "Extract archive", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                if (proceed != DialogResult.Yes)
+                    return;
+            }
+
+            List<string> files;
+            Enabled = false;
+            UseWaitCursor = true;
+
+            try
+            {
+                files = await Task.Run(() => ArchiveService.Extract(dlg.FileName, destination));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error extracting the archive: " + ex.Message, "Extract archive",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            finally
+            {
+                UseWaitCursor = false;
+                Enabled = true;
+            }
+
+            var wad = PickWad(ArchiveService.FindWadCandidates(files), destination);
+
+            if (wad is null)
+                return;
+
+            txtWad.Text = BatchFileService.StripWadExtension(wad);
+
+            if (!txtFileName.ReadOnly)
+                txtFileName.Text = folderName;
+        }
+
+        // Lets the user keep the name taken from the archive or type another one, until it's valid.
+        // Returns null if they cancel.
+        private string? AskForWadName(string suggestion)
+        {
+            var prompt = txtFileName.ReadOnly ? "Name of the WAD's folder:" : "Name of the WAD's folder and batch file:";
+            var name = suggestion;
+
+            while (true)
+            {
+                using var dlg = new NamePromptForm("Extract archive", prompt, name);
+
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return null;
+
+                // Windows drops trailing dots and spaces from folder names, so do it up front.
+                name = dlg.EnteredName.TrimEnd('.', ' ');
+
+                if (BatchFileService.IsValidFileName(name, out var error))
+                    return name;
+
+                MessageBox.Show(error, "Extract archive", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private static string? PickWad(List<string> candidates, string folder)
+        {
+            if (candidates.Count == 1)
+                return candidates[0];
+
+            if (candidates.Count == 0)
+            {
+                MessageBox.Show($"The archive was extracted to:\n{folder}\n\nbut no .wad, .pk3 or .pk7 file was found in it. Pick the WAD manually.",
+                    "Extract archive", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return null;
+            }
+
+            using var dlg = new OpenFileDialog
+            {
+                Title = "The archive has several WADs — select the one to launch",
+                Filter = WadFileFilter,
+                InitialDirectory = folder
+            };
+
+            return dlg.ShowDialog() == DialogResult.OK ? dlg.FileName : null;
+        }
+
         private void BtnBrowseImage_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location))
@@ -187,11 +300,7 @@ namespace Doomer
             if (dlg.ShowDialog() != DialogResult.OK)
                 return;
 
-            try
-            {
-                using var _ = Image.FromFile(dlg.FileName);
-            }
-            catch (Exception)
+            if (!IsValidImage(dlg.FileName))
             {
                 MessageBox.Show("The selected file isn't a valid image.", "Batch creation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -201,10 +310,110 @@ namespace Doomer
             txtImage.Text = dlg.FileName;
         }
 
-        private string? GetImagePath(string name) =>
+        // Ctrl+V with a copied image (e.g. "Copy image" in a browser) saves it to a temp file and uses that.
+        // Sites like Doom Wiki block downloads from apps, but the browser has already fetched the image.
+        private void TxtImage_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (txtImage.ReadOnly || !e.Control || e.KeyCode != Keys.V || !Clipboard.ContainsImage())
+                return;
+
+            e.SuppressKeyPress = true;
+
+            using var image = GetClipboardImage();
+
+            if (image is null)
+            {
+                MessageBox.Show("Couldn't read the image from the clipboard.", "Batch creation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var path = Path.Combine(Path.GetTempPath(), $"Doomer-pasted-{Guid.NewGuid():N}.png");
+
+            try
+            {
+                image.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Couldn't save the pasted image: " + ex.Message, "Batch creation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            txtImage.Text = path;
+        }
+
+        // Browsers also put a PNG copy on the clipboard, which keeps transparency; the plain bitmap one doesn't.
+        private static Image? GetClipboardImage()
+        {
+            if (Clipboard.TryGetData<MemoryStream>("PNG", out var png))
+            {
+                try
+                {
+                    using (png)
+                    using (var image = Image.FromStream(png))
+                        return new Bitmap(image);
+                }
+                catch (Exception)
+                {
+                    // Fall back to the bitmap copy below.
+                }
+            }
+
+            return Clipboard.GetImage();
+        }
+
+        private static bool IsValidImage(string path)
+        {
+            try
+            {
+                using var _ = Image.FromFile(path);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        // Downloads the image at url to a temp file, or returns null (after telling the user why) if it fails.
+        private async Task<string?> DownloadImageAsync(string url)
+        {
+            string path;
+            Enabled = false;
+            UseWaitCursor = true;
+
+            try
+            {
+                path = await ImageDownloadService.DownloadAsync(url);
+            }
+            catch (Exception ex)
+            {
+                var message = ex is TaskCanceledException ? "The download timed out." : ex.Message;
+                MessageBox.Show("Couldn't download the image:\n" + message, "Batch creation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return null;
+            }
+            finally
+            {
+                UseWaitCursor = false;
+                Enabled = true;
+            }
+
+            if (IsValidImage(path))
+                return path;
+
+            File.Delete(path);
+            MessageBox.Show("The URL doesn't point to a valid image. Make sure it's the image itself (right-click it > Copy image address), not the page it's on.",
+                "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return null;
+        }
+
+        private string? GetImagePath(string batchPath) =>
             string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location)
                 ? null
-                : Path.Combine(_gzdoomSettings.Images.Location, name + _gzdoomSettings.Images.Extension);
+                : BatchFileService.GetImagePath(batchPath, _gzdoomSettings.Images);
 
         // Moves the picked image into the images folder named after the WAD. If its format
         // differs from the configured extension, it's re-encoded so the icon loads correctly.
@@ -248,7 +457,7 @@ namespace Doomer
             return proceed == DialogResult.Yes;
         }
 
-        private void BtnCreate_Click(object sender, EventArgs e)
+        private async void BtnCreate_Click(object sender, EventArgs e)
         {
             var port = SelectedPort;
             var iwad = txtIWad.Text.Trim();
@@ -330,7 +539,8 @@ namespace Doomer
 
             // An existing image is never replaced; one can only be added if the batch has none yet.
             var imageSource = _hasExistingImage ? string.Empty : txtImage.Text.Trim();
-            var imageDestination = string.IsNullOrEmpty(imageSource) ? null : GetImagePath(fileName);
+            // Named from the batch's own path, so the icon always matches the batch file.
+            var imageDestination = string.IsNullOrEmpty(imageSource) ? null : GetImagePath(path);
 
             if (!string.IsNullOrEmpty(imageSource))
             {
@@ -341,9 +551,16 @@ namespace Doomer
                     return;
                 }
 
-                if (!File.Exists(imageSource))
+                if (!ImageDownloadService.IsUrl(imageSource) && !File.Exists(imageSource))
                 {
                     MessageBox.Show($"Image file not found:\n{imageSource}", "Batch creation",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (!ImageDownloadService.IsUrl(imageSource) && !IsValidImage(imageSource))
+                {
+                    MessageBox.Show($"The image file isn't a valid image:\n{imageSource}", "Batch creation",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -357,6 +574,17 @@ namespace Doomer
 
                 if (overwrite != DialogResult.Yes)
                     return;
+            }
+
+            // Downloaded last, once everything else is checked, so nothing is saved if it fails.
+            if (ImageDownloadService.IsUrl(imageSource))
+            {
+                var downloaded = await DownloadImageAsync(imageSource);
+
+                if (downloaded is null)
+                    return;
+
+                imageSource = downloaded;
             }
 
             if (wadDestination is not null)

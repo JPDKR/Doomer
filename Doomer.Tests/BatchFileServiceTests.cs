@@ -31,6 +31,17 @@ namespace Doomer.Tests
             Assert.NotEmpty(error);
         }
 
+        [Theory]
+        [InlineData("D:\\batchs\\Sunlust.bat", "D:\\pics\\Sunlust.png")]
+        [InlineData("D:\\batchs\\D.O.O.M.bat", "D:\\pics\\D.O.O.M.png")]
+        [InlineData("D:\\batchs\\Ancient Aliens .bat", "D:\\pics\\Ancient Aliens .png")]
+        public void GetImagePath_UsesTheBatchFileNameAsIs(string batchPath, string expected)
+        {
+            var images = new ImageSettings { Location = "D:\\pics", Extension = ".png" };
+
+            Assert.Equal(expected, BatchFileService.GetImagePath(batchPath, images));
+        }
+
         [Fact]
         public void IsValidFileName_AcceptsNormalName()
         {

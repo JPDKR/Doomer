@@ -51,6 +51,11 @@ namespace Doomer.Services
                 : Path.Combine(directory, Path.GetFileName(source));
         }
 
+        // A batch's icon is the image named exactly like the batch file. Both the main window and the
+        // batch form go through here, so a saved image is always the one the button looks for.
+        public static string GetImagePath(string batchPath, ImageSettings images) =>
+            Path.Combine(images.Location, Path.GetFileNameWithoutExtension(batchPath) + images.Extension);
+
         public static bool IsValidFileName(string fileName, out string error)
         {
             if (string.IsNullOrWhiteSpace(fileName))

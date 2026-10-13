@@ -23,6 +23,9 @@ namespace Doomer
             lblWad = new Label();
             lblPlugins = new Label();
             txtFileName = new TextBox();
+            btnFromArchive = new Button();
+            lblFromArchive = new Label();
+            lblArchiveSeparator = new Label();
             cmbSourcePort = new ComboBox();
             txtIWad = new TextBox();
             btnBrowseIWad = new Button();
@@ -35,10 +38,38 @@ namespace Doomer
             btnCreate = new Button();
             SuspendLayout();
             //
+            // btnFromArchive
+            //
+            btnFromArchive.Location = new Point(8, 14);
+            btnFromArchive.Name = "btnFromArchive";
+            btnFromArchive.Size = new Size(150, 30);
+            btnFromArchive.TabIndex = 16;
+            btnFromArchive.Text = "From archive...";
+            btnFromArchive.Click += BtnFromArchive_Click;
+            //
+            // lblFromArchive
+            //
+            lblFromArchive.AutoSize = false;
+            lblFromArchive.Location = new Point(166, 14);
+            lblFromArchive.Name = "lblFromArchive";
+            lblFromArchive.Size = new Size(320, 30);
+            lblFromArchive.TabIndex = 17;
+            lblFromArchive.Text = "Fill in the form from a .zip, .rar or .7z";
+            lblFromArchive.TextAlign = ContentAlignment.MiddleLeft;
+            //
+            // lblArchiveSeparator
+            //
+            lblArchiveSeparator.AutoSize = false;
+            lblArchiveSeparator.BackColor = Color.FromArgb(60, 60, 60);
+            lblArchiveSeparator.Location = new Point(8, 58);
+            lblArchiveSeparator.Name = "lblArchiveSeparator";
+            lblArchiveSeparator.Size = new Size(478, 1);
+            lblArchiveSeparator.TabIndex = 18;
+            //
             // lblFileName
             //
             lblFileName.AutoSize = false;
-            lblFileName.Location = new Point(8, 16);
+            lblFileName.Location = new Point(8, 78);
             lblFileName.Name = "lblFileName";
             lblFileName.Size = new Size(90, 27);
             lblFileName.TabIndex = 0;
@@ -48,7 +79,7 @@ namespace Doomer
             // lblSourcePort
             //
             lblSourcePort.AutoSize = false;
-            lblSourcePort.Location = new Point(8, 52);
+            lblSourcePort.Location = new Point(8, 114);
             lblSourcePort.Name = "lblSourcePort";
             lblSourcePort.Size = new Size(90, 27);
             lblSourcePort.TabIndex = 1;
@@ -58,7 +89,7 @@ namespace Doomer
             // lblIWad
             //
             lblIWad.AutoSize = false;
-            lblIWad.Location = new Point(8, 88);
+            lblIWad.Location = new Point(8, 150);
             lblIWad.Name = "lblIWad";
             lblIWad.Size = new Size(90, 27);
             lblIWad.TabIndex = 2;
@@ -68,7 +99,7 @@ namespace Doomer
             // lblWad
             //
             lblWad.AutoSize = false;
-            lblWad.Location = new Point(8, 124);
+            lblWad.Location = new Point(8, 186);
             lblWad.Name = "lblWad";
             lblWad.Size = new Size(90, 27);
             lblWad.TabIndex = 3;
@@ -78,7 +109,7 @@ namespace Doomer
             // lblPlugins
             //
             lblPlugins.AutoSize = false;
-            lblPlugins.Location = new Point(8, 160);
+            lblPlugins.Location = new Point(8, 222);
             lblPlugins.Name = "lblPlugins";
             lblPlugins.Size = new Size(90, 27);
             lblPlugins.TabIndex = 4;
@@ -87,7 +118,7 @@ namespace Doomer
             //
             // txtFileName
             //
-            txtFileName.Location = new Point(106, 16);
+            txtFileName.Location = new Point(106, 78);
             txtFileName.Name = "txtFileName";
             txtFileName.Size = new Size(380, 27);
             txtFileName.TabIndex = 5;
@@ -95,7 +126,7 @@ namespace Doomer
             // cmbSourcePort
             //
             cmbSourcePort.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbSourcePort.Location = new Point(106, 52);
+            cmbSourcePort.Location = new Point(106, 114);
             cmbSourcePort.Name = "cmbSourcePort";
             cmbSourcePort.Size = new Size(180, 28);
             cmbSourcePort.TabIndex = 6;
@@ -103,14 +134,14 @@ namespace Doomer
             //
             // txtIWad
             //
-            txtIWad.Location = new Point(106, 88);
+            txtIWad.Location = new Point(106, 150);
             txtIWad.Name = "txtIWad";
             txtIWad.Size = new Size(296, 27);
             txtIWad.TabIndex = 7;
             //
             // btnBrowseIWad
             //
-            btnBrowseIWad.Location = new Point(408, 88);
+            btnBrowseIWad.Location = new Point(408, 150);
             btnBrowseIWad.Name = "btnBrowseIWad";
             btnBrowseIWad.Size = new Size(78, 27);
             btnBrowseIWad.TabIndex = 8;
@@ -119,14 +150,14 @@ namespace Doomer
             //
             // txtWad
             //
-            txtWad.Location = new Point(106, 124);
+            txtWad.Location = new Point(106, 186);
             txtWad.Name = "txtWad";
             txtWad.Size = new Size(296, 27);
             txtWad.TabIndex = 9;
             //
             // btnBrowseWad
             //
-            btnBrowseWad.Location = new Point(408, 124);
+            btnBrowseWad.Location = new Point(408, 186);
             btnBrowseWad.Name = "btnBrowseWad";
             btnBrowseWad.Size = new Size(78, 27);
             btnBrowseWad.TabIndex = 10;
@@ -135,7 +166,7 @@ namespace Doomer
             //
             // txtPlugins
             //
-            txtPlugins.Location = new Point(106, 160);
+            txtPlugins.Location = new Point(106, 222);
             txtPlugins.Name = "txtPlugins";
             txtPlugins.Size = new Size(380, 27);
             txtPlugins.TabIndex = 11;
@@ -143,7 +174,7 @@ namespace Doomer
             // lblImage
             //
             lblImage.AutoSize = false;
-            lblImage.Location = new Point(8, 196);
+            lblImage.Location = new Point(8, 258);
             lblImage.Name = "lblImage";
             lblImage.Size = new Size(90, 27);
             lblImage.TabIndex = 12;
@@ -152,15 +183,15 @@ namespace Doomer
             //
             // txtImage
             //
-            txtImage.Location = new Point(106, 196);
+            txtImage.Location = new Point(106, 258);
             txtImage.Name = "txtImage";
-            txtImage.ReadOnly = true;
             txtImage.Size = new Size(296, 27);
             txtImage.TabIndex = 13;
+            txtImage.KeyDown += TxtImage_KeyDown;
             //
             // btnBrowseImage
             //
-            btnBrowseImage.Location = new Point(408, 196);
+            btnBrowseImage.Location = new Point(408, 258);
             btnBrowseImage.Name = "btnBrowseImage";
             btnBrowseImage.Size = new Size(78, 27);
             btnBrowseImage.TabIndex = 14;
@@ -169,7 +200,7 @@ namespace Doomer
             //
             // btnCreate
             //
-            btnCreate.Location = new Point(246, 240);
+            btnCreate.Location = new Point(246, 302);
             btnCreate.Name = "btnCreate";
             btnCreate.Size = new Size(100, 30);
             btnCreate.TabIndex = 15;
@@ -181,7 +212,7 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(502, 286);
+            ClientSize = new Size(502, 348);
             Controls.Add(btnCreate);
             Controls.Add(btnBrowseImage);
             Controls.Add(txtImage);
@@ -192,6 +223,9 @@ namespace Doomer
             Controls.Add(btnBrowseIWad);
             Controls.Add(txtIWad);
             Controls.Add(cmbSourcePort);
+            Controls.Add(btnFromArchive);
+            Controls.Add(lblFromArchive);
+            Controls.Add(lblArchiveSeparator);
             Controls.Add(txtFileName);
             Controls.Add(lblPlugins);
             Controls.Add(lblWad);
@@ -217,6 +251,9 @@ namespace Doomer
         private Label lblWad;
         private Label lblPlugins;
         private TextBox txtFileName;
+        private Button btnFromArchive;
+        private Label lblFromArchive;
+        private Label lblArchiveSeparator;
         private ComboBox cmbSourcePort;
         private TextBox txtIWad;
         private Button btnBrowseIWad;

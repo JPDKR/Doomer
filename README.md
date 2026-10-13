@@ -12,7 +12,7 @@ Doomer is a small WinForms app I built while playing some Doom. I always wondere
 
 ## Configuration
 
-The app reads its settings from <ins>appsettings.json</ins> on startup. You can edit that file directly, or open **Settings** from the app's menu to change everything (including browsing for the GZDoom executable and folders) without touching JSON.
+The app reads its settings from <ins>appsettings.json</ins> on startup. You can edit that file directly, or open **Settings** with the gear (⚙) button in the app's menu to change everything (including browsing for the GZDoom executable and folders) without touching JSON.
 
 ```json
 {
@@ -63,10 +63,13 @@ Whenever you download a new WAD and want a launcher for it, use **Add Batch File
 * <ins>IWAD</ins>: the path to the IWAD your WAD was made from. The `.wad` extension is optional — it's added automatically if you leave it out. For example, if your IWADs are under `D:\GZDoom\wads\doom2.wad`, enter `wads/doom2`.
 * <ins>WAD</ins>: the path to the WAD itself, same rule — with or without `.wad`. Other extensions (e.g. `.pk3`) are kept as-is. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
 * <ins>Plugins (optional, GZDoom only)</ins>: just the file name of an extra file you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever). It's combined with the `GZDoom.Plugins` folder from your settings, so don't include a path here.
+* <ins>Image (optional)</ins>: the icon for the WAD's button. Pick a file with **Browse...**, paste the image's URL (right-click the image in your browser > Copy image address; it's downloaded when you save), or right-click the image > Copy image and press **Ctrl+V** in the Image box. Either way the image is stored in `GZDoom.Images.Location` under the batch's name. Some sites, like Doom Wiki, block downloads from apps — use Copy image + Ctrl+V for those.
 
 If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD or WAD that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by GZDoom at launch time, not by Doomer.
 
 Both IWAD and WAD have a **Browse...** button to pick the file instead of typing the path.
+
+If you just downloaded a WAD as an archive (`.zip`, `.rar` or `.7z`), use **From archive...** at the top of the form. It extracts the archive into its own folder inside the WADs directory named after it with each word capitalized (e.g. `D.O.O.M..rar` → `<WADs>\D.O.O.M\`, `ancient aliens.zip` → `<WADs>\Ancient Aliens\`) — if everything in the archive is inside a single folder, that folder's contents go straight into it — fills in WAD with the `.wad`/`.pk3`/`.pk7` it finds there (asking you to pick one if there are several), and, for a new batch, uses the folder name as the File Name. Before extracting, it shows the suggested name so you can keep it or type a different one.
 
 The end result is a `.bat` file with a command like this:
 

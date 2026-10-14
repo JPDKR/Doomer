@@ -1,6 +1,6 @@
 #define MyAppName "Doomer"
 #define MyAppExeName "Doomer.exe"
-#define MyAppPublisher "Julian Podbersich"
+#define MyAppPublisher "Dekar"
 #define MyAppURL "https://github.com/JPDKR/Doomer"
 #ifndef MyAppVersion
   #define MyAppVersion "1.0.0"

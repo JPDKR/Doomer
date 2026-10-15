@@ -27,8 +27,12 @@ namespace Doomer
             txtSearch = new ToolStripTextBox();
             statusStrip1 = new StatusStrip();
             lblStatus = new ToolStripStatusLabel();
+            loadingPanel = new TableLayoutPanel();
+            lblLoading = new Label();
+            progressLoading = new ProgressBar();
             menuStrip1.SuspendLayout();
             statusStrip1.SuspendLayout();
+            loadingPanel.SuspendLayout();
             SuspendLayout();
             //
             // flowLayoutPanel1
@@ -98,12 +102,48 @@ namespace Doomer
             lblStatus.Size = new Size(0, 17);
             lblStatus.Text = "";
             //
+            // loadingPanel
+            //
+            loadingPanel.ColumnCount = 1;
+            loadingPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            loadingPanel.Controls.Add(lblLoading, 0, 1);
+            loadingPanel.Controls.Add(progressLoading, 0, 2);
+            loadingPanel.Dock = DockStyle.Fill;
+            loadingPanel.Location = new Point(0, 27);
+            loadingPanel.Name = "loadingPanel";
+            loadingPanel.RowCount = 4;
+            loadingPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            loadingPanel.RowStyles.Add(new RowStyle());
+            loadingPanel.RowStyles.Add(new RowStyle());
+            loadingPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            loadingPanel.Size = new Size(908, 407);
+            loadingPanel.TabIndex = 3;
+            loadingPanel.Visible = false;
+            //
+            // lblLoading
+            //
+            lblLoading.Anchor = AnchorStyles.None;
+            lblLoading.AutoSize = true;
+            lblLoading.Font = new Font("Segoe UI", 11F);
+            lblLoading.Margin = new Padding(3, 0, 3, 8);
+            lblLoading.Name = "lblLoading";
+            lblLoading.Text = "Loading WADs...";
+            //
+            // progressLoading
+            //
+            progressLoading.Anchor = AnchorStyles.None;
+            progressLoading.MarqueeAnimationSpeed = 30;
+            progressLoading.Name = "progressLoading";
+            progressLoading.Size = new Size(220, 6);
+            progressLoading.Style = ProgressBarStyle.Marquee;
+            //
             // Doomer
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(908, 456);
             MinimumSize = new Size(600, 350);
+            Controls.Add(loadingPanel);
             Controls.Add(flowLayoutPanel1);
             Controls.Add(statusStrip1);
             Controls.Add(menuStrip1);
@@ -118,6 +158,8 @@ namespace Doomer
             menuStrip1.PerformLayout();
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
+            loadingPanel.ResumeLayout(false);
+            loadingPanel.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -132,5 +174,8 @@ namespace Doomer
         private ToolStripTextBox txtSearch;
         private StatusStrip statusStrip1;
         private ToolStripStatusLabel lblStatus;
+        private TableLayoutPanel loadingPanel;
+        private Label lblLoading;
+        private ProgressBar progressLoading;
     }
 }

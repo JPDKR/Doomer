@@ -30,6 +30,7 @@ namespace Doomer
             loadingPanel = new TableLayoutPanel();
             lblLoading = new Label();
             progressLoading = new ProgressBar();
+            lblVersion = new ToolStripStatusLabel();
             menuStrip1.SuspendLayout();
             statusStrip1.SuspendLayout();
             loadingPanel.SuspendLayout();
@@ -90,7 +91,7 @@ namespace Doomer
             //
             // statusStrip1
             //
-            statusStrip1.Items.AddRange(new ToolStripItem[] { lblStatus });
+            statusStrip1.Items.AddRange(new ToolStripItem[] { lblStatus, lblVersion });
             statusStrip1.Location = new Point(0, 434);
             statusStrip1.Name = "statusStrip1";
             statusStrip1.Size = new Size(908, 22);
@@ -100,7 +101,15 @@ namespace Doomer
             //
             lblStatus.Name = "lblStatus";
             lblStatus.Size = new Size(0, 17);
+            lblStatus.Spring = true;
             lblStatus.Text = "";
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
+            //
+            // lblVersion
+            //
+            lblVersion.Name = "lblVersion";
+            lblVersion.Size = new Size(0, 17);
+            lblVersion.Text = "";
             //
             // loadingPanel
             //
@@ -177,5 +186,6 @@ namespace Doomer
         private TableLayoutPanel loadingPanel;
         private Label lblLoading;
         private ProgressBar progressLoading;
+        private ToolStripStatusLabel lblVersion;
     }
 }

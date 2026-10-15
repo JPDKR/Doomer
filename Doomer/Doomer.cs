@@ -24,6 +24,7 @@ namespace Doomer
         {
             InitializeComponent();
             components?.Add(_wadTooltip);
+            lblVersion.Text = $"v{UpdateService.CurrentVersion}";
             LoadConfiguration();
             ApplyDarkTheme();
         }
@@ -58,6 +59,7 @@ namespace Doomer
 
             loadingPanel.BackColor = BgColor;
             lblLoading.ForeColor = MutedColor;
+            lblVersion.ForeColor = MutedColor;
         }
 
         private async void MainForm_Load(object sender, EventArgs e)

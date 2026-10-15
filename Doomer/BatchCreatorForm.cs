@@ -86,7 +86,8 @@ namespace Doomer
                 return;
             }
 
-            if (!BatchFileService.TryParseCommand(command, out var port, out var iwad, out var wad, out var plugins))
+            if (!BatchFileService.TryParseCommand(command, _gzdoomSettings.Plugins, out var port, out var iwad, out var wad,
+                    out var extraFiles, out var plugins))
             {
                 MessageBox.Show("Couldn't parse this batch file's command. Please review the fields below.",
                     "Edit batch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -96,6 +97,7 @@ namespace Doomer
             SelectedPort = port;
             txtIWad.Text = iwad;
             txtWad.Text = wad;
+            txtExtraFiles.Lines = [.. extraFiles];
             txtPlugins.Text = plugins;
         }
 
@@ -235,6 +237,7 @@ namespace Doomer
                 return;
 
             txtWad.Text = BatchFileService.StripWadExtension(wad);
+            txtExtraFiles.Lines = [.. ArchiveService.FindExtraFiles(files, wad)];
 
             if (!txtFileName.ReadOnly)
                 txtFileName.Text = folderName;
@@ -463,6 +466,7 @@ namespace Doomer
             var iwad = txtIWad.Text.Trim();
             var wadFile = txtWad.Text.Trim();
             var plugins = port == SourcePort.GZDoom ? txtPlugins.Text.Trim() : string.Empty;
+            List<string> extraFiles = [.. txtExtraFiles.Lines.Select(l => l.Trim()).Where(l => l.Length > 0)];
             var fileName = txtFileName.Text.Trim();
 
             if (string.IsNullOrWhiteSpace(iwad) || string.IsNullOrWhiteSpace(wadFile) || string.IsNullOrWhiteSpace(fileName))
@@ -488,7 +492,8 @@ namespace Doomer
             }
 
             if (!ConfirmPathIfMissing("IWAD", BatchFileService.EnsureWadExtension(iwad)) ||
-                !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)))
+                !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)) ||
+                !extraFiles.All(f => ConfirmPathIfMissing("Extra", BatchFileService.EnsureWadExtension(f))))
             {
                 return;
             }
@@ -526,8 +531,8 @@ namespace Doomer
             try
             {
                 command = port == SourcePort.DSDADoom
-                    ? BatchFileService.BuildCommand(_dsdaDoomSettings, iwad, wadFile)
-                    : BatchFileService.BuildCommand(_gzdoomSettings, iwad, wadFile, plugins);
+                    ? BatchFileService.BuildCommand(_dsdaDoomSettings, iwad, wadFile, extraFiles)
+                    : BatchFileService.BuildCommand(_gzdoomSettings, iwad, wadFile, plugins, extraFiles);
             }
             catch (ArgumentException ex)
             {

@@ -22,6 +22,8 @@ namespace Doomer
             lblIWad = new Label();
             lblWad = new Label();
             lblPlugins = new Label();
+            lblExtraFiles = new Label();
+            txtExtraFiles = new TextBox();
             txtFileName = new TextBox();
             btnFromArchive = new Button();
             lblFromArchive = new Label();
@@ -43,7 +45,7 @@ namespace Doomer
             btnFromArchive.Location = new Point(8, 14);
             btnFromArchive.Name = "btnFromArchive";
             btnFromArchive.Size = new Size(150, 30);
-            btnFromArchive.TabIndex = 16;
+            btnFromArchive.TabIndex = 17;
             btnFromArchive.Text = "From archive...";
             btnFromArchive.Click += BtnFromArchive_Click;
             //
@@ -53,7 +55,7 @@ namespace Doomer
             lblFromArchive.Location = new Point(166, 14);
             lblFromArchive.Name = "lblFromArchive";
             lblFromArchive.Size = new Size(320, 30);
-            lblFromArchive.TabIndex = 17;
+            lblFromArchive.TabIndex = 18;
             lblFromArchive.Text = "Fill in the form from a .zip, .rar or .7z";
             lblFromArchive.TextAlign = ContentAlignment.MiddleLeft;
             //
@@ -64,7 +66,7 @@ namespace Doomer
             lblArchiveSeparator.Location = new Point(8, 58);
             lblArchiveSeparator.Name = "lblArchiveSeparator";
             lblArchiveSeparator.Size = new Size(478, 1);
-            lblArchiveSeparator.TabIndex = 18;
+            lblArchiveSeparator.TabIndex = 19;
             //
             // lblFileName
             //
@@ -109,7 +111,7 @@ namespace Doomer
             // lblPlugins
             //
             lblPlugins.AutoSize = false;
-            lblPlugins.Location = new Point(8, 222);
+            lblPlugins.Location = new Point(8, 294);
             lblPlugins.Name = "lblPlugins";
             lblPlugins.Size = new Size(90, 27);
             lblPlugins.TabIndex = 4;
@@ -164,46 +166,68 @@ namespace Doomer
             btnBrowseWad.Text = "Browse...";
             btnBrowseWad.Click += BtnBrowseWad_Click;
             //
+            // lblExtraFiles
+            //
+            lblExtraFiles.AutoSize = false;
+            lblExtraFiles.Location = new Point(8, 222);
+            lblExtraFiles.Name = "lblExtraFiles";
+            lblExtraFiles.Size = new Size(90, 27);
+            lblExtraFiles.TabIndex = 20;
+            lblExtraFiles.Text = "Extra files";
+            lblExtraFiles.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtExtraFiles
+            //
+            txtExtraFiles.AcceptsReturn = true;
+            txtExtraFiles.Location = new Point(106, 222);
+            txtExtraFiles.Multiline = true;
+            txtExtraFiles.Name = "txtExtraFiles";
+            txtExtraFiles.PlaceholderText = "Optional, one per line (e.g. .deh patches)";
+            txtExtraFiles.ScrollBars = ScrollBars.Both;
+            txtExtraFiles.Size = new Size(380, 63);
+            txtExtraFiles.TabIndex = 11;
+            txtExtraFiles.WordWrap = false;
+            //
             // txtPlugins
             //
-            txtPlugins.Location = new Point(106, 222);
+            txtPlugins.Location = new Point(106, 294);
             txtPlugins.Name = "txtPlugins";
             txtPlugins.Size = new Size(380, 27);
-            txtPlugins.TabIndex = 11;
+            txtPlugins.TabIndex = 12;
             //
             // lblImage
             //
             lblImage.AutoSize = false;
-            lblImage.Location = new Point(8, 258);
+            lblImage.Location = new Point(8, 330);
             lblImage.Name = "lblImage";
             lblImage.Size = new Size(90, 27);
-            lblImage.TabIndex = 12;
+            lblImage.TabIndex = 13;
             lblImage.Text = "Image";
             lblImage.TextAlign = ContentAlignment.MiddleRight;
             //
             // txtImage
             //
-            txtImage.Location = new Point(106, 258);
+            txtImage.Location = new Point(106, 330);
             txtImage.Name = "txtImage";
             txtImage.Size = new Size(296, 27);
-            txtImage.TabIndex = 13;
+            txtImage.TabIndex = 14;
             txtImage.KeyDown += TxtImage_KeyDown;
             //
             // btnBrowseImage
             //
-            btnBrowseImage.Location = new Point(408, 258);
+            btnBrowseImage.Location = new Point(408, 330);
             btnBrowseImage.Name = "btnBrowseImage";
             btnBrowseImage.Size = new Size(78, 27);
-            btnBrowseImage.TabIndex = 14;
+            btnBrowseImage.TabIndex = 15;
             btnBrowseImage.Text = "Browse...";
             btnBrowseImage.Click += BtnBrowseImage_Click;
             //
             // btnCreate
             //
-            btnCreate.Location = new Point(246, 302);
+            btnCreate.Location = new Point(246, 374);
             btnCreate.Name = "btnCreate";
             btnCreate.Size = new Size(100, 30);
-            btnCreate.TabIndex = 15;
+            btnCreate.TabIndex = 16;
             btnCreate.Text = "Create";
             btnCreate.UseVisualStyleBackColor = true;
             btnCreate.Click += BtnCreate_Click;
@@ -212,12 +236,14 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(502, 348);
+            ClientSize = new Size(502, 420);
             Controls.Add(btnCreate);
             Controls.Add(btnBrowseImage);
             Controls.Add(txtImage);
             Controls.Add(lblImage);
             Controls.Add(txtPlugins);
+            Controls.Add(txtExtraFiles);
+            Controls.Add(lblExtraFiles);
             Controls.Add(btnBrowseWad);
             Controls.Add(txtWad);
             Controls.Add(btnBrowseIWad);
@@ -250,6 +276,8 @@ namespace Doomer
         private Label lblIWad;
         private Label lblWad;
         private Label lblPlugins;
+        private Label lblExtraFiles;
+        private TextBox txtExtraFiles;
         private TextBox txtFileName;
         private Button btnFromArchive;
         private Label lblFromArchive;

@@ -388,4 +388,7 @@ Los botones de los WADs mostrarán texto en lugar de íconos. ¿Guardar de todos
   <data name="DownloadHttpError" xml:space="preserve">
     <value>El servidor respondió {0} {1}.</value>
   </data>
+  <data name="DSDADoomNoPackages" xml:space="preserve">
+    <value>DSDA Doom no puede cargar archivos .pk3 ni .pk7. Usa GZDoom para este batch.</value>
+  </data>
 </root>

@@ -388,4 +388,7 @@ WAD buttons will show text instead of icons. Save anyway?</value>
   <data name="DownloadHttpError" xml:space="preserve">
     <value>The server answered {0} {1}.</value>
   </data>
+  <data name="DSDADoomNoPackages" xml:space="preserve">
+    <value>DSDA Doom can't load .pk3 or .pk7 files. Use GZDoom for this batch.</value>
+  </data>
 </root>

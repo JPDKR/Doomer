@@ -178,7 +178,20 @@ namespace Doomer
 
         private void BtnBrowseIWad_Click(object sender, EventArgs e) => BrowseFile(txtIWad, Strings.SelectIWad);
 
-        private void BtnBrowseWad_Click(object sender, EventArgs e) => BrowseFile(txtWad, Strings.SelectWad);
+        private void BtnBrowseWad_Click(object sender, EventArgs e)
+        {
+            BrowseFile(txtWad, Strings.SelectWad);
+            SwitchToGZDoomIfNeeded();
+        }
+
+        private List<string> ExtraFiles => [.. txtExtraFiles.Lines.Select(l => l.Trim()).Where(l => l.Length > 0)];
+
+        // DSDA Doom can't run .pk3/.pk7 files, so picking one switches the batch to GZDoom.
+        private void SwitchToGZDoomIfNeeded()
+        {
+            if (BatchFileService.RequiresGZDoom(txtWad.Text.Trim(), ExtraFiles))
+                SelectedPort = SourcePort.GZDoom;
+        }
 
         private static void BrowseFile(TextBox target, string title)
         {
@@ -255,6 +268,7 @@ namespace Doomer
 
             txtWad.Text = BatchFileService.StripWadExtension(wad);
             txtExtraFiles.Lines = [.. ArchiveService.FindExtraFiles(files, wad)];
+            SwitchToGZDoomIfNeeded();
 
             if (!txtFileName.ReadOnly)
                 txtFileName.Text = folderName;
@@ -483,7 +497,7 @@ namespace Doomer
             var iwad = txtIWad.Text.Trim();
             var wadFile = txtWad.Text.Trim();
             var plugins = port == SourcePort.GZDoom ? txtPlugins.Text.Trim() : string.Empty;
-            List<string> extraFiles = [.. txtExtraFiles.Lines.Select(l => l.Trim()).Where(l => l.Length > 0)];
+            var extraFiles = ExtraFiles;
             var fileName = txtFileName.Text.Trim();
 
             if (string.IsNullOrWhiteSpace(iwad) || string.IsNullOrWhiteSpace(wadFile) || string.IsNullOrWhiteSpace(fileName))
@@ -505,6 +519,12 @@ namespace Doomer
             if (!BatchFileService.IsValidFileName(fileName, out var fileNameError))
             {
                 MessageBox.Show(fileNameError, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (port == SourcePort.DSDADoom && BatchFileService.RequiresGZDoom(wadFile, extraFiles))
+            {
+                MessageBox.Show(Strings.DSDADoomNoPackages, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 

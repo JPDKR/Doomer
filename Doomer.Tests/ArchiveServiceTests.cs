@@ -79,6 +79,16 @@ namespace Doomer.Tests
             Assert.Equal(["a\\DrakeRC2.WAD", "a\\music.pk3", "a\\extra.pk7"], candidates);
         }
 
+        [Fact]
+        public void FindExtraFiles_KeepsEverythingButTheWadAndTextFiles()
+        {
+            var extra = ArchiveService.FindExtraFiles(
+                ["C:\\w\\readme.TXT", "C:\\w\\sunlust.deh", "C:\\w\\sunlust.wad", "C:\\w\\music.wad", "C:\\w\\sub\\a.bex"],
+                "C:\\w\\SUNLUST.wad");
+
+            Assert.Equal(["C:\\w\\music.wad", "C:\\w\\sub\\a.bex", "C:\\w\\sunlust.deh"], extra);
+        }
+
         private string CreateZip(params (string Name, string Content)[] entries)
         {
             var path = Path.Combine(_tempDir, Guid.NewGuid().ToString("N") + ".zip");

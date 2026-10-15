@@ -108,6 +108,19 @@ namespace Doomer.Services
             extracted.Add(target);
         }
 
+        // Everything else that came with the WAD (DEH/BEX patches, other WADs...), which the batch loads too:
+        // other WADs first, then the rest by name. Text files are readmes, so they're left out.
+        public static List<string> FindExtraFiles(IEnumerable<string> files, string wad)
+        {
+            var wadPath = Path.GetFullPath(wad);
+
+            return [.. files
+                .Where(f => !string.Equals(Path.GetFullPath(f), wadPath, StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(Path.GetExtension(f), ".txt", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(f => WadExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(f => f, StringComparer.OrdinalIgnoreCase)];
+        }
+
         // The extracted files that could be the batch's WAD.
         public static List<string> FindWadCandidates(IEnumerable<string> files) =>
             files.Where(f => WadExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)).ToList();

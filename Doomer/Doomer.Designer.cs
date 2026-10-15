@@ -27,6 +27,7 @@ namespace Doomer
             txtSearch = new ToolStripTextBox();
             statusStrip1 = new StatusStrip();
             lblStatus = new ToolStripStatusLabel();
+            lblVersion = new ToolStripStatusLabel();
             menuStrip1.SuspendLayout();
             statusStrip1.SuspendLayout();
             SuspendLayout();
@@ -86,7 +87,7 @@ namespace Doomer
             //
             // statusStrip1
             //
-            statusStrip1.Items.AddRange(new ToolStripItem[] { lblStatus });
+            statusStrip1.Items.AddRange(new ToolStripItem[] { lblStatus, lblVersion });
             statusStrip1.Location = new Point(0, 434);
             statusStrip1.Name = "statusStrip1";
             statusStrip1.Size = new Size(908, 22);
@@ -96,7 +97,15 @@ namespace Doomer
             //
             lblStatus.Name = "lblStatus";
             lblStatus.Size = new Size(0, 17);
+            lblStatus.Spring = true;
             lblStatus.Text = "";
+            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
+            //
+            // lblVersion
+            //
+            lblVersion.Name = "lblVersion";
+            lblVersion.Size = new Size(0, 17);
+            lblVersion.Text = "";
             //
             // Doomer
             //
@@ -132,5 +141,6 @@ namespace Doomer
         private ToolStripTextBox txtSearch;
         private StatusStrip statusStrip1;
         private ToolStripStatusLabel lblStatus;
+        private ToolStripStatusLabel lblVersion;
     }
 }

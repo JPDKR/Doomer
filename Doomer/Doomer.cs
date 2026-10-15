@@ -18,6 +18,7 @@ namespace Doomer
         private IconsSettings _iconsSettings = default!;
         private readonly ToolTip _wadTooltip = new();
         private readonly Font _wadButtonFont = new("Segoe UI", 8.5f);
+        private CancellationTokenSource? _loadCts;
 
         public Doomer()
         {
@@ -55,12 +56,15 @@ namespace Doomer
             statusStrip1.BackColor = SurfaceColor;
             statusStrip1.Renderer = new DarkMenuRenderer();
             lblStatus.ForeColor = MutedColor;
+
+            loadingPanel.BackColor = BgColor;
+            lblLoading.ForeColor = MutedColor;
             lblVersion.ForeColor = MutedColor;
         }
 
         private async void MainForm_Load(object sender, EventArgs e)
         {
-            LoadButtonsBatch();
+            await LoadButtonsBatchAsync();
             await CheckForUpdateAsync();
         }
 
@@ -95,8 +99,98 @@ namespace Doomer
             }
         }
 
-        private void LoadButtonsBatch(string filter = "")
+        private record WadEntry(string File, string Name, Bitmap? Icon);
+
+        // Reads the batch files and decodes their icons off the UI thread, then builds the buttons.
+        // A newer call cancels an older one still running, so only the latest result is shown.
+        private async Task LoadButtonsBatchAsync()
         {
+            _loadCts?.Cancel();
+            var cts = new CancellationTokenSource();
+            _loadCts = cts;
+
+            loadingPanel.Visible = true;
+            loadingPanel.BringToFront();
+
+            var batchs = _gzdoomSettings.Batchs;
+            var images = _gzdoomSettings.Images;
+            var iconSize = new Size(_iconsSettings.Width, _iconsSettings.Height);
+
+            List<WadEntry> entries;
+            try
+            {
+                entries = await Task.Run(() => ReadWads(batchs, images, iconSize, cts.Token), cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception ex) when (ex is DirectoryNotFoundException or ArgumentException)
+            {
+                if (_loadCts != cts || IsDisposed)
+                    return;
+
+                ShowButtons([]);
+                MessageBox.Show($"Batchs directory not found:\n{ex.Message}\n\nOpen Settings to fix the path.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (_loadCts != cts || IsDisposed)
+            {
+                foreach (var entry in entries)
+                    entry.Icon?.Dispose();
+                return;
+            }
+
+            ShowButtons(entries);
+        }
+
+        private static List<WadEntry> ReadWads(BatchSettings batchs, ImageSettings images, Size iconSize, CancellationToken token)
+        {
+            if (string.IsNullOrWhiteSpace(batchs.Location))
+                return [];
+
+            var entries = new List<WadEntry>();
+            try
+            {
+                foreach (var file in Directory.GetFiles(batchs.Location, $"*{batchs.Extension}"))
+                {
+                    token.ThrowIfCancellationRequested();
+                    entries.Add(new WadEntry(file, Path.GetFileNameWithoutExtension(file),
+                        LoadIcon(BatchFileService.GetImagePath(file, images), iconSize)));
+                }
+            }
+            catch
+            {
+                foreach (var entry in entries)
+                    entry.Icon?.Dispose();
+                throw;
+            }
+
+            return entries;
+        }
+
+        private static Bitmap? LoadIcon(string iconPath, Size size)
+        {
+            if (!File.Exists(iconPath))
+                return null;
+
+            try
+            {
+                using var img = Image.FromFile(iconPath);
+                return new Bitmap(img, size);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void ShowButtons(List<WadEntry> entries)
+        {
+            flowLayoutPanel1.SuspendLayout();
+
             foreach (Control control in flowLayoutPanel1.Controls)
             {
                 if (control is Button boton)
@@ -109,80 +203,65 @@ namespace Doomer
             }
 
             flowLayoutPanel1.Controls.Clear();
+            flowLayoutPanel1.Controls.AddRange([.. entries.Select(CreateWadButton)]);
+            ApplyFilter();
 
-            string[] files;
+            flowLayoutPanel1.ResumeLayout();
+            loadingPanel.Visible = false;
+        }
 
-            if (string.IsNullOrWhiteSpace(_gzdoomSettings.Batchs.Location))
+        private Button CreateWadButton(WadEntry entry)
+        {
+            Button boton = new()
             {
-                files = [];
+                Width = _iconsSettings.Width + 10,
+                Height = _iconsSettings.Height + 10,
+                Tag = entry.File,
+                Name = entry.Name,
+                Margin = new Padding(_iconsSettings.Padding),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = ButtonBgColor,
+                ForeColor = TextColor,
+                Cursor = Cursors.Hand,
+            };
+
+            boton.FlatAppearance.BorderColor = AccentColor;
+            boton.FlatAppearance.BorderSize = 1;
+            boton.FlatAppearance.MouseOverBackColor = ButtonHoverColor;
+
+            _wadTooltip.SetToolTip(boton, entry.Name);
+            boton.ContextMenuStrip = BuildWadContextMenu(entry.File);
+
+            if (entry.Icon is not null)
+            {
+                boton.Image = entry.Icon;
+                boton.ImageAlign = ContentAlignment.MiddleCenter;
             }
             else
             {
-                try
-                {
-                    files = [.. Directory
-                    .GetFiles(_gzdoomSettings.Batchs.Location, $"*{_gzdoomSettings.Batchs.Extension}")
-                    .Where(f =>
-                        Path.GetFileNameWithoutExtension(f)
-                            .Contains(filter, StringComparison.OrdinalIgnoreCase))];
-                }
-                catch (Exception ex) when (ex is DirectoryNotFoundException or ArgumentException)
-                {
-                    MessageBox.Show($"Batchs directory not found:\n{ex.Message}\n\nOpen Settings to fix the path.",
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    files = [];
-                }
+                boton.Text = entry.Name;
+                boton.Font = _wadButtonFont;
             }
 
-            foreach (var file in files)
+            boton.Click += Boton_Click!;
+            return boton;
+        }
+
+        // Filters the already loaded buttons in place, so searching never touches the disk.
+        private void ApplyFilter()
+        {
+            var filter = txtSearch.Text;
+            int count = 0;
+
+            flowLayoutPanel1.SuspendLayout();
+            foreach (Control control in flowLayoutPanel1.Controls)
             {
-                string baseName = Path.GetFileNameWithoutExtension(file);
-                string iconPath = BatchFileService.GetImagePath(file, _gzdoomSettings.Images);
-
-                Button boton = new()
-                {
-                    Width = _iconsSettings.Width + 10,
-                    Height = _iconsSettings.Height + 10,
-                    Tag = file,
-                    Margin = new Padding(_iconsSettings.Padding),
-                    FlatStyle = FlatStyle.Flat,
-                    BackColor = ButtonBgColor,
-                    ForeColor = TextColor,
-                    Cursor = Cursors.Hand,
-                };
-
-                boton.FlatAppearance.BorderColor = AccentColor;
-                boton.FlatAppearance.BorderSize = 1;
-                boton.FlatAppearance.MouseOverBackColor = ButtonHoverColor;
-
-                _wadTooltip.SetToolTip(boton, baseName);
-                boton.ContextMenuStrip = BuildWadContextMenu(file);
-
-                if (File.Exists(iconPath))
-                {
-                    try
-                    {
-                        using var img = Image.FromFile(iconPath);
-                        boton.Image = new Bitmap(img, new Size(_iconsSettings.Width, _iconsSettings.Height));
-                        boton.ImageAlign = ContentAlignment.MiddleCenter;
-                    }
-                    catch
-                    {
-                        boton.Text = baseName;
-                        boton.Font = _wadButtonFont;
-                    }
-                }
-                else
-                {
-                    boton.Text = baseName;
-                    boton.Font = _wadButtonFont;
-                }
-
-                boton.Click += Boton_Click!;
-                flowLayoutPanel1.Controls.Add(boton);
+                control.Visible = control.Name.Contains(filter, StringComparison.OrdinalIgnoreCase);
+                if (control.Visible)
+                    count++;
             }
+            flowLayoutPanel1.ResumeLayout();
 
-            int count = flowLayoutPanel1.Controls.Count;
             lblStatus.Text = $"  {count} WAD{(count != 1 ? "s" : "")} loaded   |   {_gzdoomSettings.Batchs.Location}";
         }
 
@@ -202,17 +281,17 @@ namespace Doomer
             return menu;
         }
 
-        private void EditBatch(string filePath)
+        private async void EditBatch(string filePath)
         {
             using var form = new BatchCreatorForm(filePath);
 
             if (form.ShowDialog() == DialogResult.OK)
             {
-                LoadButtonsBatch(txtSearch.Text);
+                await LoadButtonsBatchAsync();
             }
         }
 
-        private void DeleteBatch(string filePath)
+        private async void DeleteBatch(string filePath)
         {
             var name = Path.GetFileNameWithoutExtension(filePath);
             var imagePath = BatchFileService.GetImagePath(filePath, _gzdoomSettings.Images);
@@ -231,7 +310,7 @@ namespace Doomer
                 if (File.Exists(imagePath))
                     File.Delete(imagePath);
 
-                LoadButtonsBatch(txtSearch.Text);
+                await LoadButtonsBatchAsync();
             }
             catch (Exception ex)
             {
@@ -254,34 +333,34 @@ namespace Doomer
             }
         }
 
-        private void AddBatchFileToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void AddBatchFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using var form = new BatchCreatorForm();
 
             if (form.ShowDialog() == DialogResult.OK)
             {
-                LoadButtonsBatch();
+                await LoadButtonsBatchAsync();
             }
         }
 
-        private void RefreshListToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void RefreshListToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            LoadButtonsBatch();
+            await LoadButtonsBatchAsync();
         }
 
-        private void SettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void SettingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using var form = new SettingsForm();
             if (form.ShowDialog() == DialogResult.OK)
             {
                 LoadConfiguration();
-                LoadButtonsBatch();
+                await LoadButtonsBatchAsync();
             }
         }
 
         private void SearchWad(object sender, EventArgs e)
         {
-            LoadButtonsBatch(txtSearch.Text);
+            ApplyFilter();
         }
 
         private class DarkColorTable : ProfessionalColorTable

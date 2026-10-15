@@ -10,9 +10,9 @@ namespace Doomer.Services
         // Files a source port can load directly as the batch's WAD.
         private static readonly string[] WadExtensions = [".wad", ".pk3", ".pk7"];
 
-        // What the batch loads alongside its WAD: main files first, then DeHackEd patches.
+        // What the batch loads alongside its WAD: main files first, then DeHackEd (.deh/.bex) patches.
         private static readonly string[] MainExtraExtensions = [".wad", ".pk3"];
-        private static readonly string[] SecondaryExtraExtensions = [".deh"];
+        private static readonly string[] SecondaryExtraExtensions = [".deh", ".bex"];
 
         // "D.O.O.M..rar" -> "D.O.O.M": Windows drops trailing dots and spaces from folder names anyway.
         // Each word starts with a capital ("ancient aliens.zip" -> "Ancient Aliens"); the rest is kept as-is.
@@ -113,7 +113,7 @@ namespace Doomer.Services
         }
 
         // The other files that came with the WAD and that the batch loads too: .wad/.pk3 files first,
-        // then .deh patches, each group by name. Anything else (readmes, screenshots...) is left out.
+        // then .deh/.bex patches, each group by name. Anything else (readmes, screenshots...) is left out.
         public static List<string> FindExtraFiles(IEnumerable<string> files, string wad)
         {
             var wadPath = Path.GetFullPath(wad);

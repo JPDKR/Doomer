@@ -13,14 +13,14 @@ namespace Doomer.Services
     {
         private const string WadExtension = ".wad";
 
-        // "<exe>" -iwad "<iwad>" -file "<wad>" ["<plugin>"]
+        // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"]
         private static readonly Regex GZDoomPattern = new(
-            "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<pluginsPath>[^\"]*)\")?",
+            "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*",
             RegexOptions.Compiled);
 
-        // <exe> "<iwad>" "<wad>" — the executable may or may not be quoted.
+        // <exe> "<iwad>" "<wad>" ["<extra file>"...] — the executable may or may not be quoted.
         private static readonly Regex DSDADoomPattern = new(
-            "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"",
+            "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"(?:\\s+\"(?<file>[^\"]*)\")*",
             RegexOptions.Compiled);
 
         public static string GetDisplayName(SourcePort port) => port switch
@@ -74,13 +74,16 @@ namespace Doomer.Services
             return true;
         }
 
-        public static string BuildCommand(GZDoomSettings settings, string iwad, string wad, string plugins)
+        // Extra files (DEH/BEX patches, other WADs...) are loaded right after the WAD, before the plugin.
+        public static string BuildCommand(GZDoomSettings settings, string iwad, string wad, string plugins, IReadOnlyList<string>? extraFiles = null)
         {
-            if (ContainsQuote(settings.Location) || ContainsQuote(settings.Plugins) ||
-                ContainsQuote(iwad) || ContainsQuote(wad) || ContainsQuote(plugins))
-                throw new ArgumentException("GZDoom location, plugins folder, IWAD, WAD and plugin paths cannot contain quote characters.");
+            extraFiles ??= [];
 
-            var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"";
+            if (ContainsQuote(settings.Location) || ContainsQuote(settings.Plugins) ||
+                ContainsQuote(iwad) || ContainsQuote(wad) || ContainsQuote(plugins) || extraFiles.Any(ContainsQuote))
+                throw new ArgumentException("GZDoom location, plugins folder, IWAD, WAD, extra file and plugin paths cannot contain quote characters.");
+
+            var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
 
             if (!string.IsNullOrWhiteSpace(plugins))
                 command += $" \"{settings.Plugins}/{plugins}\"";
@@ -88,15 +91,23 @@ namespace Doomer.Services
             return command;
         }
 
-        public static string BuildCommand(DSDADoomSettings settings, string iwad, string wad)
+        // DSDA Doom tells loose files apart by extension, so DEH/BEX patches can be passed like WADs.
+        public static string BuildCommand(DSDADoomSettings settings, string iwad, string wad, IReadOnlyList<string>? extraFiles = null)
         {
-            if (ContainsQuote(settings.Location) || ContainsQuote(iwad) || ContainsQuote(wad))
-                throw new ArgumentException("DSDA Doom location, IWAD and WAD paths cannot contain quote characters.");
+            extraFiles ??= [];
 
-            return $"\"{settings.Location}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"";
+            if (ContainsQuote(settings.Location) || ContainsQuote(iwad) || ContainsQuote(wad) || extraFiles.Any(ContainsQuote))
+                throw new ArgumentException("DSDA Doom location, IWAD, WAD and extra file paths cannot contain quote characters.");
+
+            return $"\"{settings.Location}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
         }
 
-        public static bool TryParseCommand(string command, out SourcePort port, out string iwad, out string wad, out string plugins)
+        private static string QuoteFiles(IReadOnlyList<string> files) =>
+            string.Concat(files.Select(f => $" \"{EnsureWadExtension(f)}\""));
+
+        // pluginsFolder tells the plugin apart from the extra files: it's the last path, under that folder.
+        public static bool TryParseCommand(string command, string pluginsFolder, out SourcePort port, out string iwad,
+            out string wad, out List<string> extraFiles, out string plugins)
         {
             var match = GZDoomPattern.Match(command);
 
@@ -105,9 +116,15 @@ namespace Doomer.Services
                 port = SourcePort.GZDoom;
                 iwad = StripWadExtension(match.Groups["iwad"].Value);
                 wad = StripWadExtension(match.Groups["wad"].Value);
-                plugins = match.Groups["pluginsPath"].Success
-                    ? Path.GetFileName(match.Groups["pluginsPath"].Value)
-                    : string.Empty;
+                extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
+                plugins = string.Empty;
+
+                if (extraFiles.Count > 0 && extraFiles[^1].StartsWith(pluginsFolder + "/", StringComparison.OrdinalIgnoreCase))
+                {
+                    plugins = Path.GetFileName(extraFiles[^1]);
+                    extraFiles.RemoveAt(extraFiles.Count - 1);
+                }
+
                 return true;
             }
 
@@ -118,12 +135,14 @@ namespace Doomer.Services
                 port = SourcePort.DSDADoom;
                 iwad = StripWadExtension(match.Groups["iwad"].Value);
                 wad = StripWadExtension(match.Groups["wad"].Value);
+                extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
                 plugins = string.Empty;
                 return true;
             }
 
             port = SourcePort.GZDoom;
             iwad = wad = plugins = string.Empty;
+            extraFiles = [];
             return false;
         }
 

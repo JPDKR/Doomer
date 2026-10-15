@@ -13,6 +13,9 @@ namespace Doomer.Services
     {
         private const string WadExtension = ".wad";
 
+        // ZDoom-format packages, which DSDA Doom can't load.
+        private static readonly string[] GZDoomOnlyExtensions = [".pk3", ".pk7"];
+
         // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"]
         private static readonly Regex GZDoomPattern = new(
             "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*",
@@ -35,6 +38,11 @@ namespace Doomer.Services
 
         public static string StripWadExtension(string path) =>
             path.EndsWith(WadExtension, StringComparison.OrdinalIgnoreCase) ? path[..^WadExtension.Length] : path;
+
+        // Whether the batch loads a .pk3/.pk7, so only GZDoom can launch it.
+        public static bool RequiresGZDoom(string wad, IEnumerable<string> extraFiles) =>
+            extraFiles.Prepend(wad).Any(f =>
+                GZDoomOnlyExtensions.Contains(Path.GetExtension(f.Trim()), StringComparer.OrdinalIgnoreCase));
 
         // Where a WAD should be moved inside the WADs directory, or null when it's already in it
         // (subfolders included) or isn't an absolute path we can locate.

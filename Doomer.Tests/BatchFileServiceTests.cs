@@ -185,6 +185,17 @@ namespace Doomer.Tests
         }
 
         [Theory]
+        [InlineData("wads/My House/myhouse.pk3", new string[0], true)]
+        [InlineData("mods/brutal.PK7", new string[0], true)]
+        [InlineData("wads/Sunlust/sunlust", new[] { "wads/Sunlust/gfx.pk3" }, true)]
+        [InlineData("wads/Sunlust/sunlust", new[] { "wads/Sunlust/sunlust.deh", "music.wad" }, false)]
+        [InlineData("wads/D.O.O.M\\DrakeRC2", new string[0], false)]
+        public void RequiresGZDoom_WhenAnyFileIsAPk3OrPk7(string wad, string[] extraFiles, bool expected)
+        {
+            Assert.Equal(expected, BatchFileService.RequiresGZDoom(wad, extraFiles));
+        }
+
+        [Theory]
         [InlineData("evil\" -exec calc", "wad")]
         [InlineData("iwad", "evil\" -exec calc")]
         public void BuildCommand_DSDADoom_RejectsQuoteCharacters(string iwad, string wad)

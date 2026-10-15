@@ -80,13 +80,14 @@ namespace Doomer.Tests
         }
 
         [Fact]
-        public void FindExtraFiles_KeepsEverythingButTheWadAndTextFiles()
+        public void FindExtraFiles_KeepsWadsAndPk3sFirstThenDehs()
         {
             var extra = ArchiveService.FindExtraFiles(
-                ["C:\\w\\readme.TXT", "C:\\w\\sunlust.deh", "C:\\w\\sunlust.wad", "C:\\w\\music.wad", "C:\\w\\sub\\a.bex"],
+                ["C:\\w\\readme.TXT", "C:\\w\\a.deh", "C:\\w\\sunlust.wad", "C:\\w\\music.wad",
+                 "C:\\w\\sub\\gfx.PK3", "C:\\w\\shot.png", "C:\\w\\b.bex"],
                 "C:\\w\\SUNLUST.wad");
 
-            Assert.Equal(["C:\\w\\music.wad", "C:\\w\\sub\\a.bex", "C:\\w\\sunlust.deh"], extra);
+            Assert.Equal(["C:\\w\\music.wad", "C:\\w\\sub\\gfx.PK3", "C:\\w\\a.deh"], extra);
         }
 
         private string CreateZip(params (string Name, string Content)[] entries)

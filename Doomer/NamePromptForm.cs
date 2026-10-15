@@ -37,13 +37,13 @@ namespace Doomer
             _txtName.ForeColor = Color.FromArgb(220, 220, 220);
             _txtName.BorderStyle = BorderStyle.FixedSingle;
 
-            var btnOk = CreateButton("OK", DialogResult.OK, new Point(182, 90));
+            var btnOk = CreateButton(Strings.OkButton, DialogResult.OK, new Point(182, 90));
             btnOk.BackColor = Color.FromArgb(160, 15, 15);
             btnOk.ForeColor = Color.White;
             btnOk.FlatAppearance.BorderColor = Color.FromArgb(200, 25, 25);
             btnOk.FlatAppearance.MouseOverBackColor = Color.FromArgb(200, 25, 25);
 
-            var btnCancel = CreateButton("Cancel", DialogResult.Cancel, new Point(288, 90));
+            var btnCancel = CreateButton(Strings.CancelButton, DialogResult.Cancel, new Point(288, 90));
 
             AcceptButton = btnOk;
             CancelButton = btnCancel;

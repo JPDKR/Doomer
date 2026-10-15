@@ -24,6 +24,7 @@ namespace Doomer
         {
             InitializeComponent();
             components?.Add(_wadTooltip);
+            ApplyTexts();
             lblVersion.Text = $"v{UpdateService.CurrentVersion}";
             LoadConfiguration();
             ApplyDarkTheme();
@@ -49,7 +50,6 @@ namespace Doomer
 
             txtSearch.BackColor = Color.FromArgb(48, 48, 48);
             txtSearch.ForeColor = TextColor;
-            txtSearch.TextBox.PlaceholderText = "Search WAD...";
 
             flowLayoutPanel1.BackColor = BgColor;
 
@@ -60,6 +60,16 @@ namespace Doomer
             loadingPanel.BackColor = BgColor;
             lblLoading.ForeColor = MutedColor;
             lblVersion.ForeColor = MutedColor;
+        }
+
+        private void ApplyTexts()
+        {
+            addBatchFileToolStripMenuItem.Text = Strings.MenuAddBatch;
+            refreshListToolStripMenuItem.Text = Strings.MenuRefresh;
+            settingsToolStripMenuItem.ToolTipText = Strings.MenuSettings;
+            settingsToolStripMenuItem.AccessibleName = Strings.MenuSettings;
+            txtSearch.TextBox.PlaceholderText = Strings.SearchPlaceholder;
+            lblLoading.Text = Strings.LoadingWads;
         }
 
         private async void MainForm_Load(object sender, EventArgs e)
@@ -75,15 +85,15 @@ namespace Doomer
                 return;
 
             var answer = MessageBox.Show(
-                $"A new version of Doomer is available ({update.Version}). You have {UpdateService.CurrentVersion}.\n\nUpdate now?",
-                "Update available", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                string.Format(Strings.UpdateAvailableMessage, update.Version, UpdateService.CurrentVersion),
+                Strings.UpdateAvailableTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if (answer != DialogResult.Yes)
                 return;
 
             var previousStatus = lblStatus.Text;
             try
             {
-                lblStatus.Text = $"  Downloading Doomer {update.Version}...";
+                lblStatus.Text = "  " + string.Format(Strings.UpdateDownloading, update.Version);
                 UseWaitCursor = true;
 
                 var installerPath = await UpdateService.DownloadInstallerAsync(update);
@@ -94,7 +104,7 @@ namespace Doomer
             {
                 UseWaitCursor = false;
                 lblStatus.Text = previousStatus;
-                MessageBox.Show($"The update could not be installed:\n{ex.Message}", "Update failed",
+                MessageBox.Show(string.Format(Strings.UpdateFailedMessage, ex.Message), Strings.UpdateFailedTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -131,8 +141,8 @@ namespace Doomer
                     return;
 
                 ShowButtons([]);
-                MessageBox.Show($"Batchs directory not found:\n{ex.Message}\n\nOpen Settings to fix the path.",
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(string.Format(Strings.BatchsDirNotFoundOpenSettings, ex.Message),
+                    Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -262,17 +272,18 @@ namespace Doomer
             }
             flowLayoutPanel1.ResumeLayout();
 
-            lblStatus.Text = $"  {count} WAD{(count != 1 ? "s" : "")} loaded   |   {_gzdoomSettings.Batchs.Location}";
+            var loaded = string.Format(count == 1 ? Strings.StatusWadCountOne : Strings.StatusWadCountMany, count);
+            lblStatus.Text = $"  {loaded}   |   {_gzdoomSettings.Batchs.Location}";
         }
 
         private ContextMenuStrip BuildWadContextMenu(string filePath)
         {
             var menu = new ContextMenuStrip();
 
-            var editItem = new ToolStripMenuItem("Edit...");
+            var editItem = new ToolStripMenuItem(Strings.MenuEdit);
             editItem.Click += (s, e) => EditBatch(filePath);
 
-            var deleteItem = new ToolStripMenuItem("Delete");
+            var deleteItem = new ToolStripMenuItem(Strings.MenuDelete);
             deleteItem.Click += (s, e) => DeleteBatch(filePath);
 
             menu.Items.Add(editItem);
@@ -297,8 +308,8 @@ namespace Doomer
             var imagePath = BatchFileService.GetImagePath(filePath, _gzdoomSettings.Images);
 
             var confirm = MessageBox.Show(
-                $"Delete \"{name}\"? This will also remove its icon image, if any. This cannot be undone.",
-                "Delete batch", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                string.Format(Strings.DeleteBatchConfirm, name),
+                Strings.DeleteBatchTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (confirm != DialogResult.Yes)
                 return;
@@ -314,7 +325,7 @@ namespace Doomer
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Can't delete file:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(string.Format(Strings.CantDeleteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -328,7 +339,7 @@ namespace Doomer
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Can't execute file:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -353,6 +364,9 @@ namespace Doomer
             using var form = new SettingsForm();
             if (form.ShowDialog() == DialogResult.OK)
             {
+                // The language may have changed; the buttons' menus pick it up when they're rebuilt.
+                Localization.Apply(AppConfiguration.General.Language);
+                ApplyTexts();
                 LoadConfiguration();
                 await LoadButtonsBatchAsync();
             }

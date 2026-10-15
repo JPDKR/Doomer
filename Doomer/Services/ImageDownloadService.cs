@@ -19,8 +19,8 @@ namespace Doomer.Services
                               response.Content.Headers.ContentType?.MediaType == "text/html";
 
                 throw new HttpRequestException(blocked
-                    ? "The site blocked the download (some sites, like Doom Wiki, only allow web browsers). Right-click the image in your browser > Copy image, then press Ctrl+V in the Image box instead."
-                    : $"The server answered {(int)response.StatusCode} {response.ReasonPhrase}.");
+                    ? Strings.DownloadBlocked
+                    : string.Format(Strings.DownloadHttpError, (int)response.StatusCode, response.ReasonPhrase));
             }
 
             var path = Path.Combine(Path.GetTempPath(), $"Doomer-{Guid.NewGuid():N}.download");

@@ -18,6 +18,7 @@ namespace Doomer
         public SettingsForm()
         {
             InitializeComponent();
+            ApplyTexts();
             ApplyDarkTheme();
             LoadSettings();
         }
@@ -39,6 +40,42 @@ namespace Doomer
             nudWidth.Value = Math.Clamp(icons.Width, (int)nudWidth.Minimum, (int)nudWidth.Maximum);
             nudHeight.Value = Math.Clamp(icons.Height, (int)nudHeight.Minimum, (int)nudHeight.Maximum);
             nudPadding.Value = Math.Clamp(icons.Padding, (int)nudPadding.Minimum, (int)nudPadding.Maximum);
+
+            cmbLanguage.Items.Add(Strings.LanguageSystem);
+            foreach (var (_, name) in Localization.Languages)
+                cmbLanguage.Items.Add(name);
+
+            var languageIndex = Localization.Languages
+                .Select(l => l.Culture)
+                .ToList()
+                .FindIndex(c => string.Equals(c, AppConfiguration.General.Language, StringComparison.OrdinalIgnoreCase));
+            cmbLanguage.SelectedIndex = languageIndex + 1;
+        }
+
+        // Index 0 is "system default", saved as an empty language.
+        private string SelectedLanguage =>
+            cmbLanguage.SelectedIndex > 0 ? Localization.Languages[cmbLanguage.SelectedIndex - 1].Culture : string.Empty;
+
+        private void ApplyTexts()
+        {
+            Text = Strings.SettingsTitle;
+            lblGZDoomExe.Text = lblDSDADoomExe.Text = Strings.LabelExecutable;
+            lblGZDoomPlugins.Text = Strings.LabelPluginsFolder;
+            grpBatchs.Text = Strings.GroupBatchFiles;
+            grpImages.Text = Strings.GroupImages;
+            grpWads.Text = Strings.GroupWads;
+            lblBatchsLocation.Text = lblImagesLocation.Text = lblWadsLocation.Text = Strings.LabelDirectory;
+            lblBatchsExtension.Text = lblImagesExtension.Text = Strings.LabelExtension;
+            grpIcons.Text = Strings.GroupIcons;
+            lblIconsWidth.Text = Strings.LabelWidth;
+            lblIconsHeight.Text = Strings.LabelHeight;
+            lblIconsPadding.Text = Strings.LabelPadding;
+            grpInterface.Text = Strings.GroupInterface;
+            lblLanguage.Text = Strings.LabelLanguage;
+            btnBrowseExe.Text = btnBrowseDSDAExe.Text = btnBrowseBatchs.Text =
+                btnBrowseImages.Text = btnBrowseWads.Text = Strings.BrowseButton;
+            btnCancel.Text = Strings.CancelButton;
+            btnSave.Text = Strings.SaveButton;
         }
 
         private void SaveSettings()
@@ -73,6 +110,10 @@ namespace Doomer
                     Width = (int)nudWidth.Value,
                     Height = (int)nudHeight.Value,
                     Padding = (int)nudPadding.Value
+                },
+                General = new GeneralSettings
+                {
+                    Language = SelectedLanguage
                 }
             };
 
@@ -104,6 +145,11 @@ namespace Doomer
                         tb.ForeColor = TextColor;
                         tb.BorderStyle = BorderStyle.FixedSingle;
                         break;
+                    case ComboBox cb:
+                        cb.FlatStyle = FlatStyle.Flat;
+                        cb.BackColor = SurfaceColor;
+                        cb.ForeColor = TextColor;
+                        break;
                     case NumericUpDown nud:
                         nud.BackColor = SurfaceColor;
                         nud.ForeColor = TextColor;
@@ -133,12 +179,12 @@ namespace Doomer
 
         private void BtnBrowseExe_Click(object sender, EventArgs e)
         {
-            BrowseExecutable(txtGZDoomLocation, "Select GZDoom executable", "GZDoom|gzdoom.exe");
+            BrowseExecutable(txtGZDoomLocation, string.Format(Strings.SelectExecutable, "GZDoom"), "GZDoom|gzdoom.exe");
         }
 
         private void BtnBrowseDSDAExe_Click(object sender, EventArgs e)
         {
-            BrowseExecutable(txtDSDADoomLocation, "Select DSDA Doom executable", "DSDA Doom|dsda-doom.exe");
+            BrowseExecutable(txtDSDADoomLocation, string.Format(Strings.SelectExecutable, "DSDA Doom"), "DSDA Doom|dsda-doom.exe");
         }
 
         private static void BrowseExecutable(TextBox target, string title, string filter)
@@ -146,7 +192,7 @@ namespace Doomer
             using var dlg = new OpenFileDialog
             {
                 Title = title,
-                Filter = $"{filter}|Executables|*.exe|All files|*.*"
+                Filter = $"{filter}|{Strings.FileFilterExecutables}|*.exe|{Strings.FileFilterAll}|*.*"
             };
 
             var dir = Path.GetDirectoryName(target.Text);
@@ -159,17 +205,17 @@ namespace Doomer
 
         private void BtnBrowseBatchs_Click(object sender, EventArgs e)
         {
-            BrowseFolder(txtBatchsLocation, "Select batch files directory");
+            BrowseFolder(txtBatchsLocation, Strings.SelectBatchsDir);
         }
 
         private void BtnBrowseImages_Click(object sender, EventArgs e)
         {
-            BrowseFolder(txtImagesLocation, "Select images directory");
+            BrowseFolder(txtImagesLocation, Strings.SelectImagesDir);
         }
 
         private void BtnBrowseWads_Click(object sender, EventArgs e)
         {
-            BrowseFolder(txtWadsLocation, "Select WADs directory");
+            BrowseFolder(txtWadsLocation, Strings.SelectWadsDir);
         }
 
         private void BrowseFolder(TextBox target, string description)
@@ -195,35 +241,35 @@ namespace Doomer
             if ((string.IsNullOrWhiteSpace(gzdoomLocation) && string.IsNullOrWhiteSpace(dsdaDoomLocation)) ||
                 string.IsNullOrWhiteSpace(batchsLocation))
             {
-                MessageBox.Show("At least one executable (GZDoom or DSDA Doom) and the batch directory are required.", "Validation",
+                MessageBox.Show(Strings.SettingsRequired, Strings.ValidationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(dsdaDoomLocation) && !ExecutableExists(dsdaDoomLocation))
             {
-                MessageBox.Show($"DSDA Doom executable not found:\n{dsdaDoomLocation}", "Validation",
+                MessageBox.Show(string.Format(Strings.ExecutableNotFound, "DSDA Doom", dsdaDoomLocation), Strings.ValidationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(gzdoomLocation) && !ExecutableExists(gzdoomLocation))
             {
-                MessageBox.Show($"GZDoom executable not found:\n{gzdoomLocation}", "Validation",
+                MessageBox.Show(string.Format(Strings.ExecutableNotFound, "GZDoom", gzdoomLocation), Strings.ValidationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!Directory.Exists(batchsLocation))
             {
-                MessageBox.Show($"Batch files directory not found:\n{batchsLocation}", "Validation",
+                MessageBox.Show(string.Format(Strings.BatchsDirNotFound, batchsLocation), Strings.ValidationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(wadsLocation) && !Directory.Exists(wadsLocation))
             {
-                MessageBox.Show($"WADs directory not found:\n{wadsLocation}", "Validation",
+                MessageBox.Show(string.Format(Strings.WadsDirNotFound, wadsLocation), Strings.ValidationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -231,8 +277,8 @@ namespace Doomer
             if (!string.IsNullOrWhiteSpace(imagesLocation) && !Directory.Exists(imagesLocation))
             {
                 var proceed = MessageBox.Show(
-                    $"Images directory not found:\n{imagesLocation}\n\nWAD buttons will show text instead of icons. Save anyway?",
-                    "Validation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    string.Format(Strings.ImagesDirNotFoundSaveAnyway, imagesLocation),
+                    Strings.ValidationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                 if (proceed != DialogResult.Yes)
                     return;
@@ -246,7 +292,7 @@ namespace Doomer
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error saving settings:\n{ex.Message}", "Error",
+                MessageBox.Show(string.Format(Strings.SettingsSaveError, ex.Message), Strings.ErrorTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

@@ -35,6 +35,9 @@ The app reads its settings from <ins>appsettings.json</ins> on startup. You can 
     "Width": 120,
     "Height": 100,
     "Padding": 5
+  },
+  "General": {
+    "Language": ""
   }
 }
 ```
@@ -45,6 +48,11 @@ The app reads its settings from <ins>appsettings.json</ins> on startup. You can 
 * **GZDoom.Images**: where the button icons live, and their extension.
 * **DSDADoom.Location**: full path to your `dsda-doom.exe` (optional — only needed for DSDA Doom batches). At least one of the two executables must be set.
 * **Icons**: size and spacing of the buttons in the main window.
+* **General.Language**: the app's language — `en` (English) or `es` (Español). Leave it empty to follow Windows' language (English if Windows uses one the app isn't translated to).
+
+### Translations
+
+UI texts live in `Doomer/Strings.resx` (English) and one `Strings.<language>.resx` per translation, e.g. `Strings.es.resx`. To add a language, copy `Strings.es.resx` with the new language code, translate its values, and add it to `Localization.Languages` in `Doomer/Localization.cs` so it shows up in Settings. A test checks that every translation has all the strings and the same `{0}` placeholders as English.
 
 ## Using the app
 

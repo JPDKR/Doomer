@@ -5,8 +5,9 @@ namespace Doomer
 {
     public partial class BatchCreatorForm : Form
     {
-        private const string WadFileFilter = "Doom files|*.wad;*.pk3;*.pk7;*.zip;*.deh;*.bex|All files|*.*";
-        private const string ImageFileFilter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*";
+        private static string WadFileFilter => $"{Strings.FileFilterDoom}|*.wad;*.pk3;*.pk7;*.zip;*.deh;*.bex|{Strings.FileFilterAll}|*.*";
+        private static string ImageFileFilter => $"{Strings.FileFilterImages}|*.png;*.jpg;*.jpeg;*.bmp;*.gif|{Strings.FileFilterAll}|*.*";
+        private static string ArchiveFileFilter => $"{Strings.FileFilterArchives}|{ArchiveService.FilePatterns}|{Strings.FileFilterAll}|*.*";
 
         private readonly GZDoomSettings _gzdoomSettings = AppConfiguration.GZDoom;
         private readonly DSDADoomSettings _dsdaDoomSettings = AppConfiguration.DSDADoom;
@@ -18,6 +19,7 @@ namespace Doomer
         public BatchCreatorForm(string? existingFilePath)
         {
             InitializeComponent();
+            ApplyTexts();
             _editingFilePath = existingFilePath;
 
             foreach (var port in Enum.GetValues<SourcePort>())
@@ -57,8 +59,8 @@ namespace Doomer
 
         private void LoadExistingBatch(string path)
         {
-            Text = "Edit Batch File";
-            btnCreate.Text = "Save";
+            Text = Strings.BatchFormEditTitle;
+            btnCreate.Text = Strings.SaveButton;
             txtFileName.Text = Path.GetFileNameWithoutExtension(path);
 
             // The batch name is fixed once created, and so is its image once it has one.
@@ -81,7 +83,7 @@ namespace Doomer
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Can't read the batch file:\n{ex.Message}", "Edit batch",
+                MessageBox.Show(string.Format(Strings.CantReadBatch, ex.Message), Strings.EditBatchTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -89,8 +91,8 @@ namespace Doomer
             if (!BatchFileService.TryParseCommand(command, _gzdoomSettings.Plugins, out var port, out var iwad, out var wad,
                     out var extraFiles, out var plugins))
             {
-                MessageBox.Show("Couldn't parse this batch file's command. Please review the fields below.",
-                    "Edit batch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(Strings.CantParseBatch,
+                    Strings.EditBatchTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -99,6 +101,25 @@ namespace Doomer
             txtWad.Text = wad;
             txtExtraFiles.Lines = [.. extraFiles];
             txtPlugins.Text = plugins;
+        }
+
+        private void ApplyTexts()
+        {
+            Text = Strings.BatchFormAddTitle;
+            btnFromArchive.Text = Strings.FromArchiveButton;
+            lblFromArchive.Text = Strings.FromArchiveHint;
+            lblFileName.Text = Strings.LabelFileName;
+            lblSourcePort.Text = Strings.LabelSourcePort;
+            lblExtraFiles.Text = Strings.LabelExtraFiles;
+            lblImage.Text = Strings.LabelImage;
+            btnBrowseIWad.Text = btnBrowseWad.Text = btnBrowseImage.Text = Strings.BrowseButton;
+            btnCreate.Text = Strings.CreateButton;
+
+            txtFileName.PlaceholderText = Strings.PlaceholderFileName;
+            txtIWad.PlaceholderText = Strings.PlaceholderIWad;
+            txtWad.PlaceholderText = Strings.PlaceholderWad;
+            txtExtraFiles.PlaceholderText = Strings.PlaceholderExtraFiles;
+            txtImage.PlaceholderText = Strings.PlaceholderImage;
         }
 
         private void ApplyDarkTheme()
@@ -142,10 +163,6 @@ namespace Doomer
                 }
             }
 
-            txtFileName.PlaceholderText = "e.g. my-doom-mod";
-            txtIWad.PlaceholderText = "e.g. wads/doom2";
-            txtWad.PlaceholderText = "e.g. brutal-doom or mods/myhouse.pk3";
-            txtImage.PlaceholderText = "Optional icon: Browse..., an image URL, or Ctrl+V a copied image";
             UpdatePluginsState();
         }
 
@@ -154,14 +171,14 @@ namespace Doomer
         {
             var supportsPlugins = SelectedPort == SourcePort.GZDoom;
             txtPlugins.Enabled = supportsPlugins;
-            txtPlugins.PlaceholderText = supportsPlugins ? "e.g. smoothed (optional)" : "Not used by DSDA Doom";
+            txtPlugins.PlaceholderText = supportsPlugins ? Strings.PlaceholderPlugins : Strings.PlaceholderPluginsUnsupported;
         }
 
         private void CmbSourcePort_SelectedIndexChanged(object? sender, EventArgs e) => UpdatePluginsState();
 
-        private void BtnBrowseIWad_Click(object sender, EventArgs e) => BrowseFile(txtIWad, "Select IWAD");
+        private void BtnBrowseIWad_Click(object sender, EventArgs e) => BrowseFile(txtIWad, Strings.SelectIWad);
 
-        private void BtnBrowseWad_Click(object sender, EventArgs e) => BrowseFile(txtWad, "Select WAD");
+        private void BtnBrowseWad_Click(object sender, EventArgs e) => BrowseFile(txtWad, Strings.SelectWad);
 
         private static void BrowseFile(TextBox target, string title)
         {
@@ -184,12 +201,12 @@ namespace Doomer
 
             if (string.IsNullOrWhiteSpace(wadsLocation) || !Directory.Exists(wadsLocation))
             {
-                MessageBox.Show($"WADs directory not found:\n{wadsLocation}\n\nFix it in Settings first.",
-                    "Extract archive", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, wadsLocation),
+                    Strings.ExtractArchiveTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            using var dlg = new OpenFileDialog { Title = "Select archive", Filter = ArchiveService.FileFilter };
+            using var dlg = new OpenFileDialog { Title = Strings.SelectArchive, Filter = ArchiveFileFilter };
 
             if (dlg.ShowDialog() != DialogResult.OK)
                 return;
@@ -204,8 +221,8 @@ namespace Doomer
             if (Directory.Exists(destination) && Directory.EnumerateFileSystemEntries(destination).Any())
             {
                 var proceed = MessageBox.Show(
-                    $"The folder \"{folderName}\" already exists in the WADs directory. Extract anyway, overwriting files with the same name?",
-                    "Extract archive", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    string.Format(Strings.FolderExistsOverwrite, folderName),
+                    Strings.ExtractArchiveTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                 if (proceed != DialogResult.Yes)
                     return;
@@ -221,7 +238,7 @@ namespace Doomer
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error extracting the archive: " + ex.Message, "Extract archive",
+                MessageBox.Show(string.Format(Strings.ExtractError, ex.Message), Strings.ExtractArchiveTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -247,12 +264,12 @@ namespace Doomer
         // Returns null if they cancel.
         private string? AskForWadName(string suggestion)
         {
-            var prompt = txtFileName.ReadOnly ? "Name of the WAD's folder:" : "Name of the WAD's folder and batch file:";
+            var prompt = txtFileName.ReadOnly ? Strings.AskFolderName : Strings.AskFolderAndBatchName;
             var name = suggestion;
 
             while (true)
             {
-                using var dlg = new NamePromptForm("Extract archive", prompt, name);
+                using var dlg = new NamePromptForm(Strings.ExtractArchiveTitle, prompt, name);
 
                 if (dlg.ShowDialog(this) != DialogResult.OK)
                     return null;
@@ -263,7 +280,7 @@ namespace Doomer
                 if (BatchFileService.IsValidFileName(name, out var error))
                     return name;
 
-                MessageBox.Show(error, "Extract archive", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(error, Strings.ExtractArchiveTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -274,14 +291,14 @@ namespace Doomer
 
             if (candidates.Count == 0)
             {
-                MessageBox.Show($"The archive was extracted to:\n{folder}\n\nbut no .wad, .pk3 or .pk7 file was found in it. Pick the WAD manually.",
-                    "Extract archive", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(string.Format(Strings.NoWadInArchive, folder),
+                    Strings.ExtractArchiveTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return null;
             }
 
             using var dlg = new OpenFileDialog
             {
-                Title = "The archive has several WADs — select the one to launch",
+                Title = Strings.PickWadTitle,
                 Filter = WadFileFilter,
                 InitialDirectory = folder
             };
@@ -293,19 +310,19 @@ namespace Doomer
         {
             if (string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location))
             {
-                MessageBox.Show("The images directory isn't configured. Set it in Settings first.",
-                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(Strings.ImagesDirNotConfigured,
+                    Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            using var dlg = new OpenFileDialog { Title = "Select image", Filter = ImageFileFilter };
+            using var dlg = new OpenFileDialog { Title = Strings.SelectImage, Filter = ImageFileFilter };
 
             if (dlg.ShowDialog() != DialogResult.OK)
                 return;
 
             if (!IsValidImage(dlg.FileName))
             {
-                MessageBox.Show("The selected file isn't a valid image.", "Batch creation",
+                MessageBox.Show(Strings.InvalidImageSelected, Strings.BatchCreationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -326,7 +343,7 @@ namespace Doomer
 
             if (image is null)
             {
-                MessageBox.Show("Couldn't read the image from the clipboard.", "Batch creation",
+                MessageBox.Show(Strings.ClipboardImageUnreadable, Strings.BatchCreationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -339,7 +356,7 @@ namespace Doomer
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Couldn't save the pasted image: " + ex.Message, "Batch creation",
+                MessageBox.Show(string.Format(Strings.PastedImageSaveError, ex.Message), Strings.BatchCreationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -393,8 +410,8 @@ namespace Doomer
             }
             catch (Exception ex)
             {
-                var message = ex is TaskCanceledException ? "The download timed out." : ex.Message;
-                MessageBox.Show("Couldn't download the image:\n" + message, "Batch creation",
+                var message = ex is TaskCanceledException ? Strings.DownloadTimedOut : ex.Message;
+                MessageBox.Show(string.Format(Strings.ImageDownloadError, message), Strings.BatchCreationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return null;
             }
@@ -408,8 +425,8 @@ namespace Doomer
                 return path;
 
             File.Delete(path);
-            MessageBox.Show("The URL doesn't point to a valid image. Make sure it's the image itself (right-click it > Copy image address), not the page it's on.",
-                "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(Strings.UrlNotAnImage,
+                Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return null;
         }
 
@@ -454,8 +471,8 @@ namespace Doomer
                 return true;
 
             var proceed = MessageBox.Show(
-                $"{label} file not found:\n{path}\n\nCreate the batch anyway?",
-                "Batch creation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                string.Format(Strings.FileNotFoundCreateAnyway, label, path),
+                Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             return proceed == DialogResult.Yes;
         }
@@ -471,7 +488,7 @@ namespace Doomer
 
             if (string.IsNullOrWhiteSpace(iwad) || string.IsNullOrWhiteSpace(wadFile) || string.IsNullOrWhiteSpace(fileName))
             {
-                MessageBox.Show("Please enter the IWAD, WAD and batch file name.", "Batch creation",
+                MessageBox.Show(Strings.MissingRequiredFields, Strings.BatchCreationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -480,20 +497,20 @@ namespace Doomer
 
             if (string.IsNullOrWhiteSpace(executable))
             {
-                MessageBox.Show($"The {BatchFileService.GetDisplayName(port)} executable isn't configured. Set it in Settings first.",
-                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(string.Format(Strings.ExecutableNotConfigured, BatchFileService.GetDisplayName(port)),
+                    Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!BatchFileService.IsValidFileName(fileName, out var fileNameError))
             {
-                MessageBox.Show(fileNameError, "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(fileNameError, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!ConfirmPathIfMissing("IWAD", BatchFileService.EnsureWadExtension(iwad)) ||
                 !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)) ||
-                !extraFiles.All(f => ConfirmPathIfMissing("Extra", BatchFileService.EnsureWadExtension(f))))
+                !extraFiles.All(f => ConfirmPathIfMissing(Strings.ExtraFileLabel, BatchFileService.EnsureWadExtension(f))))
             {
                 return;
             }
@@ -508,16 +525,16 @@ namespace Doomer
             {
                 if (!Directory.Exists(_gzdoomSettings.Wads.Location))
                 {
-                    MessageBox.Show($"WADs directory not found:\n{_gzdoomSettings.Wads.Location}\n\nFix it in Settings first.",
-                        "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, _gzdoomSettings.Wads.Location),
+                        Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
                 if (File.Exists(wadDestination))
                 {
                     var replace = MessageBox.Show(
-                        $"A WAD named \"{Path.GetFileName(wadDestination)}\" already exists in the WADs directory. Replace it?",
-                        "Batch creation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                        string.Format(Strings.WadExistsReplace, Path.GetFileName(wadDestination)),
+                        Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                     if (replace != DialogResult.Yes)
                         return;
@@ -536,7 +553,7 @@ namespace Doomer
             }
             catch (ArgumentException ex)
             {
-                MessageBox.Show(ex.Message, "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(ex.Message, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -551,21 +568,21 @@ namespace Doomer
             {
                 if (imageDestination is null || !Directory.Exists(_gzdoomSettings.Images.Location))
                 {
-                    MessageBox.Show($"Images directory not found:\n{_gzdoomSettings.Images.Location}\n\nFix it in Settings first.",
-                        "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(string.Format(Strings.ImagesDirNotFoundFixInSettings, _gzdoomSettings.Images.Location),
+                        Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
                 if (!ImageDownloadService.IsUrl(imageSource) && !File.Exists(imageSource))
                 {
-                    MessageBox.Show($"Image file not found:\n{imageSource}", "Batch creation",
+                    MessageBox.Show(string.Format(Strings.ImageFileNotFound, imageSource), Strings.BatchCreationTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
                 if (!ImageDownloadService.IsUrl(imageSource) && !IsValidImage(imageSource))
                 {
-                    MessageBox.Show($"The image file isn't a valid image:\n{imageSource}", "Batch creation",
+                    MessageBox.Show(string.Format(Strings.ImageFileInvalid, imageSource), Strings.BatchCreationTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -574,8 +591,8 @@ namespace Doomer
             if (File.Exists(path) && _editingFilePath is null)
             {
                 var overwrite = MessageBox.Show(
-                    $"A batch file named \"{fileName}\" already exists. Overwrite it?",
-                    "Batch creation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    string.Format(Strings.BatchExistsOverwrite, fileName),
+                    Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                 if (overwrite != DialogResult.Yes)
                     return;
@@ -600,7 +617,7 @@ namespace Doomer
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error moving the WAD to the WADs directory: " + ex.Message, "Batch creation",
+                    MessageBox.Show(string.Format(Strings.MoveWadError, ex.Message), Strings.BatchCreationTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
@@ -614,7 +631,7 @@ namespace Doomer
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error saving the batch: " + ex.Message, "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(string.Format(Strings.SaveBatchError, ex.Message), Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -628,13 +645,13 @@ namespace Doomer
             catch (Exception ex)
             {
                 imageMoved = false;
-                MessageBox.Show("The batch was saved, but the image couldn't be moved: " + ex.Message,
-                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(string.Format(Strings.ImageMoveError, ex.Message),
+                    Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             if (imageMoved)
-                MessageBox.Show(_editingFilePath is null ? "Batch created successfully." : "Batch updated successfully.",
-                    "Batch creation", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(_editingFilePath is null ? Strings.BatchCreated : Strings.BatchUpdated,
+                    Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             DialogResult = DialogResult.OK;
             Close();

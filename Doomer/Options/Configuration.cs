@@ -14,6 +14,7 @@ namespace Doomer.Options
         public static GZDoomSettings GZDoom { get; private set; } = default!;
         public static DSDADoomSettings DSDADoom { get; private set; } = default!;
         public static IconsSettings Icons { get; private set; } = default!;
+        public static GeneralSettings General { get; private set; } = default!;
 
         static AppConfiguration() => Load();
 
@@ -30,6 +31,8 @@ namespace Doomer.Options
             // Older config files predate DSDA Doom support and have no section for it.
             DSDADoom = config.GetSection("DSDADoom").Get<DSDADoomSettings>() ?? new();
             Icons = config.GetSection("Icons").Get<IconsSettings>()!;
+            // Older config files predate the language setting.
+            General = config.GetSection("General").Get<GeneralSettings>() ?? new();
         }
 
         // Seeds the per-user config on first run, since the app may be installed
@@ -72,6 +75,9 @@ namespace Doomer.Options
                 "Width": 120,
                 "Height": 100,
                 "Padding": 5
+              },
+              "General": {
+                "Language": ""
               }
             }
             """;
@@ -82,6 +88,7 @@ namespace Doomer.Options
         public GZDoomSettings GZDoom { get; set; } = new();
         public DSDADoomSettings DSDADoom { get; set; } = new();
         public IconsSettings Icons { get; set; } = new();
+        public GeneralSettings General { get; set; } = new();
     }
 
     public class GZDoomSettings
@@ -114,6 +121,12 @@ namespace Doomer.Options
     public class WadSettings
     {
         public string Location { get; set; } = string.Empty;
+    }
+
+    public class GeneralSettings
+    {
+        // A culture name like "es", or empty to follow Windows' language.
+        public string Language { get; set; } = string.Empty;
     }
 
     public class IconsSettings

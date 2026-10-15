@@ -5,7 +5,7 @@ namespace Doomer.Services
 {
     public static class ArchiveService
     {
-        public const string FileFilter = "Archives|*.zip;*.rar;*.7z|All files|*.*";
+        public const string FilePatterns = "*.zip;*.rar;*.7z";
 
         // Files a source port can load directly as the batch's WAD.
         private static readonly string[] WadExtensions = [".wad", ".pk3", ".pk7"];
@@ -102,7 +102,7 @@ namespace Doomer.Services
             var target = Path.GetFullPath(Path.Combine(root, entry.Key[sharedFolder.Length..]));
 
             if (!target.StartsWith(root, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException($"The archive contains an unsafe path: {entry.Key}");
+                throw new InvalidDataException(string.Format(Strings.ArchiveUnsafePath, entry.Key));
 
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
 

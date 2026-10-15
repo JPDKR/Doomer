@@ -50,6 +50,9 @@
             nudHeight = new NumericUpDown();
             lblIconsPadding = new Label();
             nudPadding = new NumericUpDown();
+            grpInterface = new GroupBox();
+            lblLanguage = new Label();
+            cmbLanguage = new ComboBox();
             btnCancel = new Button();
             btnSave = new Button();
             grpGZDoom.SuspendLayout();
@@ -58,6 +61,7 @@
             grpImages.SuspendLayout();
             grpWads.SuspendLayout();
             grpIcons.SuspendLayout();
+            grpInterface.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudWidth).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudHeight).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudPadding).BeginInit();
@@ -373,9 +377,37 @@
             nudPadding.TabIndex = 11;
             nudPadding.Value = new decimal(new int[] { 5, 0, 0, 0 });
             //
+            // grpInterface
+            //
+            grpInterface.Controls.Add(lblLanguage);
+            grpInterface.Controls.Add(cmbLanguage);
+            grpInterface.Location = new Point(8, 550);
+            grpInterface.Name = "grpInterface";
+            grpInterface.Size = new Size(524, 64);
+            grpInterface.TabIndex = 6;
+            grpInterface.TabStop = false;
+            grpInterface.Text = "Interface";
+            //
+            // lblLanguage
+            //
+            lblLanguage.AutoSize = false;
+            lblLanguage.Location = new Point(8, 22);
+            lblLanguage.Name = "lblLanguage";
+            lblLanguage.Size = new Size(85, 27);
+            lblLanguage.Text = "Language";
+            lblLanguage.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // cmbLanguage
+            //
+            cmbLanguage.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbLanguage.Location = new Point(98, 24);
+            cmbLanguage.Name = "cmbLanguage";
+            cmbLanguage.Size = new Size(200, 23);
+            cmbLanguage.TabIndex = 0;
+            //
             // btnCancel
             //
-            btnCancel.Location = new Point(346, 556);
+            btnCancel.Location = new Point(346, 630);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(90, 30);
             btnCancel.TabIndex = 12;
@@ -384,7 +416,7 @@
             //
             // btnSave
             //
-            btnSave.Location = new Point(442, 556);
+            btnSave.Location = new Point(442, 630);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(90, 30);
             btnSave.TabIndex = 13;
@@ -395,13 +427,14 @@
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(540, 598);
+            ClientSize = new Size(540, 672);
             Controls.Add(grpGZDoom);
             Controls.Add(grpDSDADoom);
             Controls.Add(grpBatchs);
             Controls.Add(grpImages);
             Controls.Add(grpWads);
             Controls.Add(grpIcons);
+            Controls.Add(grpInterface);
             Controls.Add(btnCancel);
             Controls.Add(btnSave);
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -417,6 +450,7 @@
             grpImages.ResumeLayout(false);
             grpWads.ResumeLayout(false);
             grpIcons.ResumeLayout(false);
+            grpInterface.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)nudWidth).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudHeight).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudPadding).EndInit();
@@ -458,6 +492,9 @@
         private NumericUpDown nudHeight;
         private Label lblIconsPadding;
         private NumericUpDown nudPadding;
+        private GroupBox grpInterface;
+        private Label lblLanguage;
+        private ComboBox cmbLanguage;
         private Button btnCancel;
         private Button btnSave;
     }

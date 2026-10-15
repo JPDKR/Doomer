@@ -60,13 +60,13 @@ namespace Doomer.Services
         {
             if (string.IsNullOrWhiteSpace(fileName))
             {
-                error = "File name cannot be empty.";
+                error = Strings.FileNameEmpty;
                 return false;
             }
 
             if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             {
-                error = "File name contains invalid characters.";
+                error = Strings.FileNameInvalidChars;
                 return false;
             }
 
@@ -81,7 +81,7 @@ namespace Doomer.Services
 
             if (ContainsQuote(settings.Location) || ContainsQuote(settings.Plugins) ||
                 ContainsQuote(iwad) || ContainsQuote(wad) || ContainsQuote(plugins) || extraFiles.Any(ContainsQuote))
-                throw new ArgumentException("GZDoom location, plugins folder, IWAD, WAD, extra file and plugin paths cannot contain quote characters.");
+                throw new ArgumentException(Strings.GZDoomPathsWithQuotes);
 
             var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
 
@@ -97,7 +97,7 @@ namespace Doomer.Services
             extraFiles ??= [];
 
             if (ContainsQuote(settings.Location) || ContainsQuote(iwad) || ContainsQuote(wad) || extraFiles.Any(ContainsQuote))
-                throw new ArgumentException("DSDA Doom location, IWAD, WAD and extra file paths cannot contain quote characters.");
+                throw new ArgumentException(Strings.DSDADoomPathsWithQuotes);
 
             return $"\"{settings.Location}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
         }

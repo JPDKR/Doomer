@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="MenuAddBatch" xml:space="preserve">
+    <value>Add Batch File</value>
+  </data>
+  <data name="MenuRefresh" xml:space="preserve">
+    <value>Refresh List</value>
+  </data>
+  <data name="MenuSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search WAD...</value>
+  </data>
+  <data name="LoadingWads" xml:space="preserve">
+    <value>Loading WADs...</value>
+  </data>
+  <data name="StatusWadCountOne" xml:space="preserve">
+    <value>{0} WAD loaded</value>
+  </data>
+  <data name="StatusWadCountMany" xml:space="preserve">
+    <value>{0} WADs loaded</value>
+  </data>
+  <data name="UpdateAvailableTitle" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="UpdateAvailableMessage" xml:space="preserve">
+    <value>A new version of Doomer is available ({0}). You have {1}.
+
+Update now?</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Downloading Doomer {0}...</value>
+  </data>
+  <data name="UpdateFailedTitle" xml:space="preserve">
+    <value>Update failed</value>
+  </data>
+  <data name="UpdateFailedMessage" xml:space="preserve">
+    <value>The update could not be installed:
+{0}</value>
+  </data>
+  <data name="BatchsDirNotFoundOpenSettings" xml:space="preserve">
+    <value>Batchs directory not found:
+{0}
+
+Open Settings to fix the path.</value>
+  </data>
+  <data name="ErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="MenuEdit" xml:space="preserve">
+    <value>Edit...</value>
+  </data>
+  <data name="MenuDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DeleteBatchTitle" xml:space="preserve">
+    <value>Delete batch</value>
+  </data>
+  <data name="DeleteBatchConfirm" xml:space="preserve">
+    <value>Delete "{0}"? This will also remove its icon image, if any. This cannot be undone.</value>
+  </data>
+  <data name="CantDeleteFile" xml:space="preserve">
+    <value>Can't delete file:
+{0}</value>
+  </data>
+  <data name="CantExecuteFile" xml:space="preserve">
+    <value>Can't execute file:
+{0}</value>
+  </data>
+  <data name="BrowseButton" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="SaveButton" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="OkButton" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="FileFilterAll" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="FileFilterDoom" xml:space="preserve">
+    <value>Doom files</value>
+  </data>
+  <data name="FileFilterImages" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="FileFilterArchives" xml:space="preserve">
+    <value>Archives</value>
+  </data>
+  <data name="FileFilterExecutables" xml:space="preserve">
+    <value>Executables</value>
+  </data>
+  <data name="BatchFormAddTitle" xml:space="preserve">
+    <value>Add Batch File</value>
+  </data>
+  <data name="BatchFormEditTitle" xml:space="preserve">
+    <value>Edit Batch File</value>
+  </data>
+  <data name="CreateButton" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="FromArchiveButton" xml:space="preserve">
+    <value>From archive...</value>
+  </data>
+  <data name="FromArchiveHint" xml:space="preserve">
+    <value>Fill in the form from a .zip, .rar or .7z</value>
+  </data>
+  <data name="LabelFileName" xml:space="preserve">
+    <value>File Name</value>
+  </data>
+  <data name="LabelSourcePort" xml:space="preserve">
+    <value>Source Port</value>
+  </data>
+  <data name="LabelExtraFiles" xml:space="preserve">
+    <value>Extra files</value>
+  </data>
+  <data name="LabelImage" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="PlaceholderFileName" xml:space="preserve">
+    <value>e.g. my-doom-mod</value>
+  </data>
+  <data name="PlaceholderIWad" xml:space="preserve">
+    <value>e.g. wads/doom2</value>
+  </data>
+  <data name="PlaceholderWad" xml:space="preserve">
+    <value>e.g. brutal-doom or mods/myhouse.pk3</value>
+  </data>
+  <data name="PlaceholderExtraFiles" xml:space="preserve">
+    <value>Optional, one per line (e.g. .deh patches)</value>
+  </data>
+  <data name="PlaceholderImage" xml:space="preserve">
+    <value>Optional icon: Browse..., an image URL, or Ctrl+V a copied image</value>
+  </data>
+  <data name="PlaceholderPlugins" xml:space="preserve">
+    <value>e.g. smoothed (optional)</value>
+  </data>
+  <data name="PlaceholderPluginsUnsupported" xml:space="preserve">
+    <value>Not used by DSDA Doom</value>
+  </data>
+  <data name="EditBatchTitle" xml:space="preserve">
+    <value>Edit batch</value>
+  </data>
+  <data name="CantReadBatch" xml:space="preserve">
+    <value>Can't read the batch file:
+{0}</value>
+  </data>
+  <data name="CantParseBatch" xml:space="preserve">
+    <value>Couldn't parse this batch file's command. Please review the fields below.</value>
+  </data>
+  <data name="SelectIWad" xml:space="preserve">
+    <value>Select IWAD</value>
+  </data>
+  <data name="SelectWad" xml:space="preserve">
+    <value>Select WAD</value>
+  </data>
+  <data name="SelectArchive" xml:space="preserve">
+    <value>Select archive</value>
+  </data>
+  <data name="SelectImage" xml:space="preserve">
+    <value>Select image</value>
+  </data>
+  <data name="ExtractArchiveTitle" xml:space="preserve">
+    <value>Extract archive</value>
+  </data>
+  <data name="WadsDirNotFoundFixInSettings" xml:space="preserve">
+    <value>WADs directory not found:
+{0}
+
+Fix it in Settings first.</value>
+  </data>
+  <data name="FolderExistsOverwrite" xml:space="preserve">
+    <value>The folder "{0}" already exists in the WADs directory. Extract anyway, overwriting files with the same name?</value>
+  </data>
+  <data name="ExtractError" xml:space="preserve">
+    <value>Error extracting the archive: {0}</value>
+  </data>
+  <data name="AskFolderName" xml:space="preserve">
+    <value>Name of the WAD's folder:</value>
+  </data>
+  <data name="AskFolderAndBatchName" xml:space="preserve">
+    <value>Name of the WAD's folder and batch file:</value>
+  </data>
+  <data name="NoWadInArchive" xml:space="preserve">
+    <value>The archive was extracted to:
+{0}
+
+but no .wad, .pk3 or .pk7 file was found in it. Pick the WAD manually.</value>
+  </data>
+  <data name="PickWadTitle" xml:space="preserve">
+    <value>The archive has several WADs — select the one to launch</value>
+  </data>
+  <data name="BatchCreationTitle" xml:space="preserve">
+    <value>Batch creation</value>
+  </data>
+  <data name="ImagesDirNotConfigured" xml:space="preserve">
+    <value>The images directory isn't configured. Set it in Settings first.</value>
+  </data>
+  <data name="InvalidImageSelected" xml:space="preserve">
+    <value>The selected file isn't a valid image.</value>
+  </data>
+  <data name="ClipboardImageUnreadable" xml:space="preserve">
+    <value>Couldn't read the image from the clipboard.</value>
+  </data>
+  <data name="PastedImageSaveError" xml:space="preserve">
+    <value>Couldn't save the pasted image: {0}</value>
+  </data>
+  <data name="DownloadTimedOut" xml:space="preserve">
+    <value>The download timed out.</value>
+  </data>
+  <data name="ImageDownloadError" xml:space="preserve">
+    <value>Couldn't download the image:
+{0}</value>
+  </data>
+  <data name="UrlNotAnImage" xml:space="preserve">
+    <value>The URL doesn't point to a valid image. Make sure it's the image itself (right-click it &gt; Copy image address), not the page it's on.</value>
+  </data>
+  <data name="ExtraFileLabel" xml:space="preserve">
+    <value>Extra</value>
+  </data>
+  <data name="FileNotFoundCreateAnyway" xml:space="preserve">
+    <value>{0} file not found:
+{1}
+
+Create the batch anyway?</value>
+  </data>
+  <data name="MissingRequiredFields" xml:space="preserve">
+    <value>Please enter the IWAD, WAD and batch file name.</value>
+  </data>
+  <data name="ExecutableNotConfigured" xml:space="preserve">
+    <value>The {0} executable isn't configured. Set it in Settings first.</value>
+  </data>
+  <data name="WadExistsReplace" xml:space="preserve">
+    <value>A WAD named "{0}" already exists in the WADs directory. Replace it?</value>
+  </data>
+  <data name="ImagesDirNotFoundFixInSettings" xml:space="preserve">
+    <value>Images directory not found:
+{0}
+
+Fix it in Settings first.</value>
+  </data>
+  <data name="ImageFileNotFound" xml:space="preserve">
+    <value>Image file not found:
+{0}</value>
+  </data>
+  <data name="ImageFileInvalid" xml:space="preserve">
+    <value>The image file isn't a valid image:
+{0}</value>
+  </data>
+  <data name="BatchExistsOverwrite" xml:space="preserve">
+    <value>A batch file named "{0}" already exists. Overwrite it?</value>
+  </data>
+  <data name="MoveWadError" xml:space="preserve">
+    <value>Error moving the WAD to the WADs directory: {0}</value>
+  </data>
+  <data name="SaveBatchError" xml:space="preserve">
+    <value>Error saving the batch: {0}</value>
+  </data>
+  <data name="ImageMoveError" xml:space="preserve">
+    <value>The batch was saved, but the image couldn't be moved: {0}</value>
+  </data>
+  <data name="BatchCreated" xml:space="preserve">
+    <value>Batch created successfully.</value>
+  </data>
+  <data name="BatchUpdated" xml:space="preserve">
+    <value>Batch updated successfully.</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="LabelExecutable" xml:space="preserve">
+    <value>Executable</value>
+  </data>
+  <data name="LabelPluginsFolder" xml:space="preserve">
+    <value>Plugins Folder</value>
+  </data>
+  <data name="GroupBatchFiles" xml:space="preserve">
+    <value>Batch Files</value>
+  </data>
+  <data name="LabelDirectory" xml:space="preserve">
+    <value>Directory</value>
+  </data>
+  <data name="LabelExtension" xml:space="preserve">
+    <value>Extension</value>
+  </data>
+  <data name="GroupImages" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="GroupWads" xml:space="preserve">
+    <value>Wads</value>
+  </data>
+  <data name="GroupIcons" xml:space="preserve">
+    <value>Icons</value>
+  </data>
+  <data name="LabelWidth" xml:space="preserve">
+    <value>Width</value>
+  </data>
+  <data name="LabelHeight" xml:space="preserve">
+    <value>Height</value>
+  </data>
+  <data name="LabelPadding" xml:space="preserve">
+    <value>Padding</value>
+  </data>
+  <data name="GroupInterface" xml:space="preserve">
+    <value>Interface</value>
+  </data>
+  <data name="LabelLanguage" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="LanguageSystem" xml:space="preserve">
+    <value>System default</value>
+  </data>
+  <data name="SelectExecutable" xml:space="preserve">
+    <value>Select {0} executable</value>
+  </data>
+  <data name="SelectBatchsDir" xml:space="preserve">
+    <value>Select batch files directory</value>
+  </data>
+  <data name="SelectImagesDir" xml:space="preserve">
+    <value>Select images directory</value>
+  </data>
+  <data name="SelectWadsDir" xml:space="preserve">
+    <value>Select WADs directory</value>
+  </data>
+  <data name="ValidationTitle" xml:space="preserve">
+    <value>Validation</value>
+  </data>
+  <data name="SettingsRequired" xml:space="preserve">
+    <value>At least one executable (GZDoom or DSDA Doom) and the batch directory are required.</value>
+  </data>
+  <data name="ExecutableNotFound" xml:space="preserve">
+    <value>{0} executable not found:
+{1}</value>
+  </data>
+  <data name="BatchsDirNotFound" xml:space="preserve">
+    <value>Batch files directory not found:
+{0}</value>
+  </data>
+  <data name="WadsDirNotFound" xml:space="preserve">
+    <value>WADs directory not found:
+{0}</value>
+  </data>
+  <data name="ImagesDirNotFoundSaveAnyway" xml:space="preserve">
+    <value>Images directory not found:
+{0}
+
+WAD buttons will show text instead of icons. Save anyway?</value>
+  </data>
+  <data name="SettingsSaveError" xml:space="preserve">
+    <value>Error saving settings:
+{0}</value>
+  </data>
+  <data name="FileNameEmpty" xml:space="preserve">
+    <value>File name cannot be empty.</value>
+  </data>
+  <data name="FileNameInvalidChars" xml:space="preserve">
+    <value>File name contains invalid characters.</value>
+  </data>
+  <data name="GZDoomPathsWithQuotes" xml:space="preserve">
+    <value>GZDoom location, plugins folder, IWAD, WAD, extra file and plugin paths cannot contain quote characters.</value>
+  </data>
+  <data name="DSDADoomPathsWithQuotes" xml:space="preserve">
+    <value>DSDA Doom location, IWAD, WAD and extra file paths cannot contain quote characters.</value>
+  </data>
+  <data name="ArchiveUnsafePath" xml:space="preserve">
+    <value>The archive contains an unsafe path: {0}</value>
+  </data>
+  <data name="DownloadBlocked" xml:space="preserve">
+    <value>The site blocked the download (some sites, like Doom Wiki, only allow web browsers). Right-click the image in your browser &gt; Copy image, then press Ctrl+V in the Image box instead.</value>
+  </data>
+  <data name="DownloadHttpError" xml:space="preserve">
+    <value>The server answered {0} {1}.</value>
+  </data>
+</root>

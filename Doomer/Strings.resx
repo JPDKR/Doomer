@@ -214,8 +214,11 @@ Open Settings to fix the path.</value>
   <data name="PlaceholderImage" xml:space="preserve">
     <value>Optional icon: Browse..., an image URL, or Ctrl+V a copied image</value>
   </data>
-  <data name="PlaceholderPlugins" xml:space="preserve">
-    <value>e.g. smoothed (optional)</value>
+  <data name="NoMorePlugins" xml:space="preserve">
+    <value>No more plugins in {0}</value>
+  </data>
+  <data name="PluginsFolderNotFound" xml:space="preserve">
+    <value>Plugins folder not found: {0}</value>
   </data>
   <data name="PlaceholderPluginsUnsupported" xml:space="preserve">
     <value>Not used by DSDA Doom</value>

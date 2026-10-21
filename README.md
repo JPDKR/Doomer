@@ -82,7 +82,7 @@ Whenever you download a new WAD and want a launcher for it, use **Add Batch File
 * <ins>IWAD</ins>: the path to the IWAD your WAD was made from. The `.wad` extension is optional — it's added automatically if you leave it out. For example, if your IWADs are under `D:\GZDoom\wads\doom2.wad`, enter `wads/doom2`. The list offers the IWADs your other batches already use, with the same path they have (e.g. `D:\DSDA\doom.wad`), plus any IWAD found in the WADs folder — or type a path.
 * <ins>WAD</ins>: the path to the WAD itself, same rule — with or without `.wad`. Other extensions (e.g. `.pk3`) are kept as-is. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
 * <ins>Extras (optional)</ins>: other files loaded right after the WAD, such as `.deh`/`.bex` patches or a music WAD. Add them with **Add...** or by dropping them from Explorer onto the list, and take them out with **Remove** (or the Delete key).
-* <ins>Plugins (optional, GZDoom only)</ins>: just the file name of an extra file you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever). Pick it from the list, which shows the `.wad`/`.pk3`/`.pk7`/`.zip`/`.deh`/`.bex` files in the `GZDoom.Plugins` folder (relative to your GZDoom install), or type a name. It's combined with that folder, so don't include a path here. If the file isn't in the folder, you'll be asked to confirm before saving.
+* <ins>Plugins (optional, GZDoom only)</ins>: extra files you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever), as many as you like. **Add...** lists the `.wad`/`.pk3`/`.pk7`/`.zip`/`.deh`/`.bex` files in the `GZDoom.Plugins` folder (relative to your GZDoom install) that the batch doesn't have yet; **Remove** (or the Delete key) takes them out. They're loaded last, in the order they're listed. If a plugin isn't in the folder when you save, you'll be asked to confirm.
 * <ins>Image (optional)</ins>: the icon for the WAD's button. Pick a file with **Browse...**, paste the image's URL (right-click the image in your browser > Copy image address; it's downloaded when you save), or right-click the image > Copy image and press **Ctrl+V** in the Image box. Either way the image is stored in `GZDoom.Images.Location` under the batch's name. Some sites, like Doom Wiki, block downloads from apps — use Copy image + Ctrl+V for those.
 
 If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD or WAD that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by GZDoom at launch time, not by Doomer.
@@ -134,4 +134,4 @@ The `Release` workflow builds the installer for that version and attaches it to 
 
 ## Roadmap
 
-- [ ] Support multiple WAD/plugin files per batch.
+- [x] Support multiple WAD/plugin files per batch.

@@ -214,8 +214,11 @@ Abre Configuración para corregir la ruta.</value>
   <data name="PlaceholderImage" xml:space="preserve">
     <value>Ícono opcional: Buscar..., la URL de una imagen o Ctrl+V con una imagen copiada</value>
   </data>
-  <data name="PlaceholderPlugins" xml:space="preserve">
-    <value>ej. smoothed (opcional)</value>
+  <data name="NoMorePlugins" xml:space="preserve">
+    <value>No hay más plugins en {0}</value>
+  </data>
+  <data name="PluginsFolderNotFound" xml:space="preserve">
+    <value>No se encontró la carpeta de plugins: {0}</value>
   </data>
   <data name="PlaceholderPluginsUnsupported" xml:space="preserve">
     <value>DSDA Doom no los usa</value>

@@ -14,12 +14,12 @@ namespace Doomer
         private readonly string? _editingFilePath;
         private bool _hasExistingImage;
 
-        // The extra files list grows a row per file up to this many, then scrolls.
-        private const int MaxVisibleExtraFiles = 8;
-        private int _extraFilesMinHeight;
-        private int _extraFilesBaseHeight;
+        // The extras and plugins lists grow a row per file up to this many, then scroll.
+        private const int MaxVisibleListRows = 8;
         private int _baseClientHeight;
-        private Dictionary<Control, int>? _belowExtraFiles;
+        // Where every control sits before the lists grow, so they can move back when the lists shrink.
+        private Dictionary<Control, int>? _baseTops;
+        private readonly Dictionary<ListBox, (int MinHeight, int BaseHeight, int BaseBottom)> _growingLists = [];
 
         // An archive dropped on the main window, extracted as soon as the form shows.
         private string? _archiveToImport;
@@ -37,9 +37,6 @@ namespace Doomer
 
             foreach (var port in Enum.GetValues<SourcePort>())
                 cmbSourcePort.Items.Add(BatchFileService.GetDisplayName(port));
-
-            // Still editable, so a plugin that isn't in the folder (or an older batch's) can be typed in.
-            cmbPlugins.Items.AddRange([.. BatchFileService.FindPlugins(BatchFileService.GetPluginsDirectory(_gzdoomSettings))]);
 
             SelectedPort = string.IsNullOrWhiteSpace(_gzdoomSettings.Location) && !string.IsNullOrWhiteSpace(_dsdaDoomSettings.Location)
                 ? SourcePort.DSDADoom
@@ -59,20 +56,13 @@ namespace Doomer
             AlignToTextBox(btnBrowseIWad, cmbIWad);
             AlignToTextBox(btnBrowseWad, txtWad);
             AlignToTextBox(btnBrowseImage, txtImage);
-            AlignToTextBox(btnAddExtraFile, txtWad);
-            btnAddExtraFile.Top = lstExtraFiles.Top;
-            btnRemoveExtraFile.Height = btnAddExtraFile.Height;
-            btnRemoveExtraFile.Top = btnAddExtraFile.Bottom + 6;
+            AlignListButtons(lstExtraFiles, btnAddExtraFile, btnRemoveExtraFile);
+            AlignListButtons(lstPlugins, btnAddPlugin, btnRemovePlugin);
 
-            // The empty list is as tall as its two buttons; everything below it moves along as it grows.
-            _extraFilesMinHeight = btnRemoveExtraFile.Bottom - lstExtraFiles.Top;
-            _extraFilesBaseHeight = lstExtraFiles.Height;
             _baseClientHeight = ClientSize.Height;
-            _belowExtraFiles = Controls.Cast<Control>()
-                .Where(c => c.Top >= lstExtraFiles.Bottom)
-                .ToDictionary(c => c, c => c.Top);
+            _baseTops = Controls.Cast<Control>().ToDictionary(c => c, c => c.Top);
 
-            UpdateExtraFilesLayout();
+            UpdateListsLayout();
             _ = LoadIWadsAsync();
         }
 
@@ -113,6 +103,16 @@ namespace Doomer
 
             if (_archiveToImport is not null)
                 await ImportArchiveAsync(_archiveToImport);
+        }
+
+        // An empty list is as tall as its two buttons; everything below it moves along as it grows.
+        private void AlignListButtons(ListBox list, Button add, Button remove)
+        {
+            AlignToTextBox(add, txtWad);
+            add.Top = list.Top;
+            remove.Height = add.Height;
+            remove.Top = add.Bottom + 6;
+            _growingLists[list] = (remove.Bottom - list.Top, list.Height, list.Bottom);
         }
 
         private static void AlignToTextBox(Button button, Control textBox)
@@ -169,8 +169,8 @@ namespace Doomer
             SelectedPort = port;
             cmbIWad.Text = BatchFileService.EnsureWadExtension(iwad);
             txtWad.Text = wad;
-            SetExtraFiles(extraFiles);
-            cmbPlugins.Text = plugins;
+            SetItems(lstExtraFiles, extraFiles);
+            SetItems(lstPlugins, plugins);
         }
 
         private void ApplyTexts()
@@ -183,8 +183,8 @@ namespace Doomer
             lblExtraFiles.Text = Strings.LabelExtraFiles;
             lblImage.Text = Strings.LabelImage;
             btnBrowseIWad.Text = btnBrowseWad.Text = btnBrowseImage.Text = Strings.BrowseButton;
-            btnAddExtraFile.Text = Strings.AddButton;
-            btnRemoveExtraFile.Text = Strings.RemoveButton;
+            btnAddExtraFile.Text = btnAddPlugin.Text = Strings.AddButton;
+            btnRemoveExtraFile.Text = btnRemovePlugin.Text = Strings.RemoveButton;
             btnCreate.Text = Strings.CreateButton;
 
             txtFileName.PlaceholderText = Strings.PlaceholderFileName;
@@ -192,7 +192,6 @@ namespace Doomer
             txtImage.PlaceholderText = Strings.PlaceholderImage;
             txtPluginsUnsupported.PlaceholderText = Strings.PlaceholderPluginsUnsupported;
             SetCueBanner(cmbIWad, Strings.PlaceholderIWad);
-            SetCueBanner(cmbPlugins, Strings.PlaceholderPlugins);
         }
 
         private void ApplyDarkTheme()
@@ -244,19 +243,20 @@ namespace Doomer
             UpdatePluginsState();
         }
 
+        private bool SupportsPlugins => SelectedPort == SourcePort.GZDoom;
+
         // DSDA Doom batches only take an IWAD and a WAD; plugins are a GZDoom-only feature.
-        // A disabled ComboBox ignores the dark theme, so DSDA Doom shows a disabled text box in its place.
+        // A disabled list ignores the dark theme, so DSDA Doom shows a disabled text box in its place.
         private void UpdatePluginsState()
         {
-            var supportsPlugins = SelectedPort == SourcePort.GZDoom;
-            cmbPlugins.Visible = supportsPlugins;
+            var supportsPlugins = SupportsPlugins;
+            lstPlugins.Visible = btnAddPlugin.Visible = btnRemovePlugin.Visible = supportsPlugins;
             txtPluginsUnsupported.Visible = !supportsPlugins;
 
             if (!supportsPlugins)
-            {
-                cmbPlugins.SelectedIndex = -1;
-                cmbPlugins.Text = string.Empty;
-            }
+                lstPlugins.Items.Clear();
+
+            UpdateListsLayout();
         }
 
         private const int CB_SETCUEBANNER = 0x1703;
@@ -279,53 +279,121 @@ namespace Doomer
             SwitchToGZDoomIfNeeded();
         }
 
-        private List<string> ExtraFiles => [.. lstExtraFiles.Items.Cast<string>()];
+        private List<string> ExtraFiles => Items(lstExtraFiles);
 
-        private void SetExtraFiles(IEnumerable<string> files)
+        // In the order GZDoom loads them.
+        private List<string> Plugins => Items(lstPlugins);
+
+        private static List<string> Items(ListBox list) => [.. list.Items.Cast<string>()];
+
+        private void SetItems(ListBox list, IEnumerable<string> items)
         {
-            lstExtraFiles.Items.Clear();
-            AddExtraFiles(files);
+            list.Items.Clear();
+            AddItems(list, items);
         }
 
-        private void AddExtraFiles(IEnumerable<string> files)
+        private void AddItems(ListBox list, IEnumerable<string> items)
         {
-            foreach (var file in files.Select(f => f.Trim()).Where(f => f.Length > 0))
+            foreach (var item in items.Select(i => i.Trim()).Where(i => i.Length > 0))
             {
-                if (!ExtraFiles.Contains(file, StringComparer.OrdinalIgnoreCase))
-                    lstExtraFiles.Items.Add(file);
+                if (!Items(list).Contains(item, StringComparer.OrdinalIgnoreCase))
+                    list.Items.Add(item);
             }
 
-            UpdateExtraFilesLayout();
+            UpdateListsLayout();
         }
 
-        // Sizes the list to its files (between its buttons' height and MaxVisibleExtraFiles rows)
-        // and moves the controls below it, and the form's bottom edge, by the same amount.
-        private void UpdateExtraFilesLayout()
+        private void RemoveSelectedItems(ListBox list)
+        {
+            var index = list.SelectedIndices.Count > 0 ? list.SelectedIndices[0] : -1;
+
+            foreach (var i in list.SelectedIndices.Cast<int>().OrderDescending().ToList())
+                list.Items.RemoveAt(i);
+
+            // Keep a selection where the removed items were, so Delete can be pressed repeatedly.
+            if (index >= 0 && list.Items.Count > 0)
+                list.SelectedIndex = Math.Min(index, list.Items.Count - 1);
+
+            UpdateListsLayout();
+        }
+
+        // Sizes each list to its items (between its buttons' height and MaxVisibleListRows rows) and moves
+        // every control below a list, and the form's bottom edge, by how much the lists above it grew.
+        private void UpdateListsLayout()
         {
             btnRemoveExtraFile.Enabled = lstExtraFiles.SelectedIndices.Count > 0;
+            btnRemovePlugin.Enabled = lstPlugins.SelectedIndices.Count > 0;
 
-            if (_belowExtraFiles is null)
+            if (_baseTops is null)
                 return;
 
-            var border = lstExtraFiles.Height - lstExtraFiles.ClientSize.Height;
-            var rows = Math.Min(lstExtraFiles.Items.Count, MaxVisibleExtraFiles);
-            var height = rows * lstExtraFiles.ItemHeight + border;
-
-            // A file wider than the list brings up a horizontal scrollbar, which would hide the last row.
-            var widest = ExtraFiles.Select(f => TextRenderer.MeasureText(f, lstExtraFiles.Font).Width).DefaultIfEmpty(0).Max();
-            if (widest > lstExtraFiles.Width - border)
-                height += SystemInformation.HorizontalScrollBarHeight;
-
-            height = Math.Max(_extraFilesMinHeight, height);
-            var delta = height - _extraFilesBaseHeight;
+            var deltas = _growingLists.ToDictionary(l => l.Key, l => GetListHeight(l.Key, l.Value.MinHeight) - l.Value.BaseHeight);
 
             SuspendLayout();
-            lstExtraFiles.Height = height;
-            foreach (var (control, top) in _belowExtraFiles)
-                control.Top = top + delta;
-            ClientSize = new Size(ClientSize.Width, _baseClientHeight + delta);
+            foreach (var (list, delta) in deltas)
+                list.Height = _growingLists[list].BaseHeight + delta;
+            foreach (var (control, top) in _baseTops)
+                control.Top = top + _growingLists.Where(l => l.Value.BaseBottom <= top).Sum(l => deltas[l.Key]);
+            ClientSize = new Size(ClientSize.Width, _baseClientHeight + deltas.Values.Sum());
             ResumeLayout();
         }
+
+        private int GetListHeight(ListBox list, int minHeight)
+        {
+            // Without plugins, only the one-line "not used" box takes the list's place.
+            if (list == lstPlugins && !SupportsPlugins)
+                return txtPluginsUnsupported.Height;
+
+            var border = list.Height - list.ClientSize.Height;
+            var rows = Math.Min(list.Items.Count, MaxVisibleListRows);
+            var height = rows * list.ItemHeight + border;
+
+            // An item wider than the list brings up a horizontal scrollbar, which would hide the last row.
+            var widest = Items(list).Select(i => TextRenderer.MeasureText(i, list.Font).Width).DefaultIfEmpty(0).Max();
+            if (widest > list.Width - border)
+                height += SystemInformation.HorizontalScrollBarHeight;
+
+            return Math.Max(minHeight, height);
+        }
+
+        // Offers the plugins folder's files that aren't in the batch yet.
+        private void BtnAddPlugin_Click(object sender, EventArgs e)
+        {
+            var directory = BatchFileService.GetPluginsDirectory(_gzdoomSettings);
+            var available = BatchFileService.FindPlugins(directory)
+                .Where(p => !Plugins.Contains(p, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            var menu = new ContextMenuStrip();
+            menu.Closed += (s, args) => BeginInvoke(menu.Dispose);
+
+            if (available.Count == 0)
+            {
+                var message = Directory.Exists(directory)
+                    ? string.Format(Strings.NoMorePlugins, directory)
+                    : string.Format(Strings.PluginsFolderNotFound, directory ?? _gzdoomSettings.Plugins);
+                menu.Items.Add(new ToolStripMenuItem(message) { Enabled = false });
+            }
+
+            foreach (var plugin in available)
+                menu.Items.Add(plugin, null, (s, args) => AddItems(lstPlugins, [plugin]));
+
+            menu.Show(btnAddPlugin, new Point(0, btnAddPlugin.Height));
+        }
+
+        private void BtnRemovePlugin_Click(object sender, EventArgs e) => RemoveSelectedItems(lstPlugins);
+
+        private void LstPlugins_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode != Keys.Delete)
+                return;
+
+            e.Handled = true;
+            RemoveSelectedItems(lstPlugins);
+        }
+
+        private void LstPlugins_SelectedIndexChanged(object? sender, EventArgs e) =>
+            btnRemovePlugin.Enabled = lstPlugins.SelectedIndices.Count > 0;
 
         private void BtnAddExtraFile_Click(object sender, EventArgs e)
         {
@@ -339,7 +407,7 @@ namespace Doomer
             if (dlg.ShowDialog() != DialogResult.OK)
                 return;
 
-            AddExtraFiles(dlg.FileNames);
+            AddItems(lstExtraFiles, dlg.FileNames);
             SwitchToGZDoomIfNeeded();
         }
 
@@ -352,11 +420,11 @@ namespace Doomer
 
         private void LstExtraFiles_DragDrop(object? sender, DragEventArgs e)
         {
-            AddExtraFiles(DroppedFiles(e));
+            AddItems(lstExtraFiles, DroppedFiles(e));
             SwitchToGZDoomIfNeeded();
         }
 
-        private void BtnRemoveExtraFile_Click(object sender, EventArgs e) => RemoveSelectedExtraFiles();
+        private void BtnRemoveExtraFile_Click(object sender, EventArgs e) => RemoveSelectedItems(lstExtraFiles);
 
         private void LstExtraFiles_KeyDown(object? sender, KeyEventArgs e)
         {
@@ -364,25 +432,11 @@ namespace Doomer
                 return;
 
             e.Handled = true;
-            RemoveSelectedExtraFiles();
+            RemoveSelectedItems(lstExtraFiles);
         }
 
         private void LstExtraFiles_SelectedIndexChanged(object? sender, EventArgs e) =>
             btnRemoveExtraFile.Enabled = lstExtraFiles.SelectedIndices.Count > 0;
-
-        private void RemoveSelectedExtraFiles()
-        {
-            var index = lstExtraFiles.SelectedIndices.Count > 0 ? lstExtraFiles.SelectedIndices[0] : -1;
-
-            foreach (var i in lstExtraFiles.SelectedIndices.Cast<int>().OrderDescending().ToList())
-                lstExtraFiles.Items.RemoveAt(i);
-
-            // Keep a selection where the removed files were, so Delete can be pressed repeatedly.
-            if (index >= 0 && lstExtraFiles.Items.Count > 0)
-                lstExtraFiles.SelectedIndex = Math.Min(index, lstExtraFiles.Items.Count - 1);
-
-            UpdateExtraFilesLayout();
-        }
 
         // DSDA Doom can't run .pk3/.pk7 files, so picking one switches the batch to GZDoom.
         private void SwitchToGZDoomIfNeeded()
@@ -478,7 +532,7 @@ namespace Doomer
                 return;
 
             txtWad.Text = BatchFileService.StripWadExtension(wad);
-            SetExtraFiles(ArchiveService.FindExtraFiles(files, wad));
+            SetItems(lstExtraFiles, ArchiveService.FindExtraFiles(files, wad));
             SwitchToGZDoomIfNeeded();
 
             if (!txtFileName.ReadOnly)
@@ -676,7 +730,7 @@ namespace Doomer
             var port = SelectedPort;
             var iwad = cmbIWad.Text.Trim();
             var wadFile = txtWad.Text.Trim();
-            var plugins = port == SourcePort.GZDoom ? cmbPlugins.Text.Trim() : string.Empty;
+            List<string> plugins = port == SourcePort.GZDoom ? Plugins : [];
             var extraFiles = ExtraFiles;
             var fileName = txtFileName.Text.Trim();
 
@@ -711,7 +765,7 @@ namespace Doomer
             if (!ConfirmPathIfMissing("IWAD", BatchFileService.EnsureWadExtension(iwad)) ||
                 !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)) ||
                 !extraFiles.All(f => ConfirmPathIfMissing(Strings.ExtraFileLabel, BatchFileService.EnsureWadExtension(f))) ||
-                !ConfirmPluginIfMissing(plugins))
+                !plugins.All(ConfirmPluginIfMissing))
             {
                 return;
             }

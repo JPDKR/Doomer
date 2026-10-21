@@ -375,7 +375,7 @@ namespace Doomer
         private ContextMenuStrip BuildWadContextMenu(Button boton)
         {
             var filePath = (string)boton.Tag!;
-            var menu = new ContextMenuStrip();
+            var menu = new ContextMenuStrip { Renderer = new DarkMenuRenderer() };
 
             var favoriteItem = new ToolStripMenuItem(Strings.MenuFavorite);
             favoriteItem.Click += (s, e) => ToggleFavorite(boton);
@@ -695,57 +695,6 @@ namespace Doomer
         private void SearchWad(object sender, EventArgs e)
         {
             ApplyFilter();
-        }
-
-        private class DarkColorTable : ProfessionalColorTable
-        {
-            private static readonly Color Bg = Color.FromArgb(30, 30, 30);
-            private static readonly Color Accent = Color.FromArgb(140, 15, 15);
-            private static readonly Color Border = Color.FromArgb(55, 55, 55);
-
-            public override Color MenuItemSelected => Accent;
-            public override Color MenuItemBorder => Accent;
-            public override Color MenuBorder => Border;
-            public override Color MenuItemSelectedGradientBegin => Accent;
-            public override Color MenuItemSelectedGradientEnd => Accent;
-            public override Color MenuItemPressedGradientBegin => Accent;
-            public override Color MenuItemPressedGradientEnd => Accent;
-            public override Color MenuItemPressedGradientMiddle => Accent;
-            public override Color ToolStripDropDownBackground => Color.FromArgb(28, 28, 28);
-            public override Color ImageMarginGradientBegin => Color.FromArgb(28, 28, 28);
-            public override Color ImageMarginGradientMiddle => Color.FromArgb(28, 28, 28);
-            public override Color ImageMarginGradientEnd => Color.FromArgb(28, 28, 28);
-            public override Color MenuStripGradientBegin => Bg;
-            public override Color MenuStripGradientEnd => Bg;
-            public override Color ToolStripGradientBegin => Bg;
-            public override Color ToolStripGradientMiddle => Bg;
-            public override Color ToolStripGradientEnd => Bg;
-            public override Color SeparatorLight => Border;
-            public override Color SeparatorDark => Border;
-            public override Color CheckBackground => Accent;
-            public override Color CheckSelectedBackground => Accent;
-            public override Color CheckPressedBackground => Accent;
-            public override Color ButtonSelectedHighlight => Accent;
-            public override Color ButtonPressedHighlight => Accent;
-            public override Color ButtonCheckedHighlight => Accent;
-            public override Color StatusStripGradientBegin => Bg;
-            public override Color StatusStripGradientEnd => Bg;
-        }
-
-        private class DarkMenuRenderer : ToolStripProfessionalRenderer
-        {
-            public DarkMenuRenderer() : base(new DarkColorTable())
-            {
-                RoundedEdges = false;
-            }
-
-            protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
-            {
-                e.TextColor = Color.FromArgb(220, 220, 220);
-                base.OnRenderItemText(e);
-            }
-
-            protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e) { }
         }
     }
 }

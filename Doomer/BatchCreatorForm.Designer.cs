@@ -23,7 +23,9 @@ namespace Doomer
             lblWad = new Label();
             lblPlugins = new Label();
             lblExtraFiles = new Label();
-            txtExtraFiles = new TextBox();
+            lstExtraFiles = new ListBox();
+            btnAddExtraFile = new Button();
+            btnRemoveExtraFile = new Button();
             txtFileName = new TextBox();
             btnFromArchive = new Button();
             lblFromArchive = new Label();
@@ -176,17 +178,36 @@ namespace Doomer
             lblExtraFiles.Text = "Extra files";
             lblExtraFiles.TextAlign = ContentAlignment.MiddleRight;
             //
-            // txtExtraFiles
+            // lstExtraFiles
             //
-            txtExtraFiles.AcceptsReturn = true;
-            txtExtraFiles.Location = new Point(106, 222);
-            txtExtraFiles.Multiline = true;
-            txtExtraFiles.Name = "txtExtraFiles";
-            txtExtraFiles.PlaceholderText = "Optional, one per line (e.g. .deh patches)";
-            txtExtraFiles.ScrollBars = ScrollBars.Both;
-            txtExtraFiles.Size = new Size(380, 63);
-            txtExtraFiles.TabIndex = 11;
-            txtExtraFiles.WordWrap = false;
+            lstExtraFiles.HorizontalScrollbar = true;
+            lstExtraFiles.IntegralHeight = false;
+            lstExtraFiles.Location = new Point(106, 222);
+            lstExtraFiles.Name = "lstExtraFiles";
+            lstExtraFiles.SelectionMode = SelectionMode.MultiExtended;
+            lstExtraFiles.Size = new Size(296, 63);
+            lstExtraFiles.TabIndex = 11;
+            lstExtraFiles.SelectedIndexChanged += LstExtraFiles_SelectedIndexChanged;
+            lstExtraFiles.KeyDown += LstExtraFiles_KeyDown;
+            //
+            // btnAddExtraFile
+            //
+            btnAddExtraFile.Location = new Point(408, 222);
+            btnAddExtraFile.Name = "btnAddExtraFile";
+            btnAddExtraFile.Size = new Size(78, 27);
+            btnAddExtraFile.TabIndex = 21;
+            btnAddExtraFile.Text = "Add...";
+            btnAddExtraFile.Click += BtnAddExtraFile_Click;
+            //
+            // btnRemoveExtraFile
+            //
+            btnRemoveExtraFile.Enabled = false;
+            btnRemoveExtraFile.Location = new Point(408, 255);
+            btnRemoveExtraFile.Name = "btnRemoveExtraFile";
+            btnRemoveExtraFile.Size = new Size(78, 27);
+            btnRemoveExtraFile.TabIndex = 22;
+            btnRemoveExtraFile.Text = "Remove";
+            btnRemoveExtraFile.Click += BtnRemoveExtraFile_Click;
             //
             // txtPlugins
             //
@@ -242,7 +263,9 @@ namespace Doomer
             Controls.Add(txtImage);
             Controls.Add(lblImage);
             Controls.Add(txtPlugins);
-            Controls.Add(txtExtraFiles);
+            Controls.Add(btnRemoveExtraFile);
+            Controls.Add(btnAddExtraFile);
+            Controls.Add(lstExtraFiles);
             Controls.Add(lblExtraFiles);
             Controls.Add(btnBrowseWad);
             Controls.Add(txtWad);
@@ -277,7 +300,9 @@ namespace Doomer
         private Label lblWad;
         private Label lblPlugins;
         private Label lblExtraFiles;
-        private TextBox txtExtraFiles;
+        private ListBox lstExtraFiles;
+        private Button btnAddExtraFile;
+        private Button btnRemoveExtraFile;
         private TextBox txtFileName;
         private Button btnFromArchive;
         private Label lblFromArchive;

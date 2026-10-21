@@ -143,8 +143,14 @@ Abre Configuración para corregir la ruta.</value>
   <data name="PlaceholderWad" xml:space="preserve">
     <value>ej. brutal-doom o mods/myhouse.pk3</value>
   </data>
-  <data name="PlaceholderExtraFiles" xml:space="preserve">
-    <value>Opcional, uno por línea (ej. parches .deh)</value>
+  <data name="AddButton" xml:space="preserve">
+    <value>Agregar...</value>
+  </data>
+  <data name="RemoveButton" xml:space="preserve">
+    <value>Quitar</value>
+  </data>
+  <data name="SelectExtraFiles" xml:space="preserve">
+    <value>Seleccionar archivos extra</value>
   </data>
   <data name="PlaceholderImage" xml:space="preserve">
     <value>Ícono opcional: Buscar..., la URL de una imagen o Ctrl+V con una imagen copiada</value>

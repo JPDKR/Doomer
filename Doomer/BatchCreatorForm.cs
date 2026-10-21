@@ -14,6 +14,13 @@ namespace Doomer
         private readonly string? _editingFilePath;
         private bool _hasExistingImage;
 
+        // The extra files list grows a row per file up to this many, then scrolls.
+        private const int MaxVisibleExtraFiles = 8;
+        private int _extraFilesMinHeight;
+        private int _extraFilesBaseHeight;
+        private int _baseClientHeight;
+        private Dictionary<Control, int>? _belowExtraFiles;
+
         public BatchCreatorForm() : this(null) { }
 
         public BatchCreatorForm(string? existingFilePath)
@@ -43,6 +50,20 @@ namespace Doomer
             AlignToTextBox(btnBrowseIWad, txtIWad);
             AlignToTextBox(btnBrowseWad, txtWad);
             AlignToTextBox(btnBrowseImage, txtImage);
+            AlignToTextBox(btnAddExtraFile, txtWad);
+            btnAddExtraFile.Top = lstExtraFiles.Top;
+            btnRemoveExtraFile.Height = btnAddExtraFile.Height;
+            btnRemoveExtraFile.Top = btnAddExtraFile.Bottom + 6;
+
+            // The empty list is as tall as its two buttons; everything below it moves along as it grows.
+            _extraFilesMinHeight = btnRemoveExtraFile.Bottom - lstExtraFiles.Top;
+            _extraFilesBaseHeight = lstExtraFiles.Height;
+            _baseClientHeight = ClientSize.Height;
+            _belowExtraFiles = Controls.Cast<Control>()
+                .Where(c => c.Top >= lstExtraFiles.Bottom)
+                .ToDictionary(c => c, c => c.Top);
+
+            UpdateExtraFilesLayout();
         }
 
         private static void AlignToTextBox(Button button, TextBox textBox)
@@ -99,7 +120,7 @@ namespace Doomer
             SelectedPort = port;
             txtIWad.Text = iwad;
             txtWad.Text = wad;
-            txtExtraFiles.Lines = [.. extraFiles];
+            SetExtraFiles(extraFiles);
             txtPlugins.Text = plugins;
         }
 
@@ -113,12 +134,13 @@ namespace Doomer
             lblExtraFiles.Text = Strings.LabelExtraFiles;
             lblImage.Text = Strings.LabelImage;
             btnBrowseIWad.Text = btnBrowseWad.Text = btnBrowseImage.Text = Strings.BrowseButton;
+            btnAddExtraFile.Text = Strings.AddButton;
+            btnRemoveExtraFile.Text = Strings.RemoveButton;
             btnCreate.Text = Strings.CreateButton;
 
             txtFileName.PlaceholderText = Strings.PlaceholderFileName;
             txtIWad.PlaceholderText = Strings.PlaceholderIWad;
             txtWad.PlaceholderText = Strings.PlaceholderWad;
-            txtExtraFiles.PlaceholderText = Strings.PlaceholderExtraFiles;
             txtImage.PlaceholderText = Strings.PlaceholderImage;
         }
 
@@ -135,6 +157,11 @@ namespace Doomer
                         tb.BackColor = Color.FromArgb(38, 38, 38);
                         tb.ForeColor = Color.FromArgb(220, 220, 220);
                         tb.BorderStyle = BorderStyle.FixedSingle;
+                        break;
+                    case ListBox lb:
+                        lb.BackColor = Color.FromArgb(38, 38, 38);
+                        lb.ForeColor = Color.FromArgb(220, 220, 220);
+                        lb.BorderStyle = BorderStyle.FixedSingle;
                         break;
                     case ComboBox cb:
                         cb.FlatStyle = FlatStyle.Flat;
@@ -171,6 +198,8 @@ namespace Doomer
         {
             var supportsPlugins = SelectedPort == SourcePort.GZDoom;
             txtPlugins.Enabled = supportsPlugins;
+            if (!supportsPlugins)
+                txtPlugins.Clear();
             txtPlugins.PlaceholderText = supportsPlugins ? Strings.PlaceholderPlugins : Strings.PlaceholderPluginsUnsupported;
         }
 
@@ -184,7 +213,97 @@ namespace Doomer
             SwitchToGZDoomIfNeeded();
         }
 
-        private List<string> ExtraFiles => [.. txtExtraFiles.Lines.Select(l => l.Trim()).Where(l => l.Length > 0)];
+        private List<string> ExtraFiles => [.. lstExtraFiles.Items.Cast<string>()];
+
+        private void SetExtraFiles(IEnumerable<string> files)
+        {
+            lstExtraFiles.Items.Clear();
+            AddExtraFiles(files);
+        }
+
+        private void AddExtraFiles(IEnumerable<string> files)
+        {
+            foreach (var file in files.Select(f => f.Trim()).Where(f => f.Length > 0))
+            {
+                if (!ExtraFiles.Contains(file, StringComparer.OrdinalIgnoreCase))
+                    lstExtraFiles.Items.Add(file);
+            }
+
+            UpdateExtraFilesLayout();
+        }
+
+        // Sizes the list to its files (between its buttons' height and MaxVisibleExtraFiles rows)
+        // and moves the controls below it, and the form's bottom edge, by the same amount.
+        private void UpdateExtraFilesLayout()
+        {
+            btnRemoveExtraFile.Enabled = lstExtraFiles.SelectedIndices.Count > 0;
+
+            if (_belowExtraFiles is null)
+                return;
+
+            var border = lstExtraFiles.Height - lstExtraFiles.ClientSize.Height;
+            var rows = Math.Min(lstExtraFiles.Items.Count, MaxVisibleExtraFiles);
+            var height = rows * lstExtraFiles.ItemHeight + border;
+
+            // A file wider than the list brings up a horizontal scrollbar, which would hide the last row.
+            var widest = ExtraFiles.Select(f => TextRenderer.MeasureText(f, lstExtraFiles.Font).Width).DefaultIfEmpty(0).Max();
+            if (widest > lstExtraFiles.Width - border)
+                height += SystemInformation.HorizontalScrollBarHeight;
+
+            height = Math.Max(_extraFilesMinHeight, height);
+            var delta = height - _extraFilesBaseHeight;
+
+            SuspendLayout();
+            lstExtraFiles.Height = height;
+            foreach (var (control, top) in _belowExtraFiles)
+                control.Top = top + delta;
+            ClientSize = new Size(ClientSize.Width, _baseClientHeight + delta);
+            ResumeLayout();
+        }
+
+        private void BtnAddExtraFile_Click(object sender, EventArgs e)
+        {
+            using var dlg = new OpenFileDialog { Title = Strings.SelectExtraFiles, Filter = WadFileFilter, Multiselect = true };
+
+            var wad = BatchFileService.EnsureWadExtension(txtWad.Text.Trim());
+            var dir = Path.IsPathRooted(wad) ? Path.GetDirectoryName(wad) : null;
+            if (Directory.Exists(dir))
+                dlg.InitialDirectory = dir;
+
+            if (dlg.ShowDialog() != DialogResult.OK)
+                return;
+
+            AddExtraFiles(dlg.FileNames);
+            SwitchToGZDoomIfNeeded();
+        }
+
+        private void BtnRemoveExtraFile_Click(object sender, EventArgs e) => RemoveSelectedExtraFiles();
+
+        private void LstExtraFiles_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode != Keys.Delete)
+                return;
+
+            e.Handled = true;
+            RemoveSelectedExtraFiles();
+        }
+
+        private void LstExtraFiles_SelectedIndexChanged(object? sender, EventArgs e) =>
+            btnRemoveExtraFile.Enabled = lstExtraFiles.SelectedIndices.Count > 0;
+
+        private void RemoveSelectedExtraFiles()
+        {
+            var index = lstExtraFiles.SelectedIndices.Count > 0 ? lstExtraFiles.SelectedIndices[0] : -1;
+
+            foreach (var i in lstExtraFiles.SelectedIndices.Cast<int>().OrderDescending().ToList())
+                lstExtraFiles.Items.RemoveAt(i);
+
+            // Keep a selection where the removed files were, so Delete can be pressed repeatedly.
+            if (index >= 0 && lstExtraFiles.Items.Count > 0)
+                lstExtraFiles.SelectedIndex = Math.Min(index, lstExtraFiles.Items.Count - 1);
+
+            UpdateExtraFilesLayout();
+        }
 
         // DSDA Doom can't run .pk3/.pk7 files, so picking one switches the batch to GZDoom.
         private void SwitchToGZDoomIfNeeded()
@@ -267,7 +386,7 @@ namespace Doomer
                 return;
 
             txtWad.Text = BatchFileService.StripWadExtension(wad);
-            txtExtraFiles.Lines = [.. ArchiveService.FindExtraFiles(files, wad)];
+            SetExtraFiles(ArchiveService.FindExtraFiles(files, wad));
             SwitchToGZDoomIfNeeded();
 
             if (!txtFileName.ReadOnly)

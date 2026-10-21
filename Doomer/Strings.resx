@@ -47,6 +47,12 @@ Update now?</value>
   <data name="UpdateFailedTitle" xml:space="preserve">
     <value>Update failed</value>
   </data>
+  <data name="UpdateChecksumMissing" xml:space="preserve">
+    <value>This release doesn't publish the installer's SHA-256, so it can't be checked and wasn't installed.</value>
+  </data>
+  <data name="UpdateChecksumMismatch" xml:space="preserve">
+    <value>The downloaded installer doesn't match the SHA-256 published on GitHub, so it wasn't run.</value>
+  </data>
   <data name="UpdateFailedMessage" xml:space="preserve">
     <value>The update could not be installed:
 {0}</value>

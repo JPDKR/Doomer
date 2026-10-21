@@ -47,6 +47,12 @@
   <data name="UpdateFailedTitle" xml:space="preserve">
     <value>Error al actualizar</value>
   </data>
+  <data name="UpdateChecksumMissing" xml:space="preserve">
+    <value>Esta release no publica el SHA-256 del instalador, así que no se puede verificar y no se instaló.</value>
+  </data>
+  <data name="UpdateChecksumMismatch" xml:space="preserve">
+    <value>El instalador descargado no coincide con el SHA-256 publicado en GitHub, así que no se ejecutó.</value>
+  </data>
   <data name="UpdateFailedMessage" xml:space="preserve">
     <value>No se pudo instalar la actualización:
 {0}</value>

@@ -58,6 +58,8 @@ UI texts live in `Doomer/Strings.resx` (English) and one `Strings.<language>.res
 
 The main window lists one button per batch file found in `GZDoom.Batchs.Location`, using the matching image from `GZDoom.Images.Location` (same file name, different extension) as its icon — falling back to plain text if no image is found. Use the search box in the menu to filter the list by name.
 
+Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead.
+
 Right-click any WAD button to **Edit** or **Delete** its batch file. Deleting a batch also removes its icon image, if one exists.
 
 ## Adding a new batch file

@@ -76,6 +76,10 @@ Open Settings to fix the path.</value>
     <value>Can't delete file:
 {0}</value>
   </data>
+  <data name="BatchFailed" xml:space="preserve">
+    <value>"{0}" failed:
+{1}</value>
+  </data>
   <data name="CantExecuteFile" xml:space="preserve">
     <value>Can't execute file:
 {0}</value>

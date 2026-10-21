@@ -76,6 +76,10 @@ Abre Configuración para corregir la ruta.</value>
     <value>No se pudo eliminar el archivo:
 {0}</value>
   </data>
+  <data name="BatchFailed" xml:space="preserve">
+    <value>Falló "{0}":
+{1}</value>
+  </data>
   <data name="CantExecuteFile" xml:space="preserve">
     <value>No se pudo ejecutar el archivo:
 {0}</value>

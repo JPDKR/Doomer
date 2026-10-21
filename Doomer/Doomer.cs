@@ -1,6 +1,5 @@
 using Doomer.Options;
 using Doomer.Services;
-using System.Diagnostics;
 
 namespace Doomer
 {
@@ -329,18 +328,26 @@ namespace Doomer
             }
         }
 
-        private void Boton_Click(object sender, EventArgs e)
+        private async void Boton_Click(object sender, EventArgs e)
         {
             if (sender is Button boton && boton.Tag is string path)
             {
+                string? errors;
+
                 try
                 {
-                    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+                    errors = await BatchLaunchService.RunAsync(path);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
                 }
+
+                // The console is hidden, so whatever went wrong would otherwise go unseen.
+                if (errors is not null && !IsDisposed)
+                    MessageBox.Show(string.Format(Strings.BatchFailed, Path.GetFileNameWithoutExtension(path), errors),
+                        Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

@@ -31,7 +31,7 @@ namespace Doomer
             lblFromArchive = new Label();
             lblArchiveSeparator = new Label();
             cmbSourcePort = new ComboBox();
-            txtIWad = new TextBox();
+            cmbIWad = new ComboBox();
             btnBrowseIWad = new Button();
             txtWad = new TextBox();
             btnBrowseWad = new Button();
@@ -137,12 +137,14 @@ namespace Doomer
             cmbSourcePort.TabIndex = 6;
             cmbSourcePort.SelectedIndexChanged += CmbSourcePort_SelectedIndexChanged;
             //
-            // txtIWad
+            // cmbIWad
             //
-            txtIWad.Location = new Point(106, 150);
-            txtIWad.Name = "txtIWad";
-            txtIWad.Size = new Size(296, 27);
-            txtIWad.TabIndex = 7;
+            cmbIWad.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            cmbIWad.AutoCompleteSource = AutoCompleteSource.ListItems;
+            cmbIWad.Location = new Point(106, 150);
+            cmbIWad.Name = "cmbIWad";
+            cmbIWad.Size = new Size(296, 28);
+            cmbIWad.TabIndex = 7;
             //
             // btnBrowseIWad
             //
@@ -283,7 +285,7 @@ namespace Doomer
             Controls.Add(btnBrowseWad);
             Controls.Add(txtWad);
             Controls.Add(btnBrowseIWad);
-            Controls.Add(txtIWad);
+            Controls.Add(cmbIWad);
             Controls.Add(cmbSourcePort);
             Controls.Add(btnFromArchive);
             Controls.Add(lblFromArchive);
@@ -321,7 +323,7 @@ namespace Doomer
         private Label lblFromArchive;
         private Label lblArchiveSeparator;
         private ComboBox cmbSourcePort;
-        private TextBox txtIWad;
+        private ComboBox cmbIWad;
         private Button btnBrowseIWad;
         private TextBox txtWad;
         private Button btnBrowseWad;

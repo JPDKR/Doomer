@@ -51,7 +51,7 @@ namespace Doomer
             base.OnLoad(e);
 
             // TextBoxes size their height to the font after DPI scaling, so match the buttons at runtime.
-            AlignToTextBox(btnBrowseIWad, txtIWad);
+            AlignToTextBox(btnBrowseIWad, cmbIWad);
             AlignToTextBox(btnBrowseWad, txtWad);
             AlignToTextBox(btnBrowseImage, txtImage);
             AlignToTextBox(btnAddExtraFile, txtWad);
@@ -68,9 +68,41 @@ namespace Doomer
                 .ToDictionary(c => c, c => c.Top);
 
             UpdateExtraFilesLayout();
+            _ = LoadIWadsAsync();
         }
 
-        private static void AlignToTextBox(Button button, TextBox textBox)
+        // Lists the IWADs the other batches use and the ones in the WADs folder. It reads every batch
+        // and WAD header, so it runs in the background; the box can be typed in meanwhile.
+        private async Task LoadIWadsAsync()
+        {
+            var batchs = _gzdoomSettings.Batchs;
+            var pluginsFolder = _gzdoomSettings.Plugins;
+            var wadsLocation = _gzdoomSettings.Wads.Location;
+            List<string> iwads;
+
+            try
+            {
+                iwads = await Task.Run(() => IWadService.Merge([
+                    .. IWadService.FindUsedIWads(batchs.Location, batchs.Extension, pluginsFolder),
+                    .. IWadService.FindIWadFiles(wadsLocation)]));
+            }
+            catch (Exception)
+            {
+                // They're only suggestions; a folder that can't be read just leaves the list empty.
+                return;
+            }
+
+            if (IsDisposed)
+                return;
+
+            cmbIWad.Items.AddRange([.. iwads]);
+
+            // Full paths are long, so the list widens to show them whole.
+            var widest = iwads.Select(i => TextRenderer.MeasureText(i, cmbIWad.Font).Width).DefaultIfEmpty(0).Max();
+            cmbIWad.DropDownWidth = Math.Max(cmbIWad.Width, widest + SystemInformation.VerticalScrollBarWidth);
+        }
+
+        private static void AlignToTextBox(Button button, Control textBox)
         {
             button.Top = textBox.Top;
             button.Height = textBox.Height;
@@ -122,7 +154,7 @@ namespace Doomer
             }
 
             SelectedPort = port;
-            txtIWad.Text = iwad;
+            cmbIWad.Text = BatchFileService.EnsureWadExtension(iwad);
             txtWad.Text = wad;
             SetExtraFiles(extraFiles);
             cmbPlugins.Text = plugins;
@@ -143,10 +175,10 @@ namespace Doomer
             btnCreate.Text = Strings.CreateButton;
 
             txtFileName.PlaceholderText = Strings.PlaceholderFileName;
-            txtIWad.PlaceholderText = Strings.PlaceholderIWad;
             txtWad.PlaceholderText = Strings.PlaceholderWad;
             txtImage.PlaceholderText = Strings.PlaceholderImage;
             txtPluginsUnsupported.PlaceholderText = Strings.PlaceholderPluginsUnsupported;
+            SetCueBanner(cmbIWad, Strings.PlaceholderIWad);
             SetCueBanner(cmbPlugins, Strings.PlaceholderPlugins);
         }
 
@@ -225,7 +257,8 @@ namespace Doomer
 
         private void CmbSourcePort_SelectedIndexChanged(object? sender, EventArgs e) => UpdatePluginsState();
 
-        private void BtnBrowseIWad_Click(object sender, EventArgs e) => BrowseFile(txtIWad, Strings.SelectIWad);
+        // IWADs keep their .wad, like the ones in the list.
+        private void BtnBrowseIWad_Click(object sender, EventArgs e) => BrowseFile(cmbIWad, Strings.SelectIWad, stripWadExtension: false);
 
         private void BtnBrowseWad_Click(object sender, EventArgs e)
         {
@@ -332,7 +365,7 @@ namespace Doomer
                 SelectedPort = SourcePort.GZDoom;
         }
 
-        private static void BrowseFile(TextBox target, string title)
+        private static void BrowseFile(Control target, string title, bool stripWadExtension = true)
         {
             using var dlg = new OpenFileDialog { Title = title, Filter = WadFileFilter };
 
@@ -342,7 +375,7 @@ namespace Doomer
                 dlg.InitialDirectory = dir;
 
             if (dlg.ShowDialog() == DialogResult.OK)
-                target.Text = BatchFileService.StripWadExtension(dlg.FileName);
+                target.Text = stripWadExtension ? BatchFileService.StripWadExtension(dlg.FileName) : dlg.FileName;
         }
 
         // Extracts a downloaded archive into its own folder in the WADs directory and fills
@@ -645,7 +678,7 @@ namespace Doomer
         private async void BtnCreate_Click(object sender, EventArgs e)
         {
             var port = SelectedPort;
-            var iwad = txtIWad.Text.Trim();
+            var iwad = cmbIWad.Text.Trim();
             var wadFile = txtWad.Text.Trim();
             var plugins = port == SourcePort.GZDoom ? cmbPlugins.Text.Trim() : string.Empty;
             var extraFiles = ExtraFiles;

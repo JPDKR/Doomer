@@ -113,6 +113,27 @@ namespace Doomer.Services
             throw new InvalidDataException(Strings.UpdateChecksumMismatch);
         }
 
+        // The version the user chose to skip, or null. Only that version is skipped: a newer one is offered again.
+        public static Version? GetSkippedVersion(string filePath)
+        {
+            try
+            {
+                return File.Exists(filePath) && TryParseVersion(File.ReadAllText(filePath), out var version) ? version : null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        public static void SkipVersion(string filePath, Version version)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+            File.WriteAllText(filePath, version.ToString());
+        }
+
+        public static bool IsSkipped(UpdateInfo update, Version? skippedVersion) => update.Version == skippedVersion;
+
         // The installer closes this app, replaces the files and relaunches it (see installer/Doomer.iss).
         public static void RunInstaller(string installerPath)
         {

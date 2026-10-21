@@ -94,6 +94,53 @@ namespace Doomer.Tests
         }
 
         [Fact]
+        public void SkipVersion_IsRememberedAcrossRestarts()
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"Doomer skipped {Guid.NewGuid():N}", "skipped-update.txt");
+
+            try
+            {
+                Assert.Null(UpdateService.GetSkippedVersion(path));
+
+                UpdateService.SkipVersion(path, new Version(1, 5, 0));
+
+                Assert.Equal(new Version(1, 5, 0), UpdateService.GetSkippedVersion(path));
+            }
+            finally
+            {
+                Directory.Delete(Path.GetDirectoryName(path)!, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void GetSkippedVersion_IgnoresAnUnreadableFile()
+        {
+            var path = Path.GetTempFileName();
+
+            try
+            {
+                File.WriteAllText(path, "not a version");
+
+                Assert.Null(UpdateService.GetSkippedVersion(path));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Theory]
+        [InlineData("1.5.0", "1.5.0", true)]
+        [InlineData("1.6.0", "1.5.0", false)]
+        [InlineData("1.5.0", null, false)]
+        public void IsSkipped_OnlySkipsThatExactVersion(string offered, string? skipped, bool expected)
+        {
+            var update = new UpdateInfo(Version.Parse(offered), "https://example.com/x.exe", "DoomerSetup-x.exe", Sha);
+
+            Assert.Equal(expected, UpdateService.IsSkipped(update, skipped is null ? null : Version.Parse(skipped)));
+        }
+
+        [Fact]
         public async Task DownloadInstallerAsync_RefusesAReleaseWithoutHash()
         {
             var update = new UpdateInfo(new Version(9, 0, 0), "https://example.invalid/DoomerSetup-9.0.0.exe", "DoomerSetup-9.0.0.exe", null);

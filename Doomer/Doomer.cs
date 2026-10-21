@@ -95,13 +95,36 @@ namespace Doomer
         private async Task CheckForUpdateAsync()
         {
             var update = await UpdateService.CheckForUpdateAsync();
-            if (update is null)
+            if (update is null || UpdateService.IsSkipped(update, UpdateService.GetSkippedVersion(AppConfiguration.SkippedUpdateFilePath)))
                 return;
 
-            var answer = MessageBox.Show(
-                string.Format(Strings.UpdateAvailableMessage, update.Version, UpdateService.CurrentVersion),
-                Strings.UpdateAvailableTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-            if (answer != DialogResult.Yes)
+            // MessageBox can't name its buttons, so this uses Windows' task dialog for the third choice.
+            var updateButton = new TaskDialogButton(Strings.UpdateNowButton);
+            var skipButton = new TaskDialogButton(Strings.UpdateSkipButton);
+            var page = new TaskDialogPage
+            {
+                Caption = Strings.UpdateAvailableTitle,
+                Text = string.Format(Strings.UpdateAvailableMessage, update.Version, UpdateService.CurrentVersion),
+                Icon = TaskDialogIcon.Information,
+                Buttons = { updateButton, new TaskDialogButton(Strings.UpdateLaterButton), skipButton },
+                DefaultButton = updateButton
+            };
+
+            var answer = TaskDialog.ShowDialog(this, page);
+
+            if (answer == skipButton)
+            {
+                // If it can't be saved, the worst case is being asked again on the next start.
+                try
+                {
+                    UpdateService.SkipVersion(AppConfiguration.SkippedUpdateFilePath, update.Version);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                }
+            }
+
+            if (answer != updateButton)
                 return;
 
             var previousStatus = lblStatus.Text;

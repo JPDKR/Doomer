@@ -121,7 +121,7 @@ This publishes a self-contained, single-file build of the app (bundling the .NET
 
 ## Releasing an update
 
-On startup, Doomer checks the [latest GitHub release](https://github.com/JPDKR/Doomer/releases/latest). If its tag is newer than the installed version, the app offers to update: it downloads the `DoomerSetup-<version>.exe` attached to the release, checks it against the SHA-256 GitHub publishes for it, installs it silently and relaunches. An installer that doesn't match, or a release without that hash, isn't run. Your settings live in `%AppData%\Doomer`, so updating doesn't touch them.
+On startup, Doomer checks the [latest GitHub release](https://github.com/JPDKR/Doomer/releases/latest). If its tag is newer than the installed version, the app offers to update: it downloads the `DoomerSetup-<version>.exe` attached to the release, checks it against the SHA-256 GitHub publishes for it, installs it silently and relaunches. An installer that doesn't match, or a release without that hash, isn't run. Choosing **Skip this version** stops it from asking about that version again; a newer one is still offered. Your settings live in `%AppData%\Doomer`, so updating doesn't touch them.
 
 To publish a new version, push a version tag:
 

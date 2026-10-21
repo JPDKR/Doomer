@@ -41,6 +41,15 @@
 
 ¿Actualizar ahora?</value>
   </data>
+  <data name="UpdateNowButton" xml:space="preserve">
+    <value>Actualizar</value>
+  </data>
+  <data name="UpdateLaterButton" xml:space="preserve">
+    <value>Ahora no</value>
+  </data>
+  <data name="UpdateSkipButton" xml:space="preserve">
+    <value>Omitir esta versión</value>
+  </data>
   <data name="UpdateDownloading" xml:space="preserve">
     <value>Descargando Doomer {0}...</value>
   </data>

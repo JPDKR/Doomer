@@ -16,43 +16,49 @@ The app reads its settings from `%AppData%\Doomer\appsettings.json`, which is cr
 
 ```json
 {
-  "GZDoom": {
-    "Location": "D:\\gzdoom\\gzdoom",
-    "Plugins": "plugins",
-    "Batchs": {
-      "Location": "D:\\GZDoom\\batchs",
+  "Ports": {
+    "GZDoom": {
+      "Path": "D:\\gzdoom\\gzdoom.exe",
+      "Plugins": "plugins"
+    },
+    "DSDADoom": {
+      "Path": "E:\\DSDA\\dsda-doom.exe"
+    }
+  },
+  "Folders": {
+    "Batches": {
+      "Path": "D:\\GZDoom\\batchs",
       "Extension": ".bat"
     },
     "Images": {
-      "Location": "D:\\GZDoom\\batchs\\Pics",
+      "Path": "D:\\GZDoom\\batchs\\Pics",
       "Extension": ".png"
     },
     "Wads": {
-      "Location": "D:\\GZDoom\\wads"
+      "Path": "D:\\GZDoom\\wads"
     }
   },
-  "DSDADoom": {
-    "Location": "E:\\DSDA\\dsda-doom"
-  },
-  "Icons": {
-    "Width": 120,
-    "Height": 100,
-    "Padding": 5
-  },
-  "General": {
-    "Language": ""
+  "Interface": {
+    "Language": "",
+    "Icons": {
+      "Width": 120,
+      "Height": 100,
+      "Padding": 5
+    }
   }
 }
 ```
 
-* **GZDoom.Location**: full path to your `gzdoom.exe`.
-* **GZDoom.Plugins**: the folder (relative to your GZDoom install, or a full path) where optional plugins live, e.g. SmoothDoom, Corruption Cards.
-* **GZDoom.Batchs**: where your `.bat` launchers live, and their extension.
-* **GZDoom.Images**: where the button icons live, and their extension.
-* **GZDoom.Wads**: where your WADs live. Archives opened with **From archive...** are extracted here, a WAD picked from somewhere else is moved here when its batch is saved, and the IWAD list looks here for IWADs.
-* **DSDADoom.Location**: full path to your `dsda-doom.exe` (optional — only needed for DSDA Doom batches). At least one of the two executables must be set.
-* **Icons**: size and spacing of the buttons in the main window.
-* **General.Language**: the app's language — `en` (English) or `es` (Español). Leave it empty to follow Windows' language (English if Windows uses one the app isn't translated to).
+* **Ports.GZDoom.Path**: full path to your `gzdoom.exe`.
+* **Ports.GZDoom.Plugins**: GZDoom's plugins folder (relative to your GZDoom install, or a full path), where optional plugins live, e.g. SmoothDoom, Corruption Cards.
+* **Ports.DSDADoom.Path**: full path to your `dsda-doom.exe` (optional — only needed for DSDA Doom batches). At least one of the two executables must be set.
+* **Folders.Batches**: where your `.bat` launchers live, and their extension.
+* **Folders.Images**: where the button icons live, and their extension.
+* **Folders.Wads**: where your WADs live. Archives opened with **From archive...** are extracted here, a WAD picked from somewhere else is moved here when its batch is saved, and the IWAD list looks here for IWADs.
+* **Interface.Language**: the app's language — `en` (English) or `es` (Español). Leave it empty to follow Windows' language (English if Windows uses one the app isn't translated to).
+* **Interface.Icons**: size and spacing of the buttons in the main window.
+
+Settings files from Doomer 1.5.1 and earlier, which kept these under `GZDoom` and `DSDADoom`, are moved to this layout the first time the app starts, and the old file is kept as `appsettings.old.json`.
 
 ### Translations
 
@@ -60,7 +66,7 @@ UI texts live in `Doomer/Strings.resx` (English) and one `Strings.<language>.res
 
 ## Using the app
 
-The main window lists one button per batch file found in `GZDoom.Batchs.Location`, using the matching image from `GZDoom.Images.Location` (same file name, different extension) as its icon — falling back to plain text if no image is found. Use the search box in the menu to filter the list by name.
+The main window lists one button per batch file found in `Folders.Batches.Path`, using the matching image from `Folders.Images.Path` (same file name, different extension) as its icon — falling back to plain text if no image is found. Use the search box in the menu to filter the list by name.
 
 Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead.
 
@@ -70,7 +76,7 @@ Right-click any WAD button to:
 
 * Mark or unmark it as a **Favorite**.
 * **Edit** its batch file.
-* **Change image**: pick a new icon. The file is copied into `GZDoom.Images.Location`, so the original stays where it was.
+* **Change image**: pick a new icon. The file is copied into `Folders.Images.Path`, so the original stays where it was.
 * **Open WAD folder**: opens Explorer with the batch's WAD selected. Relative WAD paths are resolved from the source port's folder.
 * **Duplicate** it under a new name (e.g. to try the same WAD with another plugin), along with its icon.
 * **Delete** it. Deleting a batch also removes its icon image, if one exists.
@@ -81,15 +87,15 @@ Whenever you download a new WAD and want a launcher for it, use **Add Batch File
 
 ![Add Batch File form](docs/add-batch-file.png)
 
-* <ins>File Name</ins>: the name the batch file (and its button) will use. Its icon is the image with that same name in `GZDoom.Images.Location`, which the Image field below saves for you.
+* <ins>File Name</ins>: the name the batch file (and its button) will use. Its icon is the image with that same name in `Folders.Images.Path`, which the Image field below saves for you.
 * <ins>Source Port</ins>: **GZDoom** or **DSDA Doom**. It picks which executable from your settings the batch launches, and how the command is written.
 * <ins>IWAD</ins>: the path to the IWAD your WAD was made from. The `.wad` extension is optional — it's added automatically if you leave it out. For example, if your IWADs are under `D:\GZDoom\wads\doom2.wad`, enter `wads/doom2`. The list offers the IWADs your other batches already use, with the same path they have (e.g. `D:\DSDA\doom.wad`), plus any IWAD found in the WADs folder — or type a path.
 * <ins>WAD</ins>: the path to the WAD itself, same rule — with or without `.wad`. Other extensions (e.g. `.pk3`) are kept as-is. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
 * <ins>Extra files (optional)</ins>: other files loaded right after the WAD, such as `.deh`/`.bex` patches or a music WAD. Add them with **Add...** or by dropping them from Explorer onto the list, and take them out with **Remove** (or the Delete key).
-* <ins>Plugins (optional, GZDoom only)</ins>: extra files you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever), as many as you like. **Add...** lists the `.wad`/`.pk3`/`.pk7`/`.zip`/`.deh`/`.bex` files in the `GZDoom.Plugins` folder (relative to your GZDoom install) that the batch doesn't have yet; **Remove** (or the Delete key) takes them out. They're loaded last, in the order they're listed. If a plugin isn't in the folder when you save, you'll be asked to confirm.
-* <ins>Image (optional)</ins>: the icon for the WAD's button. Pick a file with **Browse...**, paste the image's URL (right-click the image in your browser > Copy image address; it's downloaded when you save), or right-click the image > Copy image and press **Ctrl+V** in the Image box. Either way the image is stored in `GZDoom.Images.Location` under the batch's name. Some sites, like Doom Wiki, block downloads from apps — use Copy image + Ctrl+V for those.
+* <ins>Plugins (optional, GZDoom only)</ins>: extra files you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever), as many as you like. **Add...** lists the `.wad`/`.pk3`/`.pk7`/`.zip`/`.deh`/`.bex` files in the `Ports.GZDoom.Plugins` folder (relative to your GZDoom install) that the batch doesn't have yet; **Remove** (or the Delete key) takes them out. They're loaded last, in the order they're listed. If a plugin isn't in the folder when you save, you'll be asked to confirm.
+* <ins>Image (optional)</ins>: the icon for the WAD's button. Pick a file with **Browse...**, paste the image's URL (right-click the image in your browser > Copy image address; it's downloaded when you save), or right-click the image > Copy image and press **Ctrl+V** in the Image box. Either way the image is stored in `Folders.Images.Path` under the batch's name. Some sites, like Doom Wiki, block downloads from apps — use Copy image + Ctrl+V for those.
 
-If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD, WAD or an extra file that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by the source port at launch time, not by Doomer. A WAD picked from outside `GZDoom.Wads.Location` is moved into it when you save, and the batch points to its new place.
+If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD, WAD or an extra file that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by the source port at launch time, not by Doomer. A WAD picked from outside `Folders.Wads.Path` is moved into it when you save, and the batch points to its new place.
 
 Both IWAD and WAD have a **Browse...** button to pick the file instead of typing the path.
 

@@ -75,18 +75,18 @@ namespace Doomer.Services
 
         // GZDoom also looks for relative -file paths in its own folder, so a relative plugins folder
         // lives in the GZDoom install. Null when there's no plugins folder or GZDoom location to go by.
-        public static string? GetPluginsDirectory(GZDoomSettings settings)
+        public static string? GetPluginsDirectory(string pluginsFolder, string gzdoomExecutable)
         {
-            if (string.IsNullOrWhiteSpace(settings.Plugins))
+            if (string.IsNullOrWhiteSpace(pluginsFolder))
                 return null;
 
-            if (Path.IsPathRooted(settings.Plugins))
-                return settings.Plugins;
+            if (Path.IsPathRooted(pluginsFolder))
+                return pluginsFolder;
 
-            if (string.IsNullOrWhiteSpace(settings.Location) || !Path.IsPathRooted(settings.Location))
+            if (string.IsNullOrWhiteSpace(gzdoomExecutable) || !Path.IsPathRooted(gzdoomExecutable))
                 return null;
 
-            return Path.Combine(Path.GetDirectoryName(settings.Location)!, settings.Plugins);
+            return Path.Combine(Path.GetDirectoryName(gzdoomExecutable)!, pluginsFolder);
         }
 
         // The file names of the plugins in the plugins folder, or none if it doesn't exist.
@@ -132,7 +132,7 @@ namespace Doomer.Services
         // A batch's icon is the image named exactly like the batch file. Both the main window and the
         // batch form go through here, so a saved image is always the one the button looks for.
         public static string GetImagePath(string batchPath, ImageSettings images) =>
-            Path.Combine(images.Location, Path.GetFileNameWithoutExtension(batchPath) + images.Extension);
+            Path.Combine(images.Path, Path.GetFileNameWithoutExtension(batchPath) + images.Extension);
 
         public static bool IsValidFileName(string fileName, out string error)
         {
@@ -154,33 +154,34 @@ namespace Doomer.Services
 
         // Extra files (DEH/BEX patches, other WADs...) are loaded right after the WAD, then the plugins,
         // in the order given, each under the plugins folder.
-        public static string BuildCommand(GZDoomSettings settings, string iwad, string wad, IReadOnlyList<string> plugins, IReadOnlyList<string>? extraFiles = null)
+        public static string BuildGZDoomCommand(string executable, string pluginsFolder, string iwad, string wad,
+            IReadOnlyList<string> plugins, IReadOnlyList<string>? extraFiles = null)
         {
             extraFiles ??= [];
             plugins = [.. plugins.Where(p => !string.IsNullOrWhiteSpace(p))];
 
-            if (ContainsQuote(settings.Location) || ContainsQuote(settings.Plugins) ||
+            if (ContainsQuote(executable) || ContainsQuote(pluginsFolder) ||
                 ContainsQuote(iwad) || ContainsQuote(wad) || plugins.Any(ContainsQuote) || extraFiles.Any(ContainsQuote))
                 throw new ArgumentException(Strings.GZDoomPathsWithQuotes);
 
-            var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
+            var command = $"\"{executable}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
 
             if (plugins.Count == 0)
                 return command;
 
-            return $"{PluginsFolderMarker}{settings.Plugins}\r\n" + command +
-                string.Concat(plugins.Select(p => $" \"{settings.Plugins}/{p}\""));
+            return $"{PluginsFolderMarker}{pluginsFolder}\r\n" + command +
+                string.Concat(plugins.Select(p => $" \"{pluginsFolder}/{p}\""));
         }
 
         // DSDA Doom tells loose files apart by extension, so DEH/BEX patches can be passed like WADs.
-        public static string BuildCommand(DSDADoomSettings settings, string iwad, string wad, IReadOnlyList<string>? extraFiles = null)
+        public static string BuildDSDADoomCommand(string executable, string iwad, string wad, IReadOnlyList<string>? extraFiles = null)
         {
             extraFiles ??= [];
 
-            if (ContainsQuote(settings.Location) || ContainsQuote(iwad) || ContainsQuote(wad) || extraFiles.Any(ContainsQuote))
+            if (ContainsQuote(executable) || ContainsQuote(iwad) || ContainsQuote(wad) || extraFiles.Any(ContainsQuote))
                 throw new ArgumentException(Strings.DSDADoomPathsWithQuotes);
 
-            return $"\"{settings.Location}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
+            return $"\"{executable}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
         }
 
         private static string QuoteFiles(IReadOnlyList<string> files) =>

@@ -1,4 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Doomer.Options
 {
@@ -11,16 +14,18 @@ namespace Doomer.Options
 
         public static readonly string FilePath = Path.Combine(DirectoryPath, FileName);
 
+        // A copy of the settings as they were before being moved to the current layout.
+        public static readonly string LegacyBackupFilePath = Path.Combine(DirectoryPath, "appsettings.old.json");
+
         // Favorites, play history and sort order (see LibraryService), next to the settings.
         public static readonly string LibraryFilePath = Path.Combine(DirectoryPath, "library.json");
 
         // The update version the user chose to skip. Not in the settings, since saving those rewrites the file.
         public static readonly string SkippedUpdateFilePath = Path.Combine(DirectoryPath, "skipped-update.txt");
 
-        public static GZDoomSettings GZDoom { get; private set; } = default!;
-        public static DSDADoomSettings DSDADoom { get; private set; } = default!;
-        public static IconsSettings Icons { get; private set; } = default!;
-        public static GeneralSettings General { get; private set; } = default!;
+        public static PortsSettings Ports { get; private set; } = default!;
+        public static FoldersSettings Folders { get; private set; } = default!;
+        public static InterfaceSettings Interface { get; private set; } = default!;
 
         static AppConfiguration() => Load();
 
@@ -28,17 +33,19 @@ namespace Doomer.Options
         {
             EnsureConfigFile();
 
-            var config = new ConfigurationBuilder()
-                .SetBasePath(DirectoryPath)
-                .AddJsonFile(FileName, optional: false, reloadOnChange: true)
-                .Build();
+            var builder = new ConfigurationBuilder().SetBasePath(DirectoryPath);
 
-            GZDoom = config.GetSection("GZDoom").Get<GZDoomSettings>()!;
-            // Older config files predate DSDA Doom support and have no section for it.
-            DSDADoom = config.GetSection("DSDADoom").Get<DSDADoomSettings>() ?? new();
-            Icons = config.GetSection("Icons").Get<IconsSettings>()!;
-            // Older config files predate the language setting.
-            General = config.GetSection("General").Get<GeneralSettings>() ?? new();
+            // Settings that can't be rewritten in the new layout are still read in it, from memory.
+            if (SettingsFile.MigrateLegacyFile(FilePath, LegacyBackupFilePath) is { } unsaved)
+                builder.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(unsaved)));
+            else
+                builder.AddJsonFile(FileName, optional: false, reloadOnChange: true);
+
+            var config = builder.Build();
+
+            Ports = config.GetSection("Ports").Get<PortsSettings>() ?? new();
+            Folders = config.GetSection("Folders").Get<FoldersSettings>() ?? new();
+            Interface = config.GetSection("Interface").Get<InterfaceSettings>() ?? new();
         }
 
         // Seeds the per-user config on first run, since the app may be installed
@@ -54,91 +61,185 @@ namespace Doomer.Options
             if (File.Exists(bundledPath))
                 File.Copy(bundledPath, FilePath);
             else
-                File.WriteAllText(FilePath, DefaultJson);
+                File.WriteAllText(FilePath, SettingsFile.Serialize(new AppSettingsRoot()));
+        }
+    }
+
+    // Reads and writes the settings JSON. Kept apart from AppConfiguration, which loads the user's
+    // settings as soon as it's used, so this can be called (and tested) without touching them.
+    public static class SettingsFile
+    {
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
+        private static readonly JsonSerializerOptions LegacyReadOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        };
+
+        public static string Serialize(AppSettingsRoot settings) => JsonSerializer.Serialize(settings, JsonOptions);
+
+        // Settings from 1.5 and earlier kept the executables and folders under "GZDoom" and "DSDADoom".
+        // Returns the same settings in the current layout, or null when the JSON already uses it or can't be read.
+        public static string? MigrateLegacyJson(string json)
+        {
+            JsonObject? root;
+
+            try
+            {
+                root = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions
+                {
+                    CommentHandling = JsonCommentHandling.Skip,
+                    AllowTrailingCommas = true
+                }) as JsonObject;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+
+            if (root is null || root.ContainsKey("Ports") || root["GZDoom"] is not JsonObject gzdoom)
+                return null;
+
+            var defaults = new AppSettingsRoot();
+
+            var settings = new AppSettingsRoot
+            {
+                Ports = new PortsSettings
+                {
+                    GZDoom = new GZDoomSettings
+                    {
+                        Path = Text(gzdoom["Location"]),
+                        Plugins = Text(gzdoom["Plugins"], defaults.Ports.GZDoom.Plugins)
+                    },
+                    DSDADoom = new DSDADoomSettings { Path = Text(root["DSDADoom"]?["Location"]) }
+                },
+                Folders = new FoldersSettings
+                {
+                    Batches = new BatchSettings
+                    {
+                        Path = Text(gzdoom["Batchs"]?["Location"]),
+                        Extension = Text(gzdoom["Batchs"]?["Extension"], defaults.Folders.Batches.Extension)
+                    },
+                    Images = new ImageSettings
+                    {
+                        Path = Text(gzdoom["Images"]?["Location"]),
+                        Extension = Text(gzdoom["Images"]?["Extension"], defaults.Folders.Images.Extension)
+                    },
+                    Wads = new WadSettings { Path = Text(gzdoom["Wads"]?["Location"]) }
+                },
+                Interface = new InterfaceSettings
+                {
+                    Language = root["General"]?.Deserialize<LegacyGeneralSettings>(LegacyReadOptions)?.Language ?? string.Empty,
+                    Icons = root["Icons"]?.Deserialize<IconsSettings>(LegacyReadOptions) ?? new()
+                }
+            };
+
+            return Serialize(settings);
         }
 
-        private const string DefaultJson = """
+        // Rewrites a file in the old layout in place, keeping a copy of it. Returns the migrated JSON only
+        // when it couldn't be written, so it's still used this time.
+        public static string? MigrateLegacyFile(string filePath, string backupPath)
+        {
+            string? migrated;
+
+            try
             {
-              "GZDoom": {
-                "Location": "",
-                "Plugins": "plugins",
-                "Batchs": {
-                  "Location": "",
-                  "Extension": ".bat"
-                },
-                "Images": {
-                  "Location": "",
-                  "Extension": ".png"
-                },
-                "Wads": {
-                  "Location": ""
-                }
-              },
-              "DSDADoom": {
-                "Location": ""
-              },
-              "Icons": {
-                "Width": 120,
-                "Height": 100,
-                "Padding": 5
-              },
-              "General": {
-                "Language": ""
-              }
+                migrated = MigrateLegacyJson(File.ReadAllText(filePath));
             }
-            """;
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+
+            if (migrated is null)
+                return null;
+
+            try
+            {
+                File.Copy(filePath, backupPath, overwrite: true);
+                File.WriteAllText(filePath, migrated);
+                return null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return migrated;
+            }
+        }
+
+        private static string Text(JsonNode? node, string fallback = "") =>
+            node is JsonValue value && value.TryGetValue<string>(out var text) ? text : fallback;
     }
 
     public class AppSettingsRoot
     {
+        public PortsSettings Ports { get; set; } = new();
+        public FoldersSettings Folders { get; set; } = new();
+        public InterfaceSettings Interface { get; set; } = new();
+    }
+
+    // The source ports. At least one executable has to be set.
+    public class PortsSettings
+    {
         public GZDoomSettings GZDoom { get; set; } = new();
         public DSDADoomSettings DSDADoom { get; set; } = new();
-        public IconsSettings Icons { get; set; } = new();
-        public GeneralSettings General { get; set; } = new();
     }
 
     public class GZDoomSettings
     {
-        public string Location { get; set; } = default!;
-        public string Plugins { get; set; } = default!;
-        public BatchSettings Batchs { get; set; } = new();
-        public ImageSettings Images { get; set; } = new();
-        // Older config files have no Wads section, so it falls back to an empty location.
-        public WadSettings Wads { get; set; } = new();
+        public string Path { get; set; } = string.Empty;
+        // GZDoom's plugins folder: relative to the GZDoom install, or a full path.
+        public string Plugins { get; set; } = "plugins";
     }
 
     public class DSDADoomSettings
     {
-        public string Location { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
+    }
+
+    public class FoldersSettings
+    {
+        public BatchSettings Batches { get; set; } = new();
+        public ImageSettings Images { get; set; } = new();
+        public WadSettings Wads { get; set; } = new();
     }
 
     public class BatchSettings
     {
-        public string Location { get; set; } = default!;
-        public string Extension { get; set; } = default!;
+        public string Path { get; set; } = string.Empty;
+        public string Extension { get; set; } = ".bat";
     }
 
     public class ImageSettings
     {
-        public string Location { get; set; } = default!;
-        public string Extension { get; set; } = default!;
+        public string Path { get; set; } = string.Empty;
+        public string Extension { get; set; } = ".png";
     }
 
     public class WadSettings
     {
-        public string Location { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
     }
 
-    public class GeneralSettings
+    public class InterfaceSettings
     {
         // A culture name like "es", or empty to follow Windows' language.
         public string Language { get; set; } = string.Empty;
+        public IconsSettings Icons { get; set; } = new();
     }
 
     public class IconsSettings
     {
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public int Padding { get; set; }
+        public int Width { get; set; } = 120;
+        public int Height { get; set; } = 100;
+        public int Padding { get; set; } = 5;
+    }
+
+    // The "General" section of settings from 1.5 and earlier, only read when migrating them.
+    internal class LegacyGeneralSettings
+    {
+        public string Language { get; set; } = string.Empty;
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Doomer.Options;
-using System.Text.Json;
 
 namespace Doomer
 {
@@ -25,17 +24,18 @@ namespace Doomer
 
         private void LoadSettings()
         {
-            var gzdoom = AppConfiguration.GZDoom;
-            var icons = AppConfiguration.Icons;
+            var ports = AppConfiguration.Ports;
+            var folders = AppConfiguration.Folders;
+            var icons = AppConfiguration.Interface.Icons;
 
-            txtGZDoomLocation.Text = gzdoom.Location;
-            txtGZDoomPlugins.Text = gzdoom.Plugins;
-            txtDSDADoomLocation.Text = AppConfiguration.DSDADoom.Location;
-            txtBatchsLocation.Text = gzdoom.Batchs.Location;
-            txtBatchsExtension.Text = gzdoom.Batchs.Extension;
-            txtImagesLocation.Text = gzdoom.Images.Location;
-            txtImagesExtension.Text = gzdoom.Images.Extension;
-            txtWadsLocation.Text = gzdoom.Wads.Location;
+            txtGZDoomLocation.Text = ports.GZDoom.Path;
+            txtGZDoomPlugins.Text = ports.GZDoom.Plugins;
+            txtDSDADoomLocation.Text = ports.DSDADoom.Path;
+            txtBatchsLocation.Text = folders.Batches.Path;
+            txtBatchsExtension.Text = folders.Batches.Extension;
+            txtImagesLocation.Text = folders.Images.Path;
+            txtImagesExtension.Text = folders.Images.Extension;
+            txtWadsLocation.Text = folders.Wads.Path;
 
             nudWidth.Value = Math.Clamp(icons.Width, (int)nudWidth.Minimum, (int)nudWidth.Maximum);
             nudHeight.Value = Math.Clamp(icons.Height, (int)nudHeight.Minimum, (int)nudHeight.Maximum);
@@ -48,7 +48,7 @@ namespace Doomer
             var languageIndex = Localization.Languages
                 .Select(l => l.Culture)
                 .ToList()
-                .FindIndex(c => string.Equals(c, AppConfiguration.General.Language, StringComparison.OrdinalIgnoreCase));
+                .FindIndex(c => string.Equals(c, AppConfiguration.Interface.Language, StringComparison.OrdinalIgnoreCase));
             cmbLanguage.SelectedIndex = languageIndex + 1;
         }
 
@@ -82,43 +82,48 @@ namespace Doomer
         {
             var root = new AppSettingsRoot
             {
-                GZDoom = new GZDoomSettings
+                Ports = new PortsSettings
                 {
-                    Location = txtGZDoomLocation.Text.Trim(),
-                    Plugins = txtGZDoomPlugins.Text.Trim(),
-                    Batchs = new BatchSettings
+                    GZDoom = new GZDoomSettings
                     {
-                        Location = txtBatchsLocation.Text.Trim(),
+                        Path = txtGZDoomLocation.Text.Trim(),
+                        Plugins = txtGZDoomPlugins.Text.Trim()
+                    },
+                    DSDADoom = new DSDADoomSettings
+                    {
+                        Path = txtDSDADoomLocation.Text.Trim()
+                    }
+                },
+                Folders = new FoldersSettings
+                {
+                    Batches = new BatchSettings
+                    {
+                        Path = txtBatchsLocation.Text.Trim(),
                         Extension = txtBatchsExtension.Text.Trim()
                     },
                     Images = new ImageSettings
                     {
-                        Location = txtImagesLocation.Text.Trim(),
+                        Path = txtImagesLocation.Text.Trim(),
                         Extension = txtImagesExtension.Text.Trim()
                     },
                     Wads = new WadSettings
                     {
-                        Location = txtWadsLocation.Text.Trim()
+                        Path = txtWadsLocation.Text.Trim()
                     }
                 },
-                DSDADoom = new DSDADoomSettings
+                Interface = new InterfaceSettings
                 {
-                    Location = txtDSDADoomLocation.Text.Trim()
-                },
-                Icons = new IconsSettings
-                {
-                    Width = (int)nudWidth.Value,
-                    Height = (int)nudHeight.Value,
-                    Padding = (int)nudPadding.Value
-                },
-                General = new GeneralSettings
-                {
-                    Language = SelectedLanguage
+                    Language = SelectedLanguage,
+                    Icons = new IconsSettings
+                    {
+                        Width = (int)nudWidth.Value,
+                        Height = (int)nudHeight.Value,
+                        Padding = (int)nudPadding.Value
+                    }
                 }
             };
 
-            var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(AppConfiguration.FilePath, json);
+            File.WriteAllText(AppConfiguration.FilePath, SettingsFile.Serialize(root));
             AppConfiguration.Load();
         }
 

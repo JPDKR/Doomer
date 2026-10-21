@@ -20,6 +20,10 @@ namespace Doomer
         private readonly ToolTip _wadTooltip = new();
         private readonly Font _wadButtonFont = new("Segoe UI", 8.5f);
         private CancellationTokenSource? _loadCts;
+        private readonly LibraryService _library = new(AppConfiguration.LibraryFilePath);
+
+        // A favorite's button gets a gold border so it stands out from the rest at the top.
+        private static readonly Color FavoriteColor = Color.FromArgb(212, 160, 23);
 
         public Doomer()
         {
@@ -49,6 +53,9 @@ namespace Doomer
             menuStrip1.ForeColor = TextColor;
             menuStrip1.Renderer = new DarkMenuRenderer();
 
+            sortToolStripMenuItem.DropDown.Renderer = menuStrip1.Renderer;
+            UpdateSortMenu();
+
             foreach (ToolStripItem item in menuStrip1.Items)
                 item.ForeColor = TextColor;
 
@@ -74,6 +81,9 @@ namespace Doomer
             settingsToolStripMenuItem.AccessibleName = Strings.MenuSettings;
             txtSearch.TextBox.PlaceholderText = Strings.SearchPlaceholder;
             lblLoading.Text = Strings.LoadingWads;
+            sortToolStripMenuItem.Text = Strings.MenuSort;
+            sortByNameToolStripMenuItem.Text = Strings.MenuSortByName;
+            sortByLastPlayedToolStripMenuItem.Text = Strings.MenuSortByLastPlayed;
         }
 
         private async void MainForm_Load(object sender, EventArgs e)
@@ -217,7 +227,8 @@ namespace Doomer
             }
 
             flowLayoutPanel1.Controls.Clear();
-            flowLayoutPanel1.Controls.AddRange([.. entries.Select(CreateWadButton)]);
+            var order = _library.Sort(entries.Select(e => e.Name));
+            flowLayoutPanel1.Controls.AddRange([.. entries.OrderBy(e => order.IndexOf(e.Name)).Select(CreateWadButton)]);
             ApplyFilter();
 
             flowLayoutPanel1.ResumeLayout();
@@ -239,12 +250,9 @@ namespace Doomer
                 Cursor = Cursors.Hand,
             };
 
-            boton.FlatAppearance.BorderColor = AccentColor;
-            boton.FlatAppearance.BorderSize = 1;
             boton.FlatAppearance.MouseOverBackColor = ButtonHoverColor;
-
-            _wadTooltip.SetToolTip(boton, entry.Name);
-            boton.ContextMenuStrip = BuildWadContextMenu(entry.File);
+            ApplyFavoriteStyle(boton);
+            boton.ContextMenuStrip = BuildWadContextMenu(boton);
 
             if (entry.Icon is not null)
             {
@@ -281,9 +289,75 @@ namespace Doomer
             lblStatus.Text = $"  {loaded}   |   {_gzdoomSettings.Batchs.Location}";
         }
 
-        private ContextMenuStrip BuildWadContextMenu(string filePath)
+        private void ApplyFavoriteStyle(Button boton)
         {
+            var favorite = _library.IsFavorite(boton.Name);
+            boton.FlatAppearance.BorderColor = favorite ? FavoriteColor : AccentColor;
+            boton.FlatAppearance.BorderSize = favorite ? 2 : 1;
+            _wadTooltip.SetToolTip(boton, favorite ? $"★ {boton.Name}" : boton.Name);
+        }
+
+        // Reorders the buttons already shown (after a favorite changes, a WAD is played or the sort
+        // changes), so their icons don't have to be loaded again.
+        private void ApplyOrder()
+        {
+            var buttons = flowLayoutPanel1.Controls.Cast<Control>().ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
+            var order = _library.Sort(buttons.Keys);
+
+            flowLayoutPanel1.SuspendLayout();
+            for (var i = 0; i < order.Count; i++)
+                flowLayoutPanel1.Controls.SetChildIndex(buttons[order[i]], i);
+            flowLayoutPanel1.ResumeLayout();
+        }
+
+        private void UpdateSortMenu()
+        {
+            sortByNameToolStripMenuItem.Checked = _library.SortOrder == WadSortOrder.Name;
+            sortByLastPlayedToolStripMenuItem.Checked = _library.SortOrder == WadSortOrder.LastPlayed;
+        }
+
+        private void SortByNameToolStripMenuItem_Click(object sender, EventArgs e) => SetSortOrder(WadSortOrder.Name);
+
+        private void SortByLastPlayedToolStripMenuItem_Click(object sender, EventArgs e) => SetSortOrder(WadSortOrder.LastPlayed);
+
+        private void SetSortOrder(WadSortOrder order)
+        {
+            // Reordered even if saving fails, so the choice still applies until the app closes.
+            TrySaveLibrary(() => _library.SetSortOrder(order));
+            UpdateSortMenu();
+            ApplyOrder();
+        }
+
+        private void ToggleFavorite(Button boton)
+        {
+            TrySaveLibrary(() => _library.SetFavorite(boton.Name, !_library.IsFavorite(boton.Name)));
+            ApplyFavoriteStyle(boton);
+            ApplyOrder();
+        }
+
+        // The library changes in memory before it's written, so a failed save only loses it on restart.
+        private static void TrySaveLibrary(Action change)
+        {
+            try
+            {
+                change();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                MessageBox.Show(string.Format(Strings.LibrarySaveError, ex.Message), Strings.ErrorTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private ContextMenuStrip BuildWadContextMenu(Button boton)
+        {
+            var filePath = (string)boton.Tag!;
             var menu = new ContextMenuStrip();
+
+            var favoriteItem = new ToolStripMenuItem(Strings.MenuFavorite);
+            favoriteItem.Click += (s, e) => ToggleFavorite(boton);
+            // Checked when it opens, since the same menu stays with the button while favorites change.
+            menu.Opening += (s, e) => favoriteItem.Checked = _library.IsFavorite(boton.Name);
 
             var editItem = new ToolStripMenuItem(Strings.MenuEdit);
             editItem.Click += (s, e) => EditBatch(filePath);
@@ -300,6 +374,8 @@ namespace Doomer
             var deleteItem = new ToolStripMenuItem(Strings.MenuDelete);
             deleteItem.Click += (s, e) => DeleteBatch(filePath);
 
+            menu.Items.Add(favoriteItem);
+            menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(editItem);
             menu.Items.Add(changeImageItem);
             menu.Items.Add(openFolderItem);
@@ -479,6 +555,15 @@ namespace Doomer
                 if (File.Exists(imagePath))
                     File.Delete(imagePath);
 
+                // A batch made later with the same name starts without this one's history.
+                try
+                {
+                    _library.Forget(name);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                }
+
                 await LoadButtonsBatchAsync();
             }
             catch (Exception ex)
@@ -491,6 +576,19 @@ namespace Doomer
         {
             if (sender is Button boton && boton.Tag is string path)
             {
+                // Recorded before launching, since RunAsync only returns once the game is closed.
+                // Not being able to save it is no reason to keep the user from playing.
+                try
+                {
+                    _library.MarkPlayed(boton.Name, DateTime.UtcNow);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                }
+
+                if (_library.SortOrder == WadSortOrder.LastPlayed)
+                    ApplyOrder();
+
                 string? errors;
 
                 try

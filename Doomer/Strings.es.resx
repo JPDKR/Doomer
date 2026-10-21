@@ -60,6 +60,22 @@ Abre Configuración para corregir la ruta.</value>
   <data name="ErrorTitle" xml:space="preserve">
     <value>Error</value>
   </data>
+  <data name="MenuSort" xml:space="preserve">
+    <value>Ordenar</value>
+  </data>
+  <data name="MenuSortByName" xml:space="preserve">
+    <value>Por nombre</value>
+  </data>
+  <data name="MenuSortByLastPlayed" xml:space="preserve">
+    <value>Por última vez jugado</value>
+  </data>
+  <data name="MenuFavorite" xml:space="preserve">
+    <value>Favorito</value>
+  </data>
+  <data name="LibrarySaveError" xml:space="preserve">
+    <value>No se pudo guardar el cambio:
+{0}</value>
+  </data>
   <data name="MenuEdit" xml:space="preserve">
     <value>Editar...</value>
   </data>

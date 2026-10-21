@@ -60,8 +60,11 @@ The main window lists one button per batch file found in `GZDoom.Batchs.Location
 
 Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead.
 
+Use **Sort** in the menu to list the WADs **By name** or **By last played** (most recent first; WADs never played go last). Mark the ones you play the most as **Favorite** from their right-click menu: they're always shown first, with a gold border. Favorites, play history and the sort order are kept in `%AppData%\Doomer\library.json`.
+
 Right-click any WAD button to:
 
+* Mark or unmark it as a **Favorite**.
 * **Edit** its batch file.
 * **Change image**: pick a new icon. The file is copied into `GZDoom.Images.Location`, so the original stays where it was.
 * **Open WAD folder**: opens Explorer with the batch's WAD selected. Relative WAD paths are resolved from the source port's folder.

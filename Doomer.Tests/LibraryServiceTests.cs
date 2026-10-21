@@ -1,0 +1,93 @@
+using Doomer.Services;
+
+namespace Doomer.Tests
+{
+    public class LibraryServiceTests : IDisposable
+    {
+        private readonly string _folder = Directory.CreateTempSubdirectory("Doomer library ").FullName;
+
+        private string FilePath => Path.Combine(_folder, "library.json");
+
+        public void Dispose() => Directory.Delete(_folder, recursive: true);
+
+        private static readonly string[] Wads = ["Sunlust", "ancient aliens", "Eviternity", "Sigil"];
+
+        [Fact]
+        public void Sort_ByName_PutsFavoritesFirst()
+        {
+            var library = new LibraryService(FilePath);
+            library.SetFavorite("Sigil", true);
+            library.SetFavorite("eviternity", true);
+
+            Assert.Equal(["Eviternity", "Sigil", "ancient aliens", "Sunlust"], library.Sort(Wads));
+        }
+
+        [Fact]
+        public void Sort_ByLastPlayed_PutsTheMostRecentFirstAndNeverPlayedLast()
+        {
+            var library = new LibraryService(FilePath);
+            library.SetSortOrder(WadSortOrder.LastPlayed);
+            library.MarkPlayed("Sunlust", new DateTime(2026, 10, 1));
+            library.MarkPlayed("Sigil", new DateTime(2026, 10, 20));
+
+            Assert.Equal(["Sigil", "Sunlust", "ancient aliens", "Eviternity"], library.Sort(Wads));
+
+            library.SetFavorite("Eviternity", true);
+
+            Assert.Equal(["Eviternity", "Sigil", "Sunlust", "ancient aliens"], library.Sort(Wads));
+        }
+
+        [Fact]
+        public void Changes_AreKeptAcrossRestarts()
+        {
+            var library = new LibraryService(FilePath);
+            library.SetSortOrder(WadSortOrder.LastPlayed);
+            library.SetFavorite("Sigil", true);
+            library.MarkPlayed("Sunlust", new DateTime(2026, 10, 21, 18, 30, 0, DateTimeKind.Utc));
+
+            var reloaded = new LibraryService(FilePath);
+
+            Assert.Equal(WadSortOrder.LastPlayed, reloaded.SortOrder);
+            Assert.True(reloaded.IsFavorite("SIGIL"));
+            Assert.Equal(new DateTime(2026, 10, 21, 18, 30, 0, DateTimeKind.Utc), reloaded.GetLastPlayed("sunlust"));
+            Assert.False(File.Exists(FilePath + ".tmp"));
+        }
+
+        [Fact]
+        public void Forget_DropsTheWadsHistory()
+        {
+            var library = new LibraryService(FilePath);
+            library.SetFavorite("Sigil", true);
+            library.MarkPlayed("Sigil", DateTime.UtcNow);
+
+            library.Forget("sigil");
+            var reloaded = new LibraryService(FilePath);
+
+            Assert.False(reloaded.IsFavorite("Sigil"));
+            Assert.Null(reloaded.GetLastPlayed("Sigil"));
+        }
+
+        [Theory]
+        [InlineData("not json at all")]
+        [InlineData("{\"SortOrder\": \"Sideways\"}")]
+        [InlineData("")]
+        public void ADamagedFile_StartsAnEmptyLibrary(string content)
+        {
+            File.WriteAllText(FilePath, content);
+
+            var library = new LibraryService(FilePath);
+
+            Assert.Equal(WadSortOrder.Name, library.SortOrder);
+            Assert.False(library.IsFavorite("Sigil"));
+        }
+
+        [Fact]
+        public void AMissingFile_StartsAnEmptyLibraryWithoutCreatingIt()
+        {
+            var library = new LibraryService(FilePath);
+
+            Assert.Equal(WadSortOrder.Name, library.SortOrder);
+            Assert.False(File.Exists(FilePath));
+        }
+    }
+}

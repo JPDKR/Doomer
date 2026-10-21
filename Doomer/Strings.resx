@@ -143,8 +143,14 @@ Open Settings to fix the path.</value>
   <data name="PlaceholderWad" xml:space="preserve">
     <value>e.g. brutal-doom or mods/myhouse.pk3</value>
   </data>
-  <data name="PlaceholderExtraFiles" xml:space="preserve">
-    <value>Optional, one per line (e.g. .deh patches)</value>
+  <data name="AddButton" xml:space="preserve">
+    <value>Add...</value>
+  </data>
+  <data name="RemoveButton" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="SelectExtraFiles" xml:space="preserve">
+    <value>Select extra files</value>
   </data>
   <data name="PlaceholderImage" xml:space="preserve">
     <value>Optional icon: Browse..., an image URL, or Ctrl+V a copied image</value>

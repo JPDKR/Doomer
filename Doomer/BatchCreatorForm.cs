@@ -7,7 +7,6 @@ namespace Doomer
     public partial class BatchCreatorForm : Form
     {
         private static string WadFileFilter => $"{Strings.FileFilterDoom}|*.wad;*.pk3;*.pk7;*.zip;*.deh;*.bex|{Strings.FileFilterAll}|*.*";
-        private static string ImageFileFilter => $"{Strings.FileFilterImages}|*.png;*.jpg;*.jpeg;*.bmp;*.gif|{Strings.FileFilterAll}|*.*";
         private static string ArchiveFileFilter => $"{Strings.FileFilterArchives}|{ArchiveService.FilePatterns}|{Strings.FileFilterAll}|*.*";
 
         private readonly GZDoomSettings _gzdoomSettings = AppConfiguration.GZDoom;
@@ -541,12 +540,12 @@ namespace Doomer
                 return;
             }
 
-            using var dlg = new OpenFileDialog { Title = Strings.SelectImage, Filter = ImageFileFilter };
+            using var dlg = new OpenFileDialog { Title = Strings.SelectImage, Filter = ImageFileService.FileFilter };
 
             if (dlg.ShowDialog() != DialogResult.OK)
                 return;
 
-            if (!IsValidImage(dlg.FileName))
+            if (!ImageFileService.IsValidImage(dlg.FileName))
             {
                 MessageBox.Show(Strings.InvalidImageSelected, Strings.BatchCreationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -610,19 +609,6 @@ namespace Doomer
             return Clipboard.GetImage();
         }
 
-        private static bool IsValidImage(string path)
-        {
-            try
-            {
-                using var _ = Image.FromFile(path);
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
         // Downloads the image at url to a temp file, or returns null (after telling the user why) if it fails.
         private async Task<string?> DownloadImageAsync(string url)
         {
@@ -647,7 +633,7 @@ namespace Doomer
                 Enabled = true;
             }
 
-            if (IsValidImage(path))
+            if (ImageFileService.IsValidImage(path))
                 return path;
 
             File.Delete(path);
@@ -660,36 +646,6 @@ namespace Doomer
             string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location)
                 ? null
                 : BatchFileService.GetImagePath(batchPath, _gzdoomSettings.Images);
-
-        // Moves the picked image into the images folder named after the WAD. If its format
-        // differs from the configured extension, it's re-encoded so the icon loads correctly.
-        private static void MoveImage(string source, string destination)
-        {
-            if (string.Equals(Path.GetFullPath(source), Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
-                return;
-
-            var sourceExt = Path.GetExtension(source);
-            var destExt = Path.GetExtension(destination);
-
-            if (string.Equals(sourceExt, destExt, StringComparison.OrdinalIgnoreCase))
-            {
-                File.Move(source, destination, overwrite: true);
-                return;
-            }
-
-            using (var img = Image.FromFile(source))
-                img.Save(destination, GetImageFormat(destExt));
-
-            File.Delete(source);
-        }
-
-        private static System.Drawing.Imaging.ImageFormat GetImageFormat(string extension) => extension.ToLowerInvariant() switch
-        {
-            ".jpg" or ".jpeg" => System.Drawing.Imaging.ImageFormat.Jpeg,
-            ".bmp" => System.Drawing.Imaging.ImageFormat.Bmp,
-            ".gif" => System.Drawing.Imaging.ImageFormat.Gif,
-            _ => System.Drawing.Imaging.ImageFormat.Png
-        };
 
         private static bool ConfirmPathIfMissing(string label, string path)
         {
@@ -825,7 +781,7 @@ namespace Doomer
                     return;
                 }
 
-                if (!ImageDownloadService.IsUrl(imageSource) && !IsValidImage(imageSource))
+                if (!ImageDownloadService.IsUrl(imageSource) && !ImageFileService.IsValidImage(imageSource))
                 {
                     MessageBox.Show(string.Format(Strings.ImageFileInvalid, imageSource), Strings.BatchCreationTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -885,7 +841,7 @@ namespace Doomer
             try
             {
                 if (imageDestination is not null)
-                    MoveImage(imageSource, imageDestination);
+                    ImageFileService.Save(imageSource, imageDestination, move: true);
             }
             catch (Exception ex)
             {

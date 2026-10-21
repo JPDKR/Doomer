@@ -29,6 +29,8 @@ namespace Doomer.Services
             "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"(?:\\s+\"(?<file>[^\"]*)\")*",
             RegexOptions.Compiled);
 
+        private static readonly Regex DuplicateNamePattern = new("^(?<base>.+) \\((?<n>\\d{1,6})\\)$", RegexOptions.Compiled);
+
         public static string GetDisplayName(SourcePort port) => port switch
         {
             SourcePort.DSDADoom => "DSDA Doom",
@@ -88,6 +90,34 @@ namespace Doomer.Services
                 .Where(f => PluginExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
                 .Select(f => Path.GetFileName(f))
                 .Order(StringComparer.OrdinalIgnoreCase)];
+        }
+
+        // Where a batch's WAD is on disk. Source ports look for relative paths in their own folder,
+        // so those resolve from the executable's. Null when it's relative and there's no executable to go by.
+        public static string? ResolveWadPath(string wad, string? executable)
+        {
+            var path = EnsureWadExtension(wad);
+
+            if (Path.IsPathRooted(path))
+                return Path.GetFullPath(path);
+
+            if (string.IsNullOrWhiteSpace(executable) || !Path.IsPathRooted(executable))
+                return null;
+
+            return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(executable)!, path));
+        }
+
+        // "Sigil" -> "Sigil (2)", "Sigil (2)" -> "Sigil (3)", skipping names already taken.
+        public static string GetDuplicateName(string name, Func<string, bool> isTaken)
+        {
+            var match = DuplicateNamePattern.Match(name);
+            var baseName = match.Success ? match.Groups["base"].Value : name;
+            var number = match.Success ? int.Parse(match.Groups["n"].Value) + 1 : 2;
+
+            while (isTaken($"{baseName} ({number})"))
+                number++;
+
+            return $"{baseName} ({number})";
         }
 
         // A batch's icon is the image named exactly like the batch file. Both the main window and the

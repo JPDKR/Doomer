@@ -325,6 +325,35 @@ namespace Doomer.Tests
             }
         }
 
+        [Theory]
+        [InlineData("D:\\DSDA\\wads\\sigil", "E:\\GZDoom\\gzdoom", "D:\\DSDA\\wads\\sigil.wad")]
+        [InlineData("wads/Ancient Aliens/aaliens", "D:\\gzdoom\\gzdoom", "D:\\gzdoom\\wads\\Ancient Aliens\\aaliens.wad")]
+        [InlineData("mods/myhouse.pk3", "D:\\gzdoom\\gzdoom.exe", "D:\\gzdoom\\mods\\myhouse.pk3")]
+        [InlineData("D:\\wads\\..\\other\\eviternity", "", "D:\\other\\eviternity.wad")]
+        public void ResolveWadPath_ResolvesRelativePathsFromTheExecutablesFolder(string wad, string executable, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.ResolveWadPath(wad, executable));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("gzdoom")]
+        public void ResolveWadPath_ReturnsNullForARelativePathWithoutAnExecutable(string executable)
+        {
+            Assert.Null(BatchFileService.ResolveWadPath("wads/doom2", executable));
+        }
+
+        [Theory]
+        [InlineData("Sigil", new string[0], "Sigil (2)")]
+        [InlineData("Sigil", new[] { "Sigil (2)", "Sigil (3)" }, "Sigil (4)")]
+        [InlineData("Sigil (2)", new string[0], "Sigil (3)")]
+        [InlineData("Doom (1993)", new string[0], "Doom (1994)")]
+        [InlineData("(2)", new string[0], "(2) (2)")]
+        public void GetDuplicateName_PicksTheNextFreeNumber(string name, string[] taken, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.GetDuplicateName(name, taken.Contains));
+        }
+
         [Fact]
         public void FindPlugins_ReturnsNoneForAMissingFolder()
         {

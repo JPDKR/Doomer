@@ -1,5 +1,6 @@
 using Doomer.Options;
 using Doomer.Services;
+using System.Diagnostics;
 
 namespace Doomer
 {
@@ -14,6 +15,7 @@ namespace Doomer
         private static readonly Color MutedColor = Color.FromArgb(140, 140, 140);
 
         private GZDoomSettings _gzdoomSettings = default!;
+        private DSDADoomSettings _dsdaDoomSettings = default!;
         private IconsSettings _iconsSettings = default!;
         private readonly ToolTip _wadTooltip = new();
         private readonly Font _wadButtonFont = new("Segoe UI", 8.5f);
@@ -34,6 +36,7 @@ namespace Doomer
         private void LoadConfiguration()
         {
             _gzdoomSettings = AppConfiguration.GZDoom;
+            _dsdaDoomSettings = AppConfiguration.DSDADoom;
             _iconsSettings = AppConfiguration.Icons;
         }
 
@@ -285,10 +288,23 @@ namespace Doomer
             var editItem = new ToolStripMenuItem(Strings.MenuEdit);
             editItem.Click += (s, e) => EditBatch(filePath);
 
+            var changeImageItem = new ToolStripMenuItem(Strings.MenuChangeImage);
+            changeImageItem.Click += (s, e) => ChangeImage(filePath);
+
+            var openFolderItem = new ToolStripMenuItem(Strings.MenuOpenWadFolder);
+            openFolderItem.Click += (s, e) => OpenWadFolder(filePath);
+
+            var duplicateItem = new ToolStripMenuItem(Strings.MenuDuplicate);
+            duplicateItem.Click += (s, e) => DuplicateBatch(filePath);
+
             var deleteItem = new ToolStripMenuItem(Strings.MenuDelete);
             deleteItem.Click += (s, e) => DeleteBatch(filePath);
 
             menu.Items.Add(editItem);
+            menu.Items.Add(changeImageItem);
+            menu.Items.Add(openFolderItem);
+            menu.Items.Add(duplicateItem);
+            menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(deleteItem);
 
             return menu;
@@ -302,6 +318,146 @@ namespace Doomer
             {
                 await LoadButtonsBatchAsync();
             }
+        }
+
+        // Unlike the batch form, which moves a picked image into the images folder, this copies it,
+        // so replacing an icon never takes a file away from where the user keeps it.
+        private async void ChangeImage(string filePath)
+        {
+            var images = _gzdoomSettings.Images;
+
+            if (string.IsNullOrWhiteSpace(images.Location))
+            {
+                MessageBox.Show(Strings.ImagesDirNotConfigured, Strings.ChangeImageTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!Directory.Exists(images.Location))
+            {
+                MessageBox.Show(string.Format(Strings.ImagesDirNotFoundFixInSettings, images.Location), Strings.ChangeImageTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using var dlg = new OpenFileDialog { Title = Strings.SelectImage, Filter = ImageFileService.FileFilter };
+
+            if (dlg.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            if (!ImageFileService.IsValidImage(dlg.FileName))
+            {
+                MessageBox.Show(Strings.InvalidImageSelected, Strings.ChangeImageTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                ImageFileService.Save(dlg.FileName, BatchFileService.GetImagePath(filePath, images), move: false);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.ChangeImageError, ex.Message), Strings.ChangeImageTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            await LoadButtonsBatchAsync();
+        }
+
+        // Opens Explorer with the batch's WAD selected.
+        private void OpenWadFolder(string filePath)
+        {
+            string command;
+
+            try
+            {
+                command = File.ReadAllText(filePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantReadBatch, ex.Message), Strings.OpenWadFolderTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!BatchFileService.TryParseCommand(command, _gzdoomSettings.Plugins, out var port, out _, out var wad, out _, out _))
+            {
+                MessageBox.Show(Strings.WadNotInBatch, Strings.OpenWadFolderTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var executable = port == SourcePort.DSDADoom ? _dsdaDoomSettings.Location : _gzdoomSettings.Location;
+            var path = BatchFileService.ResolveWadPath(wad, executable);
+
+            if (path is null || !File.Exists(path))
+            {
+                MessageBox.Show(string.Format(Strings.WadFileNotFound, path ?? BatchFileService.EnsureWadExtension(wad)),
+                    Strings.OpenWadFolderTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // Batch paths can't contain quotes, so quoting it is enough.
+                Process.Start("explorer.exe", $"/select,\"{path}\"");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Copies the batch, and its icon if it has one, under a new name, e.g. to try the same WAD
+        // with another plugin or source port.
+        private async void DuplicateBatch(string filePath)
+        {
+            var directory = Path.GetDirectoryName(filePath)!;
+            var extension = Path.GetExtension(filePath);
+            var name = BatchFileService.GetDuplicateName(Path.GetFileNameWithoutExtension(filePath),
+                n => File.Exists(Path.Combine(directory, n + extension)));
+            string newPath;
+
+            while (true)
+            {
+                using var dlg = new NamePromptForm(Strings.DuplicateBatchTitle, Strings.DuplicateBatchPrompt, name);
+
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                // Windows drops trailing dots and spaces from file names, so do it up front.
+                name = dlg.EnteredName.TrimEnd('.', ' ');
+
+                if (!BatchFileService.IsValidFileName(name, out var error))
+                {
+                    MessageBox.Show(error, Strings.DuplicateBatchTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    continue;
+                }
+
+                newPath = Path.Combine(directory, name + extension);
+
+                if (!File.Exists(newPath))
+                    break;
+
+                MessageBox.Show(string.Format(Strings.BatchNameTaken, name), Strings.DuplicateBatchTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            try
+            {
+                File.Copy(filePath, newPath);
+
+                // An image left over with the new name would become its icon anyway, so the copy replaces it.
+                var imagePath = BatchFileService.GetImagePath(filePath, _gzdoomSettings.Images);
+                if (File.Exists(imagePath))
+                    File.Copy(imagePath, BatchFileService.GetImagePath(newPath, _gzdoomSettings.Images), overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.DuplicateBatchError, ex.Message), Strings.DuplicateBatchTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            await LoadButtonsBatchAsync();
         }
 
         private async void DeleteBatch(string filePath)

@@ -66,6 +66,45 @@ Open Settings to fix the path.</value>
   <data name="MenuDelete" xml:space="preserve">
     <value>Delete</value>
   </data>
+  <data name="MenuChangeImage" xml:space="preserve">
+    <value>Change image...</value>
+  </data>
+  <data name="MenuOpenWadFolder" xml:space="preserve">
+    <value>Open WAD folder</value>
+  </data>
+  <data name="MenuDuplicate" xml:space="preserve">
+    <value>Duplicate...</value>
+  </data>
+  <data name="ChangeImageTitle" xml:space="preserve">
+    <value>Change image</value>
+  </data>
+  <data name="ChangeImageError" xml:space="preserve">
+    <value>Couldn't save the image:
+{0}</value>
+  </data>
+  <data name="OpenWadFolderTitle" xml:space="preserve">
+    <value>Open WAD folder</value>
+  </data>
+  <data name="WadNotInBatch" xml:space="preserve">
+    <value>Couldn't find the WAD in this batch file's command.</value>
+  </data>
+  <data name="WadFileNotFound" xml:space="preserve">
+    <value>WAD file not found:
+{0}</value>
+  </data>
+  <data name="DuplicateBatchTitle" xml:space="preserve">
+    <value>Duplicate batch</value>
+  </data>
+  <data name="DuplicateBatchPrompt" xml:space="preserve">
+    <value>Name of the new batch:</value>
+  </data>
+  <data name="BatchNameTaken" xml:space="preserve">
+    <value>A batch file named "{0}" already exists. Pick another name.</value>
+  </data>
+  <data name="DuplicateBatchError" xml:space="preserve">
+    <value>Couldn't duplicate the batch:
+{0}</value>
+  </data>
   <data name="DeleteBatchTitle" xml:space="preserve">
     <value>Delete batch</value>
   </data>

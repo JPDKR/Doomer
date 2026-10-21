@@ -66,6 +66,45 @@ Abre Configuración para corregir la ruta.</value>
   <data name="MenuDelete" xml:space="preserve">
     <value>Eliminar</value>
   </data>
+  <data name="MenuChangeImage" xml:space="preserve">
+    <value>Cambiar imagen...</value>
+  </data>
+  <data name="MenuOpenWadFolder" xml:space="preserve">
+    <value>Abrir carpeta del WAD</value>
+  </data>
+  <data name="MenuDuplicate" xml:space="preserve">
+    <value>Duplicar...</value>
+  </data>
+  <data name="ChangeImageTitle" xml:space="preserve">
+    <value>Cambiar imagen</value>
+  </data>
+  <data name="ChangeImageError" xml:space="preserve">
+    <value>No se pudo guardar la imagen:
+{0}</value>
+  </data>
+  <data name="OpenWadFolderTitle" xml:space="preserve">
+    <value>Abrir carpeta del WAD</value>
+  </data>
+  <data name="WadNotInBatch" xml:space="preserve">
+    <value>No se encontró el WAD en el comando de este batch.</value>
+  </data>
+  <data name="WadFileNotFound" xml:space="preserve">
+    <value>No se encontró el archivo del WAD:
+{0}</value>
+  </data>
+  <data name="DuplicateBatchTitle" xml:space="preserve">
+    <value>Duplicar batch</value>
+  </data>
+  <data name="DuplicateBatchPrompt" xml:space="preserve">
+    <value>Nombre del nuevo batch:</value>
+  </data>
+  <data name="BatchNameTaken" xml:space="preserve">
+    <value>Ya existe un batch llamado "{0}". Elige otro nombre.</value>
+  </data>
+  <data name="DuplicateBatchError" xml:space="preserve">
+    <value>No se pudo duplicar el batch:
+{0}</value>
+  </data>
   <data name="DeleteBatchTitle" xml:space="preserve">
     <value>Eliminar batch</value>
   </data>

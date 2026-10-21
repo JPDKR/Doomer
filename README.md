@@ -60,7 +60,13 @@ The main window lists one button per batch file found in `GZDoom.Batchs.Location
 
 Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead.
 
-Right-click any WAD button to **Edit** or **Delete** its batch file. Deleting a batch also removes its icon image, if one exists.
+Right-click any WAD button to:
+
+* **Edit** its batch file.
+* **Change image**: pick a new icon. The file is copied into `GZDoom.Images.Location`, so the original stays where it was.
+* **Open WAD folder**: opens Explorer with the batch's WAD selected. Relative WAD paths are resolved from the source port's folder.
+* **Duplicate** it under a new name (e.g. to try the same WAD with another plugin), along with its icon.
+* **Delete** it. Deleting a batch also removes its icon image, if one exists.
 
 ## Adding a new batch file
 

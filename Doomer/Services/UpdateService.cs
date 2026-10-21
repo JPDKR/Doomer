@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace Doomer.Services
 {
-    public record UpdateInfo(Version Version, string InstallerUrl, string InstallerName);
+    // Sha256 is the installer's hash as GitHub publishes it (lowercase hex), or null when the release has none.
+    public record UpdateInfo(Version Version, string InstallerUrl, string InstallerName, string? Sha256);
 
     public static class UpdateService
     {
@@ -49,7 +51,8 @@ namespace Doomer.Services
                 if (name.StartsWith(InstallerPrefix, StringComparison.OrdinalIgnoreCase) &&
                     name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                 {
-                    return new UpdateInfo(latest, asset.GetProperty("browser_download_url").GetString()!, name);
+                    var digest = asset.TryGetProperty("digest", out var d) && d.ValueKind == JsonValueKind.String ? d.GetString() : null;
+                    return new UpdateInfo(latest, asset.GetProperty("browser_download_url").GetString()!, name, ParseSha256Digest(digest));
                 }
             }
 
@@ -69,16 +72,67 @@ namespace Doomer.Services
             return true;
         }
 
+        // GitHub publishes each asset's hash as "sha256:<64 hex digits>"; anything else counts as no hash.
+        public static string? ParseSha256Digest(string? digest)
+        {
+            const string prefix = "sha256:";
+
+            if (digest is null || !digest.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var hex = digest[prefix.Length..];
+            return hex.Length == 64 && hex.All(char.IsAsciiHexDigit) ? hex.ToLowerInvariant() : null;
+        }
+
+        public static bool HasSha256(string path, string expectedSha256)
+        {
+            using var stream = File.OpenRead(path);
+            return Convert.ToHexStringLower(SHA256.HashData(stream)) == expectedSha256;
+        }
+
+        // The installer runs silently with the user's rights, so it's only handed over once its hash matches
+        // the one GitHub published for it; a release without one isn't installed at all. This catches a
+        // corrupted or tampered download, not a bad release uploaded to the repository itself.
         public static async Task<string> DownloadInstallerAsync(UpdateInfo update)
         {
-            var path = Path.Combine(Path.GetTempPath(), update.InstallerName);
+            if (update.Sha256 is null)
+                throw new InvalidDataException(Strings.UpdateChecksumMissing);
 
-            await using var source = await Http.GetStreamAsync(update.InstallerUrl);
-            await using var target = File.Create(path);
-            await source.CopyToAsync(target);
+            // A folder of its own, so a file left over in the temp folder with the same name is never run.
+            var folder = Directory.CreateTempSubdirectory("Doomer-update-").FullName;
+            var path = Path.Combine(folder, Path.GetFileName(update.InstallerName));
 
-            return path;
+            await using (var source = await Http.GetStreamAsync(update.InstallerUrl))
+            await using (var target = File.Create(path))
+                await source.CopyToAsync(target);
+
+            if (HasSha256(path, update.Sha256))
+                return path;
+
+            Directory.Delete(folder, recursive: true);
+            throw new InvalidDataException(Strings.UpdateChecksumMismatch);
         }
+
+        // The version the user chose to skip, or null. Only that version is skipped: a newer one is offered again.
+        public static Version? GetSkippedVersion(string filePath)
+        {
+            try
+            {
+                return File.Exists(filePath) && TryParseVersion(File.ReadAllText(filePath), out var version) ? version : null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        public static void SkipVersion(string filePath, Version version)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+            File.WriteAllText(filePath, version.ToString());
+        }
+
+        public static bool IsSkipped(UpdateInfo update, Version? skippedVersion) => update.Version == skippedVersion;
 
         // The installer closes this app, replaces the files and relaunches it (see installer/Doomer.iss).
         public static void RunInstaller(string installerPath)

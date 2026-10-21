@@ -16,6 +16,9 @@ namespace Doomer.Services
         // ZDoom-format packages, which DSDA Doom can't load.
         private static readonly string[] GZDoomOnlyExtensions = [".pk3", ".pk7"];
 
+        // The same kinds of files the WAD pickers offer.
+        private static readonly string[] PluginExtensions = [".wad", ".pk3", ".pk7", ".zip", ".deh", ".bex"];
+
         // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"]
         private static readonly Regex GZDoomPattern = new(
             "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*",
@@ -25,6 +28,17 @@ namespace Doomer.Services
         private static readonly Regex DSDADoomPattern = new(
             "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"(?:\\s+\"(?<file>[^\"]*)\")*",
             RegexOptions.Compiled);
+
+        // Written before a GZDoom command that has plugins, so they can be told apart from the extra files
+        // even after the plugins folder is changed in the settings. cmd skips it. It goes first because a
+        // line after the command would reset the exit code the launcher checks to report a failed batch.
+        private const string PluginsFolderMarker = "rem Doomer plugins folder: ";
+
+        private static readonly Regex PluginsFolderPattern = new(
+            "^" + Regex.Escape(PluginsFolderMarker) + "(?<folder>.+?)\\s*$",
+            RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
+        private static readonly Regex DuplicateNamePattern = new("^(?<base>.+) \\((?<n>\\d{1,6})\\)$", RegexOptions.Compiled);
 
         public static string GetDisplayName(SourcePort port) => port switch
         {
@@ -59,6 +73,62 @@ namespace Doomer.Services
                 : Path.Combine(directory, Path.GetFileName(source));
         }
 
+        // GZDoom also looks for relative -file paths in its own folder, so a relative plugins folder
+        // lives in the GZDoom install. Null when there's no plugins folder or GZDoom location to go by.
+        public static string? GetPluginsDirectory(GZDoomSettings settings)
+        {
+            if (string.IsNullOrWhiteSpace(settings.Plugins))
+                return null;
+
+            if (Path.IsPathRooted(settings.Plugins))
+                return settings.Plugins;
+
+            if (string.IsNullOrWhiteSpace(settings.Location) || !Path.IsPathRooted(settings.Location))
+                return null;
+
+            return Path.Combine(Path.GetDirectoryName(settings.Location)!, settings.Plugins);
+        }
+
+        // The file names of the plugins in the plugins folder, or none if it doesn't exist.
+        public static List<string> FindPlugins(string? pluginsDirectory)
+        {
+            if (!Directory.Exists(pluginsDirectory))
+                return [];
+
+            return [.. Directory.EnumerateFiles(pluginsDirectory)
+                .Where(f => PluginExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+                .Select(f => Path.GetFileName(f))
+                .Order(StringComparer.OrdinalIgnoreCase)];
+        }
+
+        // Where a batch's WAD is on disk. Source ports look for relative paths in their own folder,
+        // so those resolve from the executable's. Null when it's relative and there's no executable to go by.
+        public static string? ResolveWadPath(string wad, string? executable)
+        {
+            var path = EnsureWadExtension(wad);
+
+            if (Path.IsPathRooted(path))
+                return Path.GetFullPath(path);
+
+            if (string.IsNullOrWhiteSpace(executable) || !Path.IsPathRooted(executable))
+                return null;
+
+            return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(executable)!, path));
+        }
+
+        // "Sigil" -> "Sigil (2)", "Sigil (2)" -> "Sigil (3)", skipping names already taken.
+        public static string GetDuplicateName(string name, Func<string, bool> isTaken)
+        {
+            var match = DuplicateNamePattern.Match(name);
+            var baseName = match.Success ? match.Groups["base"].Value : name;
+            var number = match.Success ? int.Parse(match.Groups["n"].Value) + 1 : 2;
+
+            while (isTaken($"{baseName} ({number})"))
+                number++;
+
+            return $"{baseName} ({number})";
+        }
+
         // A batch's icon is the image named exactly like the batch file. Both the main window and the
         // batch form go through here, so a saved image is always the one the button looks for.
         public static string GetImagePath(string batchPath, ImageSettings images) =>
@@ -82,21 +152,24 @@ namespace Doomer.Services
             return true;
         }
 
-        // Extra files (DEH/BEX patches, other WADs...) are loaded right after the WAD, before the plugin.
-        public static string BuildCommand(GZDoomSettings settings, string iwad, string wad, string plugins, IReadOnlyList<string>? extraFiles = null)
+        // Extra files (DEH/BEX patches, other WADs...) are loaded right after the WAD, then the plugins,
+        // in the order given, each under the plugins folder.
+        public static string BuildCommand(GZDoomSettings settings, string iwad, string wad, IReadOnlyList<string> plugins, IReadOnlyList<string>? extraFiles = null)
         {
             extraFiles ??= [];
+            plugins = [.. plugins.Where(p => !string.IsNullOrWhiteSpace(p))];
 
             if (ContainsQuote(settings.Location) || ContainsQuote(settings.Plugins) ||
-                ContainsQuote(iwad) || ContainsQuote(wad) || ContainsQuote(plugins) || extraFiles.Any(ContainsQuote))
+                ContainsQuote(iwad) || ContainsQuote(wad) || plugins.Any(ContainsQuote) || extraFiles.Any(ContainsQuote))
                 throw new ArgumentException(Strings.GZDoomPathsWithQuotes);
 
             var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
 
-            if (!string.IsNullOrWhiteSpace(plugins))
-                command += $" \"{settings.Plugins}/{plugins}\"";
+            if (plugins.Count == 0)
+                return command;
 
-            return command;
+            return $"{PluginsFolderMarker}{settings.Plugins}\r\n" + command +
+                string.Concat(plugins.Select(p => $" \"{settings.Plugins}/{p}\""));
         }
 
         // DSDA Doom tells loose files apart by extension, so DEH/BEX patches can be passed like WADs.
@@ -113,9 +186,10 @@ namespace Doomer.Services
         private static string QuoteFiles(IReadOnlyList<string> files) =>
             string.Concat(files.Select(f => $" \"{EnsureWadExtension(f)}\""));
 
-        // pluginsFolder tells the plugin apart from the extra files: it's the last path, under that folder.
+        // The plugins are the last paths, under the plugins folder: the one the batch was written with, or
+        // pluginsFolder (the current setting) for batches from before that was written down.
         public static bool TryParseCommand(string command, string pluginsFolder, out SourcePort port, out string iwad,
-            out string wad, out List<string> extraFiles, out string plugins)
+            out string wad, out List<string> extraFiles, out List<string> plugins)
         {
             var match = GZDoomPattern.Match(command);
 
@@ -125,11 +199,13 @@ namespace Doomer.Services
                 iwad = StripWadExtension(match.Groups["iwad"].Value);
                 wad = StripWadExtension(match.Groups["wad"].Value);
                 extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
-                plugins = string.Empty;
+                plugins = [];
 
-                if (extraFiles.Count > 0 && extraFiles[^1].StartsWith(pluginsFolder + "/", StringComparison.OrdinalIgnoreCase))
+                var written = PluginsFolderPattern.Match(command);
+                var prefix = (written.Success ? written.Groups["folder"].Value : pluginsFolder) + "/";
+                while (extraFiles.Count > 0 && extraFiles[^1].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    plugins = Path.GetFileName(extraFiles[^1]);
+                    plugins.Insert(0, extraFiles[^1][prefix.Length..]);
                     extraFiles.RemoveAt(extraFiles.Count - 1);
                 }
 
@@ -144,13 +220,14 @@ namespace Doomer.Services
                 iwad = StripWadExtension(match.Groups["iwad"].Value);
                 wad = StripWadExtension(match.Groups["wad"].Value);
                 extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
-                plugins = string.Empty;
+                plugins = [];
                 return true;
             }
 
             port = SourcePort.GZDoom;
-            iwad = wad = plugins = string.Empty;
+            iwad = wad = string.Empty;
             extraFiles = [];
+            plugins = [];
             return false;
         }
 

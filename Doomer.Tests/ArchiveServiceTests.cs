@@ -12,6 +12,18 @@ namespace Doomer.Tests
         public void Dispose() => Directory.Delete(_tempDir, recursive: true);
 
         [Theory]
+        [InlineData("C:\\Downloads\\sunlust.zip", true)]
+        [InlineData("C:\\Downloads\\D.O.O.M..RAR", true)]
+        [InlineData("aaliens.7z", true)]
+        [InlineData("C:\\Downloads\\sunlust.wad", false)]
+        [InlineData("C:\\Downloads\\myhouse.pk3", false)]
+        [InlineData("C:\\Downloads\\zip", false)]
+        public void IsArchive_MatchesTheFileDialogsExtensions(string path, bool expected)
+        {
+            Assert.Equal(expected, ArchiveService.IsArchive(path));
+        }
+
+        [Theory]
         [InlineData("C:\\Downloads\\D.O.O.M..rar", "D.O.O.M")]
         [InlineData("C:\\Downloads\\Ancient Aliens.zip", "Ancient Aliens")]
         [InlineData("aaliens.7z", "Aaliens")]

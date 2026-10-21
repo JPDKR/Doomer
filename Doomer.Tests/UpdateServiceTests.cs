@@ -5,9 +5,13 @@ namespace Doomer.Tests
 {
     public class UpdateServiceTests
     {
-        private static JsonElement Release(string tag, params string[] assetNames)
+        private const string Sha = "5eb0062e0c6d62ec39d873936f743b574f880262fb37f7088d715af3a98e8d10";
+
+        private static JsonElement Release(string tag, params string[] assetNames) => ReleaseWithDigest(tag, $"sha256:{Sha}", assetNames);
+
+        private static JsonElement ReleaseWithDigest(string tag, string? digest, params string[] assetNames)
         {
-            var assets = assetNames.Select(n => new { name = n, browser_download_url = $"https://example.com/{n}" });
+            var assets = assetNames.Select(n => new { name = n, browser_download_url = $"https://example.com/{n}", digest });
             return JsonSerializer.SerializeToElement(new { tag_name = tag, assets });
         }
 
@@ -41,6 +45,107 @@ namespace Doomer.Tests
             Assert.Equal(new Version(1, 1, 0), update.Version);
             Assert.Equal("DoomerSetup-1.1.0.exe", update.InstallerName);
             Assert.Equal("https://example.com/DoomerSetup-1.1.0.exe", update.InstallerUrl);
+            Assert.Equal(Sha, update.Sha256);
+        }
+
+        [Fact]
+        public void ParseRelease_StillOffersAnInstallerWithoutDigest()
+        {
+            var release = ReleaseWithDigest("v1.1.0", null, "DoomerSetup-1.1.0.exe");
+
+            var update = UpdateService.ParseRelease(release, new Version(1, 0, 0));
+
+            // Offered, so the user is told why it can't be installed instead of never hearing of it.
+            Assert.NotNull(update);
+            Assert.Null(update.Sha256);
+        }
+
+        [Theory]
+        [InlineData("sha256:5EB0062E0C6D62EC39D873936F743B574F880262FB37F7088D715AF3A98E8D10", Sha)]
+        [InlineData("SHA256:" + Sha, Sha)]
+        [InlineData("sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709", null)]
+        [InlineData("sha256:5eb0062e", null)]
+        [InlineData("sha256:" + "zz" + "b0062e0c6d62ec39d873936f743b574f880262fb37f7088d715af3a98e8d10", null)]
+        [InlineData(Sha, null)]
+        [InlineData("", null)]
+        [InlineData(null, null)]
+        public void ParseSha256Digest_AcceptsOnlyFullSha256Hashes(string? digest, string? expected)
+        {
+            Assert.Equal(expected, UpdateService.ParseSha256Digest(digest));
+        }
+
+        [Fact]
+        public void HasSha256_ComparesTheFilesHash()
+        {
+            var path = Path.GetTempFileName();
+
+            try
+            {
+                File.WriteAllText(path, "abc");
+
+                // SHA-256 of "abc", from FIPS 180-2.
+                Assert.True(UpdateService.HasSha256(path, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+                Assert.False(UpdateService.HasSha256(path, Sha));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void SkipVersion_IsRememberedAcrossRestarts()
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"Doomer skipped {Guid.NewGuid():N}", "skipped-update.txt");
+
+            try
+            {
+                Assert.Null(UpdateService.GetSkippedVersion(path));
+
+                UpdateService.SkipVersion(path, new Version(1, 5, 0));
+
+                Assert.Equal(new Version(1, 5, 0), UpdateService.GetSkippedVersion(path));
+            }
+            finally
+            {
+                Directory.Delete(Path.GetDirectoryName(path)!, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void GetSkippedVersion_IgnoresAnUnreadableFile()
+        {
+            var path = Path.GetTempFileName();
+
+            try
+            {
+                File.WriteAllText(path, "not a version");
+
+                Assert.Null(UpdateService.GetSkippedVersion(path));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Theory]
+        [InlineData("1.5.0", "1.5.0", true)]
+        [InlineData("1.6.0", "1.5.0", false)]
+        [InlineData("1.5.0", null, false)]
+        public void IsSkipped_OnlySkipsThatExactVersion(string offered, string? skipped, bool expected)
+        {
+            var update = new UpdateInfo(Version.Parse(offered), "https://example.com/x.exe", "DoomerSetup-x.exe", Sha);
+
+            Assert.Equal(expected, UpdateService.IsSkipped(update, skipped is null ? null : Version.Parse(skipped)));
+        }
+
+        [Fact]
+        public async Task DownloadInstallerAsync_RefusesAReleaseWithoutHash()
+        {
+            var update = new UpdateInfo(new Version(9, 0, 0), "https://example.invalid/DoomerSetup-9.0.0.exe", "DoomerSetup-9.0.0.exe", null);
+
+            await Assert.ThrowsAsync<InvalidDataException>(() => UpdateService.DownloadInstallerAsync(update));
         }
 
         [Theory]

@@ -1,12 +1,12 @@
 using Doomer.Options;
 using Doomer.Services;
+using System.Runtime.InteropServices;
 
 namespace Doomer
 {
     public partial class BatchCreatorForm : Form
     {
         private static string WadFileFilter => $"{Strings.FileFilterDoom}|*.wad;*.pk3;*.pk7;*.zip;*.deh;*.bex|{Strings.FileFilterAll}|*.*";
-        private static string ImageFileFilter => $"{Strings.FileFilterImages}|*.png;*.jpg;*.jpeg;*.bmp;*.gif|{Strings.FileFilterAll}|*.*";
         private static string ArchiveFileFilter => $"{Strings.FileFilterArchives}|{ArchiveService.FilePatterns}|{Strings.FileFilterAll}|*.*";
 
         private readonly GZDoomSettings _gzdoomSettings = AppConfiguration.GZDoom;
@@ -14,14 +14,20 @@ namespace Doomer
         private readonly string? _editingFilePath;
         private bool _hasExistingImage;
 
-        // The extra files list grows a row per file up to this many, then scrolls.
-        private const int MaxVisibleExtraFiles = 8;
-        private int _extraFilesMinHeight;
-        private int _extraFilesBaseHeight;
+        // The extras and plugins lists grow a row per file up to this many, then scroll.
+        private const int MaxVisibleListRows = 8;
         private int _baseClientHeight;
-        private Dictionary<Control, int>? _belowExtraFiles;
+        // Where every control sits before the lists grow, so they can move back when the lists shrink.
+        private Dictionary<Control, int>? _baseTops;
+        private readonly Dictionary<ListBox, (int MinHeight, int BaseHeight, int BaseBottom)> _growingLists = [];
+
+        // An archive dropped on the main window, extracted as soon as the form shows.
+        private string? _archiveToImport;
 
         public BatchCreatorForm() : this(null) { }
+
+        // A new batch filled in from an archive, as if it had been picked with "From archive...".
+        public static BatchCreatorForm FromArchive(string archivePath) => new() { _archiveToImport = archivePath };
 
         public BatchCreatorForm(string? existingFilePath)
         {
@@ -47,26 +53,69 @@ namespace Doomer
             base.OnLoad(e);
 
             // TextBoxes size their height to the font after DPI scaling, so match the buttons at runtime.
-            AlignToTextBox(btnBrowseIWad, txtIWad);
+            AlignToTextBox(btnBrowseIWad, cmbIWad);
             AlignToTextBox(btnBrowseWad, txtWad);
             AlignToTextBox(btnBrowseImage, txtImage);
-            AlignToTextBox(btnAddExtraFile, txtWad);
-            btnAddExtraFile.Top = lstExtraFiles.Top;
-            btnRemoveExtraFile.Height = btnAddExtraFile.Height;
-            btnRemoveExtraFile.Top = btnAddExtraFile.Bottom + 6;
+            AlignListButtons(lstExtraFiles, btnAddExtraFile, btnRemoveExtraFile);
+            AlignListButtons(lstPlugins, btnAddPlugin, btnRemovePlugin);
 
-            // The empty list is as tall as its two buttons; everything below it moves along as it grows.
-            _extraFilesMinHeight = btnRemoveExtraFile.Bottom - lstExtraFiles.Top;
-            _extraFilesBaseHeight = lstExtraFiles.Height;
             _baseClientHeight = ClientSize.Height;
-            _belowExtraFiles = Controls.Cast<Control>()
-                .Where(c => c.Top >= lstExtraFiles.Bottom)
-                .ToDictionary(c => c, c => c.Top);
+            _baseTops = Controls.Cast<Control>().ToDictionary(c => c, c => c.Top);
 
-            UpdateExtraFilesLayout();
+            UpdateListsLayout();
+            _ = LoadIWadsAsync();
         }
 
-        private static void AlignToTextBox(Button button, TextBox textBox)
+        // Lists the IWADs the other batches use and the ones in the WADs folder. It reads every batch
+        // and WAD header, so it runs in the background; the box can be typed in meanwhile.
+        private async Task LoadIWadsAsync()
+        {
+            var batchs = _gzdoomSettings.Batchs;
+            var pluginsFolder = _gzdoomSettings.Plugins;
+            var wadsLocation = _gzdoomSettings.Wads.Location;
+            List<string> iwads;
+
+            try
+            {
+                iwads = await Task.Run(() => IWadService.Merge([
+                    .. IWadService.FindUsedIWads(batchs.Location, batchs.Extension, pluginsFolder),
+                    .. IWadService.FindIWadFiles(wadsLocation)]));
+            }
+            catch (Exception)
+            {
+                // They're only suggestions; a folder that can't be read just leaves the list empty.
+                return;
+            }
+
+            if (IsDisposed)
+                return;
+
+            cmbIWad.Items.AddRange([.. iwads]);
+
+            // Full paths are long, so the list widens to show them whole.
+            var widest = iwads.Select(i => TextRenderer.MeasureText(i, cmbIWad.Font).Width).DefaultIfEmpty(0).Max();
+            cmbIWad.DropDownWidth = Math.Max(cmbIWad.Width, widest + SystemInformation.VerticalScrollBarWidth);
+        }
+
+        protected override async void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+
+            if (_archiveToImport is not null)
+                await ImportArchiveAsync(_archiveToImport);
+        }
+
+        // An empty list is as tall as its two buttons; everything below it moves along as it grows.
+        private void AlignListButtons(ListBox list, Button add, Button remove)
+        {
+            AlignToTextBox(add, txtWad);
+            add.Top = list.Top;
+            remove.Height = add.Height;
+            remove.Top = add.Bottom + 6;
+            _growingLists[list] = (remove.Bottom - list.Top, list.Height, list.Bottom);
+        }
+
+        private static void AlignToTextBox(Button button, Control textBox)
         {
             button.Top = textBox.Top;
             button.Height = textBox.Height;
@@ -118,10 +167,10 @@ namespace Doomer
             }
 
             SelectedPort = port;
-            txtIWad.Text = iwad;
+            cmbIWad.Text = BatchFileService.EnsureWadExtension(iwad);
             txtWad.Text = wad;
-            SetExtraFiles(extraFiles);
-            txtPlugins.Text = plugins;
+            SetItems(lstExtraFiles, extraFiles);
+            SetItems(lstPlugins, plugins);
         }
 
         private void ApplyTexts()
@@ -134,14 +183,15 @@ namespace Doomer
             lblExtraFiles.Text = Strings.LabelExtraFiles;
             lblImage.Text = Strings.LabelImage;
             btnBrowseIWad.Text = btnBrowseWad.Text = btnBrowseImage.Text = Strings.BrowseButton;
-            btnAddExtraFile.Text = Strings.AddButton;
-            btnRemoveExtraFile.Text = Strings.RemoveButton;
+            btnAddExtraFile.Text = btnAddPlugin.Text = Strings.AddButton;
+            btnRemoveExtraFile.Text = btnRemovePlugin.Text = Strings.RemoveButton;
             btnCreate.Text = Strings.CreateButton;
 
             txtFileName.PlaceholderText = Strings.PlaceholderFileName;
-            txtIWad.PlaceholderText = Strings.PlaceholderIWad;
             txtWad.PlaceholderText = Strings.PlaceholderWad;
             txtImage.PlaceholderText = Strings.PlaceholderImage;
+            txtPluginsUnsupported.PlaceholderText = Strings.PlaceholderPluginsUnsupported;
+            SetCueBanner(cmbIWad, Strings.PlaceholderIWad);
         }
 
         private void ApplyDarkTheme()
@@ -193,19 +243,35 @@ namespace Doomer
             UpdatePluginsState();
         }
 
+        private bool SupportsPlugins => SelectedPort == SourcePort.GZDoom;
+
         // DSDA Doom batches only take an IWAD and a WAD; plugins are a GZDoom-only feature.
+        // A disabled list ignores the dark theme, so DSDA Doom shows a disabled text box in its place.
         private void UpdatePluginsState()
         {
-            var supportsPlugins = SelectedPort == SourcePort.GZDoom;
-            txtPlugins.Enabled = supportsPlugins;
+            var supportsPlugins = SupportsPlugins;
+            lstPlugins.Visible = btnAddPlugin.Visible = btnRemovePlugin.Visible = supportsPlugins;
+            txtPluginsUnsupported.Visible = !supportsPlugins;
+
             if (!supportsPlugins)
-                txtPlugins.Clear();
-            txtPlugins.PlaceholderText = supportsPlugins ? Strings.PlaceholderPlugins : Strings.PlaceholderPluginsUnsupported;
+                lstPlugins.Items.Clear();
+
+            UpdateListsLayout();
         }
+
+        private const int CB_SETCUEBANNER = 0x1703;
+
+        [DllImport("user32.dll", EntryPoint = "SendMessageW", CharSet = CharSet.Unicode)]
+        private static extern nint SendMessage(nint hWnd, int msg, nint wParam, string lParam);
+
+        // ComboBox has no PlaceholderText, but Windows draws one for its text box when asked.
+        private static void SetCueBanner(ComboBox comboBox, string text) =>
+            SendMessage(comboBox.Handle, CB_SETCUEBANNER, 0, text);
 
         private void CmbSourcePort_SelectedIndexChanged(object? sender, EventArgs e) => UpdatePluginsState();
 
-        private void BtnBrowseIWad_Click(object sender, EventArgs e) => BrowseFile(txtIWad, Strings.SelectIWad);
+        // IWADs keep their .wad, like the ones in the list.
+        private void BtnBrowseIWad_Click(object sender, EventArgs e) => BrowseFile(cmbIWad, Strings.SelectIWad, stripWadExtension: false);
 
         private void BtnBrowseWad_Click(object sender, EventArgs e)
         {
@@ -213,53 +279,121 @@ namespace Doomer
             SwitchToGZDoomIfNeeded();
         }
 
-        private List<string> ExtraFiles => [.. lstExtraFiles.Items.Cast<string>()];
+        private List<string> ExtraFiles => Items(lstExtraFiles);
 
-        private void SetExtraFiles(IEnumerable<string> files)
+        // In the order GZDoom loads them.
+        private List<string> Plugins => Items(lstPlugins);
+
+        private static List<string> Items(ListBox list) => [.. list.Items.Cast<string>()];
+
+        private void SetItems(ListBox list, IEnumerable<string> items)
         {
-            lstExtraFiles.Items.Clear();
-            AddExtraFiles(files);
+            list.Items.Clear();
+            AddItems(list, items);
         }
 
-        private void AddExtraFiles(IEnumerable<string> files)
+        private void AddItems(ListBox list, IEnumerable<string> items)
         {
-            foreach (var file in files.Select(f => f.Trim()).Where(f => f.Length > 0))
+            foreach (var item in items.Select(i => i.Trim()).Where(i => i.Length > 0))
             {
-                if (!ExtraFiles.Contains(file, StringComparer.OrdinalIgnoreCase))
-                    lstExtraFiles.Items.Add(file);
+                if (!Items(list).Contains(item, StringComparer.OrdinalIgnoreCase))
+                    list.Items.Add(item);
             }
 
-            UpdateExtraFilesLayout();
+            UpdateListsLayout();
         }
 
-        // Sizes the list to its files (between its buttons' height and MaxVisibleExtraFiles rows)
-        // and moves the controls below it, and the form's bottom edge, by the same amount.
-        private void UpdateExtraFilesLayout()
+        private void RemoveSelectedItems(ListBox list)
+        {
+            var index = list.SelectedIndices.Count > 0 ? list.SelectedIndices[0] : -1;
+
+            foreach (var i in list.SelectedIndices.Cast<int>().OrderDescending().ToList())
+                list.Items.RemoveAt(i);
+
+            // Keep a selection where the removed items were, so Delete can be pressed repeatedly.
+            if (index >= 0 && list.Items.Count > 0)
+                list.SelectedIndex = Math.Min(index, list.Items.Count - 1);
+
+            UpdateListsLayout();
+        }
+
+        // Sizes each list to its items (between its buttons' height and MaxVisibleListRows rows) and moves
+        // every control below a list, and the form's bottom edge, by how much the lists above it grew.
+        private void UpdateListsLayout()
         {
             btnRemoveExtraFile.Enabled = lstExtraFiles.SelectedIndices.Count > 0;
+            btnRemovePlugin.Enabled = lstPlugins.SelectedIndices.Count > 0;
 
-            if (_belowExtraFiles is null)
+            if (_baseTops is null)
                 return;
 
-            var border = lstExtraFiles.Height - lstExtraFiles.ClientSize.Height;
-            var rows = Math.Min(lstExtraFiles.Items.Count, MaxVisibleExtraFiles);
-            var height = rows * lstExtraFiles.ItemHeight + border;
-
-            // A file wider than the list brings up a horizontal scrollbar, which would hide the last row.
-            var widest = ExtraFiles.Select(f => TextRenderer.MeasureText(f, lstExtraFiles.Font).Width).DefaultIfEmpty(0).Max();
-            if (widest > lstExtraFiles.Width - border)
-                height += SystemInformation.HorizontalScrollBarHeight;
-
-            height = Math.Max(_extraFilesMinHeight, height);
-            var delta = height - _extraFilesBaseHeight;
+            var deltas = _growingLists.ToDictionary(l => l.Key, l => GetListHeight(l.Key, l.Value.MinHeight) - l.Value.BaseHeight);
 
             SuspendLayout();
-            lstExtraFiles.Height = height;
-            foreach (var (control, top) in _belowExtraFiles)
-                control.Top = top + delta;
-            ClientSize = new Size(ClientSize.Width, _baseClientHeight + delta);
+            foreach (var (list, delta) in deltas)
+                list.Height = _growingLists[list].BaseHeight + delta;
+            foreach (var (control, top) in _baseTops)
+                control.Top = top + _growingLists.Where(l => l.Value.BaseBottom <= top).Sum(l => deltas[l.Key]);
+            ClientSize = new Size(ClientSize.Width, _baseClientHeight + deltas.Values.Sum());
             ResumeLayout();
         }
+
+        private int GetListHeight(ListBox list, int minHeight)
+        {
+            // Without plugins, only the one-line "not used" box takes the list's place.
+            if (list == lstPlugins && !SupportsPlugins)
+                return txtPluginsUnsupported.Height;
+
+            var border = list.Height - list.ClientSize.Height;
+            var rows = Math.Min(list.Items.Count, MaxVisibleListRows);
+            var height = rows * list.ItemHeight + border;
+
+            // An item wider than the list brings up a horizontal scrollbar, which would hide the last row.
+            var widest = Items(list).Select(i => TextRenderer.MeasureText(i, list.Font).Width).DefaultIfEmpty(0).Max();
+            if (widest > list.Width - border)
+                height += SystemInformation.HorizontalScrollBarHeight;
+
+            return Math.Max(minHeight, height);
+        }
+
+        // Offers the plugins folder's files that aren't in the batch yet.
+        private void BtnAddPlugin_Click(object sender, EventArgs e)
+        {
+            var directory = BatchFileService.GetPluginsDirectory(_gzdoomSettings);
+            var available = BatchFileService.FindPlugins(directory)
+                .Where(p => !Plugins.Contains(p, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            var menu = new ContextMenuStrip();
+            menu.Closed += (s, args) => BeginInvoke(menu.Dispose);
+
+            if (available.Count == 0)
+            {
+                var message = Directory.Exists(directory)
+                    ? string.Format(Strings.NoMorePlugins, directory)
+                    : string.Format(Strings.PluginsFolderNotFound, directory ?? _gzdoomSettings.Plugins);
+                menu.Items.Add(new ToolStripMenuItem(message) { Enabled = false });
+            }
+
+            foreach (var plugin in available)
+                menu.Items.Add(plugin, null, (s, args) => AddItems(lstPlugins, [plugin]));
+
+            menu.Show(btnAddPlugin, new Point(0, btnAddPlugin.Height));
+        }
+
+        private void BtnRemovePlugin_Click(object sender, EventArgs e) => RemoveSelectedItems(lstPlugins);
+
+        private void LstPlugins_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode != Keys.Delete)
+                return;
+
+            e.Handled = true;
+            RemoveSelectedItems(lstPlugins);
+        }
+
+        private void LstPlugins_SelectedIndexChanged(object? sender, EventArgs e) =>
+            btnRemovePlugin.Enabled = lstPlugins.SelectedIndices.Count > 0;
 
         private void BtnAddExtraFile_Click(object sender, EventArgs e)
         {
@@ -273,11 +407,24 @@ namespace Doomer
             if (dlg.ShowDialog() != DialogResult.OK)
                 return;
 
-            AddExtraFiles(dlg.FileNames);
+            AddItems(lstExtraFiles, dlg.FileNames);
             SwitchToGZDoomIfNeeded();
         }
 
-        private void BtnRemoveExtraFile_Click(object sender, EventArgs e) => RemoveSelectedExtraFiles();
+        // Files dragged from Explorer onto the list are added like ones picked with Add...; folders aren't.
+        private static List<string> DroppedFiles(DragEventArgs e) =>
+            e.Data?.GetData(DataFormats.FileDrop) is string[] paths ? [.. paths.Where(File.Exists)] : [];
+
+        private void LstExtraFiles_DragEnter(object? sender, DragEventArgs e) =>
+            e.Effect = DroppedFiles(e).Count > 0 ? DragDropEffects.Copy : DragDropEffects.None;
+
+        private void LstExtraFiles_DragDrop(object? sender, DragEventArgs e)
+        {
+            AddItems(lstExtraFiles, DroppedFiles(e));
+            SwitchToGZDoomIfNeeded();
+        }
+
+        private void BtnRemoveExtraFile_Click(object sender, EventArgs e) => RemoveSelectedItems(lstExtraFiles);
 
         private void LstExtraFiles_KeyDown(object? sender, KeyEventArgs e)
         {
@@ -285,25 +432,11 @@ namespace Doomer
                 return;
 
             e.Handled = true;
-            RemoveSelectedExtraFiles();
+            RemoveSelectedItems(lstExtraFiles);
         }
 
         private void LstExtraFiles_SelectedIndexChanged(object? sender, EventArgs e) =>
             btnRemoveExtraFile.Enabled = lstExtraFiles.SelectedIndices.Count > 0;
-
-        private void RemoveSelectedExtraFiles()
-        {
-            var index = lstExtraFiles.SelectedIndices.Count > 0 ? lstExtraFiles.SelectedIndices[0] : -1;
-
-            foreach (var i in lstExtraFiles.SelectedIndices.Cast<int>().OrderDescending().ToList())
-                lstExtraFiles.Items.RemoveAt(i);
-
-            // Keep a selection where the removed files were, so Delete can be pressed repeatedly.
-            if (index >= 0 && lstExtraFiles.Items.Count > 0)
-                lstExtraFiles.SelectedIndex = Math.Min(index, lstExtraFiles.Items.Count - 1);
-
-            UpdateExtraFilesLayout();
-        }
 
         // DSDA Doom can't run .pk3/.pk7 files, so picking one switches the batch to GZDoom.
         private void SwitchToGZDoomIfNeeded()
@@ -312,7 +445,7 @@ namespace Doomer
                 SelectedPort = SourcePort.GZDoom;
         }
 
-        private static void BrowseFile(TextBox target, string title)
+        private static void BrowseFile(Control target, string title, bool stripWadExtension = true)
         {
             using var dlg = new OpenFileDialog { Title = title, Filter = WadFileFilter };
 
@@ -322,28 +455,41 @@ namespace Doomer
                 dlg.InitialDirectory = dir;
 
             if (dlg.ShowDialog() == DialogResult.OK)
-                target.Text = BatchFileService.StripWadExtension(dlg.FileName);
+                target.Text = stripWadExtension ? BatchFileService.StripWadExtension(dlg.FileName) : dlg.FileName;
+        }
+
+        private async void BtnFromArchive_Click(object sender, EventArgs e)
+        {
+            if (!CheckWadsLocation())
+                return;
+
+            using var dlg = new OpenFileDialog { Title = Strings.SelectArchive, Filter = ArchiveFileFilter };
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+                await ImportArchiveAsync(dlg.FileName);
+        }
+
+        private bool CheckWadsLocation()
+        {
+            var wadsLocation = _gzdoomSettings.Wads.Location;
+
+            if (!string.IsNullOrWhiteSpace(wadsLocation) && Directory.Exists(wadsLocation))
+                return true;
+
+            MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, wadsLocation),
+                Strings.ExtractArchiveTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
         }
 
         // Extracts a downloaded archive into its own folder in the WADs directory and fills
         // in the WAD (and the file name, for a new batch) from what's inside.
-        private async void BtnFromArchive_Click(object sender, EventArgs e)
+        private async Task ImportArchiveAsync(string archivePath)
         {
+            if (!CheckWadsLocation())
+                return;
+
             var wadsLocation = _gzdoomSettings.Wads.Location;
-
-            if (string.IsNullOrWhiteSpace(wadsLocation) || !Directory.Exists(wadsLocation))
-            {
-                MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, wadsLocation),
-                    Strings.ExtractArchiveTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            using var dlg = new OpenFileDialog { Title = Strings.SelectArchive, Filter = ArchiveFileFilter };
-
-            if (dlg.ShowDialog() != DialogResult.OK)
-                return;
-
-            var folderName = AskForWadName(ArchiveService.GetFolderName(dlg.FileName));
+            var folderName = AskForWadName(ArchiveService.GetFolderName(archivePath));
 
             if (folderName is null)
                 return;
@@ -366,7 +512,7 @@ namespace Doomer
 
             try
             {
-                files = await Task.Run(() => ArchiveService.Extract(dlg.FileName, destination));
+                files = await Task.Run(() => ArchiveService.Extract(archivePath, destination));
             }
             catch (Exception ex)
             {
@@ -386,7 +532,7 @@ namespace Doomer
                 return;
 
             txtWad.Text = BatchFileService.StripWadExtension(wad);
-            SetExtraFiles(ArchiveService.FindExtraFiles(files, wad));
+            SetItems(lstExtraFiles, ArchiveService.FindExtraFiles(files, wad));
             SwitchToGZDoomIfNeeded();
 
             if (!txtFileName.ReadOnly)
@@ -448,12 +594,12 @@ namespace Doomer
                 return;
             }
 
-            using var dlg = new OpenFileDialog { Title = Strings.SelectImage, Filter = ImageFileFilter };
+            using var dlg = new OpenFileDialog { Title = Strings.SelectImage, Filter = ImageFileService.FileFilter };
 
             if (dlg.ShowDialog() != DialogResult.OK)
                 return;
 
-            if (!IsValidImage(dlg.FileName))
+            if (!ImageFileService.IsValidImage(dlg.FileName))
             {
                 MessageBox.Show(Strings.InvalidImageSelected, Strings.BatchCreationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -517,19 +663,6 @@ namespace Doomer
             return Clipboard.GetImage();
         }
 
-        private static bool IsValidImage(string path)
-        {
-            try
-            {
-                using var _ = Image.FromFile(path);
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
         // Downloads the image at url to a temp file, or returns null (after telling the user why) if it fails.
         private async Task<string?> DownloadImageAsync(string url)
         {
@@ -554,7 +687,7 @@ namespace Doomer
                 Enabled = true;
             }
 
-            if (IsValidImage(path))
+            if (ImageFileService.IsValidImage(path))
                 return path;
 
             File.Delete(path);
@@ -568,36 +701,6 @@ namespace Doomer
                 ? null
                 : BatchFileService.GetImagePath(batchPath, _gzdoomSettings.Images);
 
-        // Moves the picked image into the images folder named after the WAD. If its format
-        // differs from the configured extension, it's re-encoded so the icon loads correctly.
-        private static void MoveImage(string source, string destination)
-        {
-            if (string.Equals(Path.GetFullPath(source), Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
-                return;
-
-            var sourceExt = Path.GetExtension(source);
-            var destExt = Path.GetExtension(destination);
-
-            if (string.Equals(sourceExt, destExt, StringComparison.OrdinalIgnoreCase))
-            {
-                File.Move(source, destination, overwrite: true);
-                return;
-            }
-
-            using (var img = Image.FromFile(source))
-                img.Save(destination, GetImageFormat(destExt));
-
-            File.Delete(source);
-        }
-
-        private static System.Drawing.Imaging.ImageFormat GetImageFormat(string extension) => extension.ToLowerInvariant() switch
-        {
-            ".jpg" or ".jpeg" => System.Drawing.Imaging.ImageFormat.Jpeg,
-            ".bmp" => System.Drawing.Imaging.ImageFormat.Bmp,
-            ".gif" => System.Drawing.Imaging.ImageFormat.Gif,
-            _ => System.Drawing.Imaging.ImageFormat.Png
-        };
-
         private static bool ConfirmPathIfMissing(string label, string path)
         {
             if (!Path.IsPathRooted(path) || File.Exists(path))
@@ -610,12 +713,24 @@ namespace Doomer
             return proceed == DialogResult.Yes;
         }
 
+        // Like GZDoom, a plugin without an extension is looked up as a .wad.
+        private bool ConfirmPluginIfMissing(string plugin)
+        {
+            var directory = BatchFileService.GetPluginsDirectory(_gzdoomSettings);
+
+            if (string.IsNullOrEmpty(plugin) || directory is null)
+                return true;
+
+            var path = Path.Combine(directory, plugin);
+            return File.Exists(path) || ConfirmPathIfMissing(Strings.PluginFileLabel, BatchFileService.EnsureWadExtension(path));
+        }
+
         private async void BtnCreate_Click(object sender, EventArgs e)
         {
             var port = SelectedPort;
-            var iwad = txtIWad.Text.Trim();
+            var iwad = cmbIWad.Text.Trim();
             var wadFile = txtWad.Text.Trim();
-            var plugins = port == SourcePort.GZDoom ? txtPlugins.Text.Trim() : string.Empty;
+            List<string> plugins = port == SourcePort.GZDoom ? Plugins : [];
             var extraFiles = ExtraFiles;
             var fileName = txtFileName.Text.Trim();
 
@@ -649,7 +764,8 @@ namespace Doomer
 
             if (!ConfirmPathIfMissing("IWAD", BatchFileService.EnsureWadExtension(iwad)) ||
                 !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)) ||
-                !extraFiles.All(f => ConfirmPathIfMissing(Strings.ExtraFileLabel, BatchFileService.EnsureWadExtension(f))))
+                !extraFiles.All(f => ConfirmPathIfMissing(Strings.ExtraFileLabel, BatchFileService.EnsureWadExtension(f))) ||
+                !plugins.All(ConfirmPluginIfMissing))
             {
                 return;
             }
@@ -719,7 +835,7 @@ namespace Doomer
                     return;
                 }
 
-                if (!ImageDownloadService.IsUrl(imageSource) && !IsValidImage(imageSource))
+                if (!ImageDownloadService.IsUrl(imageSource) && !ImageFileService.IsValidImage(imageSource))
                 {
                     MessageBox.Show(string.Format(Strings.ImageFileInvalid, imageSource), Strings.BatchCreationTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -779,7 +895,7 @@ namespace Doomer
             try
             {
                 if (imageDestination is not null)
-                    MoveImage(imageSource, imageDestination);
+                    ImageFileService.Save(imageSource, imageDestination, move: true);
             }
             catch (Exception ex)
             {

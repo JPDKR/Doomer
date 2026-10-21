@@ -11,6 +11,12 @@ namespace Doomer.Options
 
         public static readonly string FilePath = Path.Combine(DirectoryPath, FileName);
 
+        // Favorites, play history and sort order (see LibraryService), next to the settings.
+        public static readonly string LibraryFilePath = Path.Combine(DirectoryPath, "library.json");
+
+        // The update version the user chose to skip. Not in the settings, since saving those rewrites the file.
+        public static readonly string SkippedUpdateFilePath = Path.Combine(DirectoryPath, "skipped-update.txt");
+
         public static GZDoomSettings GZDoom { get; private set; } = default!;
         public static DSDADoomSettings DSDADoom { get; private set; } = default!;
         public static IconsSettings Icons { get; private set; } = default!;

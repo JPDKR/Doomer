@@ -7,6 +7,12 @@ namespace Doomer.Services
     {
         public const string FilePatterns = "*.zip;*.rar;*.7z";
 
+        private static readonly string[] ArchiveExtensions = [.. FilePatterns.Split(';').Select(p => p.TrimStart('*'))];
+
+        // Whether a file is an archive this app can extract, going by its extension like the file dialog does.
+        public static bool IsArchive(string path) =>
+            ArchiveExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+
         // Files a source port can load directly as the batch's WAD.
         private static readonly string[] WadExtensions = [".wad", ".pk3", ".pk7"];
 

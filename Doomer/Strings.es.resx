@@ -41,11 +41,26 @@
 
 ¿Actualizar ahora?</value>
   </data>
+  <data name="UpdateNowButton" xml:space="preserve">
+    <value>Actualizar</value>
+  </data>
+  <data name="UpdateLaterButton" xml:space="preserve">
+    <value>Ahora no</value>
+  </data>
+  <data name="UpdateSkipButton" xml:space="preserve">
+    <value>Omitir esta versión</value>
+  </data>
   <data name="UpdateDownloading" xml:space="preserve">
     <value>Descargando Doomer {0}...</value>
   </data>
   <data name="UpdateFailedTitle" xml:space="preserve">
     <value>Error al actualizar</value>
+  </data>
+  <data name="UpdateChecksumMissing" xml:space="preserve">
+    <value>Esta release no publica el SHA-256 del instalador, así que no se puede verificar y no se instaló.</value>
+  </data>
+  <data name="UpdateChecksumMismatch" xml:space="preserve">
+    <value>El instalador descargado no coincide con el SHA-256 publicado en GitHub, así que no se ejecutó.</value>
   </data>
   <data name="UpdateFailedMessage" xml:space="preserve">
     <value>No se pudo instalar la actualización:
@@ -60,11 +75,66 @@ Abre Configuración para corregir la ruta.</value>
   <data name="ErrorTitle" xml:space="preserve">
     <value>Error</value>
   </data>
+  <data name="MenuSort" xml:space="preserve">
+    <value>Ordenar</value>
+  </data>
+  <data name="MenuSortByName" xml:space="preserve">
+    <value>Por nombre</value>
+  </data>
+  <data name="MenuSortByLastPlayed" xml:space="preserve">
+    <value>Por última vez jugado</value>
+  </data>
+  <data name="MenuFavorite" xml:space="preserve">
+    <value>Favorito</value>
+  </data>
+  <data name="LibrarySaveError" xml:space="preserve">
+    <value>No se pudo guardar el cambio:
+{0}</value>
+  </data>
   <data name="MenuEdit" xml:space="preserve">
     <value>Editar...</value>
   </data>
   <data name="MenuDelete" xml:space="preserve">
     <value>Eliminar</value>
+  </data>
+  <data name="MenuChangeImage" xml:space="preserve">
+    <value>Cambiar imagen...</value>
+  </data>
+  <data name="MenuOpenWadFolder" xml:space="preserve">
+    <value>Abrir carpeta del WAD</value>
+  </data>
+  <data name="MenuDuplicate" xml:space="preserve">
+    <value>Duplicar...</value>
+  </data>
+  <data name="ChangeImageTitle" xml:space="preserve">
+    <value>Cambiar imagen</value>
+  </data>
+  <data name="ChangeImageError" xml:space="preserve">
+    <value>No se pudo guardar la imagen:
+{0}</value>
+  </data>
+  <data name="OpenWadFolderTitle" xml:space="preserve">
+    <value>Abrir carpeta del WAD</value>
+  </data>
+  <data name="WadNotInBatch" xml:space="preserve">
+    <value>No se encontró el WAD en el comando de este batch.</value>
+  </data>
+  <data name="WadFileNotFound" xml:space="preserve">
+    <value>No se encontró el archivo del WAD:
+{0}</value>
+  </data>
+  <data name="DuplicateBatchTitle" xml:space="preserve">
+    <value>Duplicar batch</value>
+  </data>
+  <data name="DuplicateBatchPrompt" xml:space="preserve">
+    <value>Nombre del nuevo batch:</value>
+  </data>
+  <data name="BatchNameTaken" xml:space="preserve">
+    <value>Ya existe un batch llamado "{0}". Elige otro nombre.</value>
+  </data>
+  <data name="DuplicateBatchError" xml:space="preserve">
+    <value>No se pudo duplicar el batch:
+{0}</value>
   </data>
   <data name="DeleteBatchTitle" xml:space="preserve">
     <value>Eliminar batch</value>
@@ -75,6 +145,10 @@ Abre Configuración para corregir la ruta.</value>
   <data name="CantDeleteFile" xml:space="preserve">
     <value>No se pudo eliminar el archivo:
 {0}</value>
+  </data>
+  <data name="BatchFailed" xml:space="preserve">
+    <value>Falló "{0}":
+{1}</value>
   </data>
   <data name="CantExecuteFile" xml:space="preserve">
     <value>No se pudo ejecutar el archivo:
@@ -155,8 +229,11 @@ Abre Configuración para corregir la ruta.</value>
   <data name="PlaceholderImage" xml:space="preserve">
     <value>Ícono opcional: Buscar..., la URL de una imagen o Ctrl+V con una imagen copiada</value>
   </data>
-  <data name="PlaceholderPlugins" xml:space="preserve">
-    <value>ej. smoothed (opcional)</value>
+  <data name="NoMorePlugins" xml:space="preserve">
+    <value>No hay más plugins en {0}</value>
+  </data>
+  <data name="PluginsFolderNotFound" xml:space="preserve">
+    <value>No se encontró la carpeta de plugins: {0}</value>
   </data>
   <data name="PlaceholderPluginsUnsupported" xml:space="preserve">
     <value>DSDA Doom no los usa</value>
@@ -240,6 +317,9 @@ pero no tiene ningún .wad, .pk3 o .pk7. Elige el WAD manualmente.</value>
   </data>
   <data name="ExtraFileLabel" xml:space="preserve">
     <value>extra</value>
+  </data>
+  <data name="PluginFileLabel" xml:space="preserve">
+    <value>del plugin</value>
   </data>
   <data name="FileNotFoundCreateAnyway" xml:space="preserve">
     <value>No se encontró el archivo {0}:

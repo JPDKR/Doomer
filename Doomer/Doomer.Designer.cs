@@ -23,6 +23,9 @@ namespace Doomer
             menuStrip1 = new MenuStrip();
             addBatchFileToolStripMenuItem = new ToolStripMenuItem();
             refreshListToolStripMenuItem = new ToolStripMenuItem();
+            sortToolStripMenuItem = new ToolStripMenuItem();
+            sortByNameToolStripMenuItem = new ToolStripMenuItem();
+            sortByLastPlayedToolStripMenuItem = new ToolStripMenuItem();
             settingsToolStripMenuItem = new ToolStripMenuItem();
             txtSearch = new ToolStripTextBox();
             statusStrip1 = new StatusStrip();
@@ -50,7 +53,7 @@ namespace Doomer
             // menuStrip1
             //
             menuStrip1.ImageScalingSize = new Size(20, 20);
-            menuStrip1.Items.AddRange(new ToolStripItem[] { addBatchFileToolStripMenuItem, refreshListToolStripMenuItem, settingsToolStripMenuItem, txtSearch });
+            menuStrip1.Items.AddRange(new ToolStripItem[] { addBatchFileToolStripMenuItem, refreshListToolStripMenuItem, sortToolStripMenuItem, settingsToolStripMenuItem, txtSearch });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
             menuStrip1.ShowItemToolTips = true;
@@ -72,6 +75,27 @@ namespace Doomer
             refreshListToolStripMenuItem.Size = new Size(79, 23);
             refreshListToolStripMenuItem.Text = "Refresh List";
             refreshListToolStripMenuItem.Click += RefreshListToolStripMenuItem_Click;
+            //
+            // sortToolStripMenuItem
+            //
+            sortToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { sortByNameToolStripMenuItem, sortByLastPlayedToolStripMenuItem });
+            sortToolStripMenuItem.Name = "sortToolStripMenuItem";
+            sortToolStripMenuItem.Size = new Size(44, 23);
+            sortToolStripMenuItem.Text = "Sort";
+            //
+            // sortByNameToolStripMenuItem
+            //
+            sortByNameToolStripMenuItem.Name = "sortByNameToolStripMenuItem";
+            sortByNameToolStripMenuItem.Size = new Size(180, 24);
+            sortByNameToolStripMenuItem.Text = "By name";
+            sortByNameToolStripMenuItem.Click += SortByNameToolStripMenuItem_Click;
+            //
+            // sortByLastPlayedToolStripMenuItem
+            //
+            sortByLastPlayedToolStripMenuItem.Name = "sortByLastPlayedToolStripMenuItem";
+            sortByLastPlayedToolStripMenuItem.Size = new Size(180, 24);
+            sortByLastPlayedToolStripMenuItem.Text = "By last played";
+            sortByLastPlayedToolStripMenuItem.Click += SortByLastPlayedToolStripMenuItem_Click;
             //
             // settingsToolStripMenuItem
             //
@@ -179,6 +203,9 @@ namespace Doomer
         private MenuStrip menuStrip1;
         private ToolStripMenuItem addBatchFileToolStripMenuItem;
         private ToolStripMenuItem refreshListToolStripMenuItem;
+        private ToolStripMenuItem sortToolStripMenuItem;
+        private ToolStripMenuItem sortByNameToolStripMenuItem;
+        private ToolStripMenuItem sortByLastPlayedToolStripMenuItem;
         private ToolStripMenuItem settingsToolStripMenuItem;
         private ToolStripTextBox txtSearch;
         private StatusStrip statusStrip1;

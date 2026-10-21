@@ -52,7 +52,7 @@ namespace Doomer.Tests
         [Fact]
         public void BuildCommand_QuotesEachPathSegment()
         {
-            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Ancient Aliens/aaliens", "");
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Ancient Aliens/aaliens", []);
 
             Assert.Equal(
                 "\"D:\\gzdoom\\gzdoom\" -iwad \"wads/doom2.wad\" -file \"wads/Ancient Aliens/aaliens.wad\"",
@@ -90,8 +90,9 @@ namespace Doomer.Tests
         [Fact]
         public void BuildCommand_AppendsPluginsWhenProvided()
         {
-            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "aaliens", "smoothed");
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "aaliens", ["smoothed"]);
 
+            Assert.StartsWith("rem Doomer plugins folder: plugins\r\n\"D:", command);
             Assert.EndsWith("\"plugins/smoothed\"", command);
         }
 
@@ -99,9 +100,73 @@ namespace Doomer.Tests
         [InlineData("evil\" -exec calc", "wad", "")]
         [InlineData("iwad", "evil\" -exec calc", "")]
         [InlineData("iwad", "wad", "evil\"plugin")]
-        public void BuildCommand_RejectsQuoteCharacters(string iwad, string wad, string plugins)
+        public void BuildCommand_RejectsQuoteCharacters(string iwad, string wad, string plugin)
         {
-            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(Settings, iwad, wad, plugins));
+            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(Settings, iwad, wad, [plugin]));
+        }
+
+        [Fact]
+        public void BuildCommand_AppendsEveryPluginInOrderAfterTheExtras()
+        {
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", ["smoothed.wad", "IDClever.pk3", " "],
+                ["sunlust.deh"]);
+
+            Assert.EndsWith("\"sunlust.deh\" \"plugins/smoothed.wad\" \"plugins/IDClever.pk3\"", command);
+        }
+
+        [Fact]
+        public void TryParseCommand_RoundTripsSeveralPlugins()
+        {
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", ["smoothed.wad", "cards/cards.pk3"],
+                ["sunlust.deh"]);
+
+            Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out _, out var extraFiles, out var plugins));
+            Assert.Equal(["sunlust.deh"], extraFiles);
+            Assert.Equal(["smoothed.wad", "cards/cards.pk3"], plugins);
+        }
+
+        [Fact]
+        public void BuildCommand_WithoutPlugins_WritesNoPluginsFolder()
+        {
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", [], ["sunlust.deh"]);
+
+            Assert.DoesNotContain("rem", command);
+        }
+
+        [Fact]
+        public void TryParseCommand_FindsThePluginsAfterThePluginsFolderChanged()
+        {
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", ["smoothed.wad", "IDClever.pk3"],
+                ["sunlust.deh"]);
+
+            Assert.True(BatchFileService.TryParseCommand(command, "mods", out _, out _, out _, out var extraFiles, out var plugins));
+            Assert.Equal(["sunlust.deh"], extraFiles);
+            Assert.Equal(["smoothed.wad", "IDClever.pk3"], plugins);
+        }
+
+        [Fact]
+        public void TryParseCommand_WithoutAWrittenFolder_UsesTheCurrentSetting()
+        {
+            const string command = "\"D:\\gzdoom\\gzdoom\" -iwad \"doom2.wad\" -file \"sunlust.wad\" \"plugins/smoothed.wad\"";
+
+            Assert.True(BatchFileService.TryParseCommand(command, "mods", out _, out _, out _, out var extraFiles, out var plugins));
+            Assert.Equal(["plugins/smoothed.wad"], extraFiles);
+            Assert.Empty(plugins);
+
+            Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out _, out extraFiles, out plugins));
+            Assert.Empty(extraFiles);
+            Assert.Equal(["smoothed.wad"], plugins);
+        }
+
+        [Fact]
+        public void TryParseCommand_OnlyTakesTheTrailingFilesAsPlugins()
+        {
+            const string command = "\"D:\\gzdoom\\gzdoom\" -iwad \"doom2.wad\" -file \"sunlust.wad\" " +
+                "\"plugins/early.wad\" \"sunlust.deh\" \"plugins/smoothed\"";
+
+            Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out _, out var extraFiles, out var plugins));
+            Assert.Equal(["plugins/early.wad", "sunlust.deh"], extraFiles);
+            Assert.Equal(["smoothed"], plugins);
         }
 
         [Fact]
@@ -109,25 +174,25 @@ namespace Doomer.Tests
         {
             var settings = new GZDoomSettings { Location = "D:\\gzdoom\\evil\" -exec calc", Plugins = "plugins" };
 
-            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(settings, "iwad", "wad", ""));
+            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(settings, "iwad", "wad", []));
         }
 
         [Fact]
         public void TryParseCommand_RoundTripsBuildCommand()
         {
-            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Ancient Aliens/aaliens", "smoothed");
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Ancient Aliens/aaliens", ["smoothed"]);
 
             Assert.True(BatchFileService.TryParseCommand(command, "plugins", out var port, out var iwad, out var wad, out _, out var plugins));
             Assert.Equal(SourcePort.GZDoom, port);
             Assert.Equal("wads/doom2", iwad);
             Assert.Equal("wads/Ancient Aliens/aaliens", wad);
-            Assert.Equal("smoothed", plugins);
+            Assert.Equal(["smoothed"], plugins);
         }
 
         [Fact]
         public void TryParseCommand_StripsExtensionRegardlessOfHowItWasEntered()
         {
-            var command = BatchFileService.BuildCommand(Settings, "wads/doom2.wad", "aaliens.wad", "");
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2.wad", "aaliens.wad", []);
 
             Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out var iwad, out var wad, out _, out _));
             Assert.Equal("wads/doom2", iwad);
@@ -137,7 +202,7 @@ namespace Doomer.Tests
         [Fact]
         public void TryParseCommand_WithoutPlugins_ReturnsEmptyPlugins()
         {
-            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "aaliens", "");
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "aaliens", []);
 
             Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out _, out _, out var plugins));
             Assert.Empty(plugins);
@@ -167,7 +232,7 @@ namespace Doomer.Tests
         {
             var settings = new GZDoomSettings { Location = "E:\\GZDoom\\gzdoom", Plugins = "plugins" };
 
-            var command = BatchFileService.BuildCommand(settings, "E:\\dsda\\wads\\doom2", "E:\\dsda\\wads\\My House\\myhouse.pk3", "");
+            var command = BatchFileService.BuildCommand(settings, "E:\\dsda\\wads\\doom2", "E:\\dsda\\wads\\My House\\myhouse.pk3", []);
 
             Assert.Equal(
                 "\"E:\\GZDoom\\gzdoom\" -iwad \"E:\\dsda\\wads\\doom2.wad\" -file \"E:\\dsda\\wads\\My House\\myhouse.pk3\"",
@@ -229,10 +294,11 @@ namespace Doomer.Tests
         [Fact]
         public void TryParseCommand_GZDoom_RoundTripsExtraFilesAndPlugin()
         {
-            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Sunlust/sunlust", "smoothed",
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "wads/Sunlust/sunlust", ["smoothed"],
                 ["wads/Sunlust/music.wad", "wads/Sunlust/sunlust.deh"]);
 
             Assert.Equal(
+                "rem Doomer plugins folder: plugins\r\n" +
                 "\"D:\\gzdoom\\gzdoom\" -iwad \"wads/doom2.wad\" -file \"wads/Sunlust/sunlust.wad\" " +
                 "\"wads/Sunlust/music.wad\" \"wads/Sunlust/sunlust.deh\" \"plugins/smoothed\"",
                 command);
@@ -240,13 +306,13 @@ namespace Doomer.Tests
             Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out var wad, out var extraFiles, out var plugins));
             Assert.Equal("wads/Sunlust/sunlust", wad);
             Assert.Equal(["wads/Sunlust/music.wad", "wads/Sunlust/sunlust.deh"], extraFiles);
-            Assert.Equal("smoothed", plugins);
+            Assert.Equal(["smoothed"], plugins);
         }
 
         [Fact]
         public void TryParseCommand_GZDoom_ExtraFileWithoutPluginIsNotTakenAsPlugin()
         {
-            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", "", ["sunlust.deh"]);
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", [], ["sunlust.deh"]);
 
             Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out _, out var extraFiles, out var plugins));
             Assert.Equal(["sunlust.deh"], extraFiles);
@@ -268,7 +334,7 @@ namespace Doomer.Tests
         [Fact]
         public void BuildCommand_RejectsQuoteCharactersInExtraFiles()
         {
-            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(Settings, "iwad", "wad", "", ["evil\" -exec calc"]));
+            Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(Settings, "iwad", "wad", [], ["evil\" -exec calc"]));
             Assert.Throws<ArgumentException>(() => BatchFileService.BuildCommand(DsdaSettings, "iwad", "wad", ["evil\" -exec calc"]));
         }
 
@@ -281,6 +347,84 @@ namespace Doomer.Tests
             Assert.Equal(SourcePort.GZDoom, port);
             Assert.Equal("E:\\dsda\\wads\\doom2", iwad);
             Assert.Equal("E:\\dsda\\wads\\My House\\myhouse.pk3", wad);
+        }
+
+        [Theory]
+        [InlineData("D:\\gzdoom\\gzdoom", "plugins", "D:\\gzdoom\\plugins")]
+        [InlineData("D:\\gzdoom\\gzdoom.exe", "mods\\plugins", "D:\\gzdoom\\mods\\plugins")]
+        [InlineData("D:\\gzdoom\\gzdoom", "E:\\plugins", "E:\\plugins")]
+        [InlineData("", "E:\\plugins", "E:\\plugins")]
+        public void GetPluginsDirectory_ResolvesRelativeFoldersFromTheGZDoomInstall(string location, string plugins, string expected)
+        {
+            var settings = new GZDoomSettings { Location = location, Plugins = plugins };
+
+            Assert.Equal(expected, BatchFileService.GetPluginsDirectory(settings));
+        }
+
+        [Theory]
+        [InlineData("D:\\gzdoom\\gzdoom", "")]
+        [InlineData("", "plugins")]
+        [InlineData("gzdoom", "plugins")]
+        public void GetPluginsDirectory_ReturnsNullWithoutAFolderToGoBy(string location, string plugins)
+        {
+            var settings = new GZDoomSettings { Location = location, Plugins = plugins };
+
+            Assert.Null(BatchFileService.GetPluginsDirectory(settings));
+        }
+
+        [Fact]
+        public void FindPlugins_ListsDoomFilesSortedByName()
+        {
+            var folder = Directory.CreateTempSubdirectory("Doomer plugins ").FullName;
+
+            try
+            {
+                foreach (var name in new[] { "smoothed.wad", "IDClever.pk3", "readme.txt", "cards.PK3" })
+                    File.WriteAllText(Path.Combine(folder, name), "");
+                Directory.CreateDirectory(Path.Combine(folder, "sub.wad"));
+
+                Assert.Equal(["cards.PK3", "IDClever.pk3", "smoothed.wad"], BatchFileService.FindPlugins(folder));
+            }
+            finally
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+
+        [Theory]
+        [InlineData("D:\\DSDA\\wads\\sigil", "E:\\GZDoom\\gzdoom", "D:\\DSDA\\wads\\sigil.wad")]
+        [InlineData("wads/Ancient Aliens/aaliens", "D:\\gzdoom\\gzdoom", "D:\\gzdoom\\wads\\Ancient Aliens\\aaliens.wad")]
+        [InlineData("mods/myhouse.pk3", "D:\\gzdoom\\gzdoom.exe", "D:\\gzdoom\\mods\\myhouse.pk3")]
+        [InlineData("D:\\wads\\..\\other\\eviternity", "", "D:\\other\\eviternity.wad")]
+        public void ResolveWadPath_ResolvesRelativePathsFromTheExecutablesFolder(string wad, string executable, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.ResolveWadPath(wad, executable));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("gzdoom")]
+        public void ResolveWadPath_ReturnsNullForARelativePathWithoutAnExecutable(string executable)
+        {
+            Assert.Null(BatchFileService.ResolveWadPath("wads/doom2", executable));
+        }
+
+        [Theory]
+        [InlineData("Sigil", new string[0], "Sigil (2)")]
+        [InlineData("Sigil", new[] { "Sigil (2)", "Sigil (3)" }, "Sigil (4)")]
+        [InlineData("Sigil (2)", new string[0], "Sigil (3)")]
+        [InlineData("Doom (1993)", new string[0], "Doom (1994)")]
+        [InlineData("(2)", new string[0], "(2) (2)")]
+        public void GetDuplicateName_PicksTheNextFreeNumber(string name, string[] taken, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.GetDuplicateName(name, taken.Contains));
+        }
+
+        [Fact]
+        public void FindPlugins_ReturnsNoneForAMissingFolder()
+        {
+            Assert.Empty(BatchFileService.FindPlugins("D:\\does\\not\\exist\\" + Guid.NewGuid()));
+            Assert.Empty(BatchFileService.FindPlugins(null));
         }
     }
 }

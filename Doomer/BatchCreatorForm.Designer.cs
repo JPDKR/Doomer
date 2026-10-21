@@ -31,11 +31,14 @@ namespace Doomer
             lblFromArchive = new Label();
             lblArchiveSeparator = new Label();
             cmbSourcePort = new ComboBox();
-            txtIWad = new TextBox();
+            cmbIWad = new ComboBox();
             btnBrowseIWad = new Button();
             txtWad = new TextBox();
             btnBrowseWad = new Button();
-            txtPlugins = new TextBox();
+            lstPlugins = new ListBox();
+            btnAddPlugin = new Button();
+            btnRemovePlugin = new Button();
+            txtPluginsUnsupported = new TextBox();
             lblImage = new Label();
             txtImage = new TextBox();
             btnBrowseImage = new Button();
@@ -136,12 +139,14 @@ namespace Doomer
             cmbSourcePort.TabIndex = 6;
             cmbSourcePort.SelectedIndexChanged += CmbSourcePort_SelectedIndexChanged;
             //
-            // txtIWad
+            // cmbIWad
             //
-            txtIWad.Location = new Point(106, 150);
-            txtIWad.Name = "txtIWad";
-            txtIWad.Size = new Size(296, 27);
-            txtIWad.TabIndex = 7;
+            cmbIWad.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            cmbIWad.AutoCompleteSource = AutoCompleteSource.ListItems;
+            cmbIWad.Location = new Point(106, 150);
+            cmbIWad.Name = "cmbIWad";
+            cmbIWad.Size = new Size(296, 28);
+            cmbIWad.TabIndex = 7;
             //
             // btnBrowseIWad
             //
@@ -180,6 +185,7 @@ namespace Doomer
             //
             // lstExtraFiles
             //
+            lstExtraFiles.AllowDrop = true;
             lstExtraFiles.HorizontalScrollbar = true;
             lstExtraFiles.IntegralHeight = false;
             lstExtraFiles.Location = new Point(106, 222);
@@ -189,6 +195,8 @@ namespace Doomer
             lstExtraFiles.TabIndex = 11;
             lstExtraFiles.SelectedIndexChanged += LstExtraFiles_SelectedIndexChanged;
             lstExtraFiles.KeyDown += LstExtraFiles_KeyDown;
+            lstExtraFiles.DragEnter += LstExtraFiles_DragEnter;
+            lstExtraFiles.DragDrop += LstExtraFiles_DragDrop;
             //
             // btnAddExtraFile
             //
@@ -209,17 +217,50 @@ namespace Doomer
             btnRemoveExtraFile.Text = "Remove";
             btnRemoveExtraFile.Click += BtnRemoveExtraFile_Click;
             //
-            // txtPlugins
+            // lstPlugins
             //
-            txtPlugins.Location = new Point(106, 294);
-            txtPlugins.Name = "txtPlugins";
-            txtPlugins.Size = new Size(380, 27);
-            txtPlugins.TabIndex = 12;
+            lstPlugins.HorizontalScrollbar = true;
+            lstPlugins.IntegralHeight = false;
+            lstPlugins.Location = new Point(106, 294);
+            lstPlugins.Name = "lstPlugins";
+            lstPlugins.SelectionMode = SelectionMode.MultiExtended;
+            lstPlugins.Size = new Size(296, 63);
+            lstPlugins.TabIndex = 12;
+            lstPlugins.SelectedIndexChanged += LstPlugins_SelectedIndexChanged;
+            lstPlugins.KeyDown += LstPlugins_KeyDown;
+            //
+            // btnAddPlugin
+            //
+            btnAddPlugin.Location = new Point(408, 294);
+            btnAddPlugin.Name = "btnAddPlugin";
+            btnAddPlugin.Size = new Size(78, 27);
+            btnAddPlugin.TabIndex = 24;
+            btnAddPlugin.Text = "Add...";
+            btnAddPlugin.Click += BtnAddPlugin_Click;
+            //
+            // btnRemovePlugin
+            //
+            btnRemovePlugin.Enabled = false;
+            btnRemovePlugin.Location = new Point(408, 327);
+            btnRemovePlugin.Name = "btnRemovePlugin";
+            btnRemovePlugin.Size = new Size(78, 27);
+            btnRemovePlugin.TabIndex = 25;
+            btnRemovePlugin.Text = "Remove";
+            btnRemovePlugin.Click += BtnRemovePlugin_Click;
+            //
+            // txtPluginsUnsupported
+            //
+            txtPluginsUnsupported.Enabled = false;
+            txtPluginsUnsupported.Location = new Point(106, 294);
+            txtPluginsUnsupported.Name = "txtPluginsUnsupported";
+            txtPluginsUnsupported.Size = new Size(380, 27);
+            txtPluginsUnsupported.TabIndex = 23;
+            txtPluginsUnsupported.Visible = false;
             //
             // lblImage
             //
             lblImage.AutoSize = false;
-            lblImage.Location = new Point(8, 330);
+            lblImage.Location = new Point(8, 366);
             lblImage.Name = "lblImage";
             lblImage.Size = new Size(90, 27);
             lblImage.TabIndex = 13;
@@ -228,7 +269,7 @@ namespace Doomer
             //
             // txtImage
             //
-            txtImage.Location = new Point(106, 330);
+            txtImage.Location = new Point(106, 366);
             txtImage.Name = "txtImage";
             txtImage.Size = new Size(296, 27);
             txtImage.TabIndex = 14;
@@ -236,7 +277,7 @@ namespace Doomer
             //
             // btnBrowseImage
             //
-            btnBrowseImage.Location = new Point(408, 330);
+            btnBrowseImage.Location = new Point(408, 366);
             btnBrowseImage.Name = "btnBrowseImage";
             btnBrowseImage.Size = new Size(78, 27);
             btnBrowseImage.TabIndex = 15;
@@ -245,7 +286,7 @@ namespace Doomer
             //
             // btnCreate
             //
-            btnCreate.Location = new Point(246, 374);
+            btnCreate.Location = new Point(246, 410);
             btnCreate.Name = "btnCreate";
             btnCreate.Size = new Size(100, 30);
             btnCreate.TabIndex = 16;
@@ -257,12 +298,15 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(502, 420);
+            ClientSize = new Size(502, 456);
             Controls.Add(btnCreate);
             Controls.Add(btnBrowseImage);
             Controls.Add(txtImage);
             Controls.Add(lblImage);
-            Controls.Add(txtPlugins);
+            Controls.Add(btnRemovePlugin);
+            Controls.Add(btnAddPlugin);
+            Controls.Add(lstPlugins);
+            Controls.Add(txtPluginsUnsupported);
             Controls.Add(btnRemoveExtraFile);
             Controls.Add(btnAddExtraFile);
             Controls.Add(lstExtraFiles);
@@ -270,7 +314,7 @@ namespace Doomer
             Controls.Add(btnBrowseWad);
             Controls.Add(txtWad);
             Controls.Add(btnBrowseIWad);
-            Controls.Add(txtIWad);
+            Controls.Add(cmbIWad);
             Controls.Add(cmbSourcePort);
             Controls.Add(btnFromArchive);
             Controls.Add(lblFromArchive);
@@ -308,11 +352,14 @@ namespace Doomer
         private Label lblFromArchive;
         private Label lblArchiveSeparator;
         private ComboBox cmbSourcePort;
-        private TextBox txtIWad;
+        private ComboBox cmbIWad;
         private Button btnBrowseIWad;
         private TextBox txtWad;
         private Button btnBrowseWad;
-        private TextBox txtPlugins;
+        private ListBox lstPlugins;
+        private Button btnAddPlugin;
+        private Button btnRemovePlugin;
+        private TextBox txtPluginsUnsupported;
         private Label lblImage;
         private TextBox txtImage;
         private Button btnBrowseImage;

@@ -16,6 +16,9 @@ namespace Doomer.Services
         // ZDoom-format packages, which DSDA Doom can't load.
         private static readonly string[] GZDoomOnlyExtensions = [".pk3", ".pk7"];
 
+        // The same kinds of files the WAD pickers offer.
+        private static readonly string[] PluginExtensions = [".wad", ".pk3", ".pk7", ".zip", ".deh", ".bex"];
+
         // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"]
         private static readonly Regex GZDoomPattern = new(
             "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*",
@@ -57,6 +60,34 @@ namespace Doomer.Services
             return source.StartsWith(directory, StringComparison.OrdinalIgnoreCase)
                 ? null
                 : Path.Combine(directory, Path.GetFileName(source));
+        }
+
+        // GZDoom also looks for relative -file paths in its own folder, so a relative plugins folder
+        // lives in the GZDoom install. Null when there's no plugins folder or GZDoom location to go by.
+        public static string? GetPluginsDirectory(GZDoomSettings settings)
+        {
+            if (string.IsNullOrWhiteSpace(settings.Plugins))
+                return null;
+
+            if (Path.IsPathRooted(settings.Plugins))
+                return settings.Plugins;
+
+            if (string.IsNullOrWhiteSpace(settings.Location) || !Path.IsPathRooted(settings.Location))
+                return null;
+
+            return Path.Combine(Path.GetDirectoryName(settings.Location)!, settings.Plugins);
+        }
+
+        // The file names of the plugins in the plugins folder, or none if it doesn't exist.
+        public static List<string> FindPlugins(string? pluginsDirectory)
+        {
+            if (!Directory.Exists(pluginsDirectory))
+                return [];
+
+            return [.. Directory.EnumerateFiles(pluginsDirectory)
+                .Where(f => PluginExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+                .Select(f => Path.GetFileName(f))
+                .Order(StringComparer.OrdinalIgnoreCase)];
         }
 
         // A batch's icon is the image named exactly like the batch file. Both the main window and the

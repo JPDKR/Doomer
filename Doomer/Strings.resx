@@ -245,6 +245,9 @@ but no .wad, .pk3 or .pk7 file was found in it. Pick the WAD manually.</value>
   <data name="ExtraFileLabel" xml:space="preserve">
     <value>Extra</value>
   </data>
+  <data name="PluginFileLabel" xml:space="preserve">
+    <value>Plugin</value>
+  </data>
   <data name="FileNotFoundCreateAnyway" xml:space="preserve">
     <value>{0} file not found:
 {1}

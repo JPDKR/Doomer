@@ -35,7 +35,8 @@ namespace Doomer
             btnBrowseIWad = new Button();
             txtWad = new TextBox();
             btnBrowseWad = new Button();
-            txtPlugins = new TextBox();
+            cmbPlugins = new ComboBox();
+            txtPluginsUnsupported = new TextBox();
             lblImage = new Label();
             txtImage = new TextBox();
             btnBrowseImage = new Button();
@@ -209,12 +210,23 @@ namespace Doomer
             btnRemoveExtraFile.Text = "Remove";
             btnRemoveExtraFile.Click += BtnRemoveExtraFile_Click;
             //
-            // txtPlugins
+            // cmbPlugins
             //
-            txtPlugins.Location = new Point(106, 294);
-            txtPlugins.Name = "txtPlugins";
-            txtPlugins.Size = new Size(380, 27);
-            txtPlugins.TabIndex = 12;
+            cmbPlugins.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            cmbPlugins.AutoCompleteSource = AutoCompleteSource.ListItems;
+            cmbPlugins.Location = new Point(106, 294);
+            cmbPlugins.Name = "cmbPlugins";
+            cmbPlugins.Size = new Size(380, 28);
+            cmbPlugins.TabIndex = 12;
+            //
+            // txtPluginsUnsupported
+            //
+            txtPluginsUnsupported.Enabled = false;
+            txtPluginsUnsupported.Location = new Point(106, 294);
+            txtPluginsUnsupported.Name = "txtPluginsUnsupported";
+            txtPluginsUnsupported.Size = new Size(380, 27);
+            txtPluginsUnsupported.TabIndex = 23;
+            txtPluginsUnsupported.Visible = false;
             //
             // lblImage
             //
@@ -262,7 +274,8 @@ namespace Doomer
             Controls.Add(btnBrowseImage);
             Controls.Add(txtImage);
             Controls.Add(lblImage);
-            Controls.Add(txtPlugins);
+            Controls.Add(cmbPlugins);
+            Controls.Add(txtPluginsUnsupported);
             Controls.Add(btnRemoveExtraFile);
             Controls.Add(btnAddExtraFile);
             Controls.Add(lstExtraFiles);
@@ -312,7 +325,8 @@ namespace Doomer
         private Button btnBrowseIWad;
         private TextBox txtWad;
         private Button btnBrowseWad;
-        private TextBox txtPlugins;
+        private ComboBox cmbPlugins;
+        private TextBox txtPluginsUnsupported;
         private Label lblImage;
         private TextBox txtImage;
         private Button btnBrowseImage;

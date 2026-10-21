@@ -282,5 +282,54 @@ namespace Doomer.Tests
             Assert.Equal("E:\\dsda\\wads\\doom2", iwad);
             Assert.Equal("E:\\dsda\\wads\\My House\\myhouse.pk3", wad);
         }
+
+        [Theory]
+        [InlineData("D:\\gzdoom\\gzdoom", "plugins", "D:\\gzdoom\\plugins")]
+        [InlineData("D:\\gzdoom\\gzdoom.exe", "mods\\plugins", "D:\\gzdoom\\mods\\plugins")]
+        [InlineData("D:\\gzdoom\\gzdoom", "E:\\plugins", "E:\\plugins")]
+        [InlineData("", "E:\\plugins", "E:\\plugins")]
+        public void GetPluginsDirectory_ResolvesRelativeFoldersFromTheGZDoomInstall(string location, string plugins, string expected)
+        {
+            var settings = new GZDoomSettings { Location = location, Plugins = plugins };
+
+            Assert.Equal(expected, BatchFileService.GetPluginsDirectory(settings));
+        }
+
+        [Theory]
+        [InlineData("D:\\gzdoom\\gzdoom", "")]
+        [InlineData("", "plugins")]
+        [InlineData("gzdoom", "plugins")]
+        public void GetPluginsDirectory_ReturnsNullWithoutAFolderToGoBy(string location, string plugins)
+        {
+            var settings = new GZDoomSettings { Location = location, Plugins = plugins };
+
+            Assert.Null(BatchFileService.GetPluginsDirectory(settings));
+        }
+
+        [Fact]
+        public void FindPlugins_ListsDoomFilesSortedByName()
+        {
+            var folder = Directory.CreateTempSubdirectory("Doomer plugins ").FullName;
+
+            try
+            {
+                foreach (var name in new[] { "smoothed.wad", "IDClever.pk3", "readme.txt", "cards.PK3" })
+                    File.WriteAllText(Path.Combine(folder, name), "");
+                Directory.CreateDirectory(Path.Combine(folder, "sub.wad"));
+
+                Assert.Equal(["cards.PK3", "IDClever.pk3", "smoothed.wad"], BatchFileService.FindPlugins(folder));
+            }
+            finally
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void FindPlugins_ReturnsNoneForAMissingFolder()
+        {
+            Assert.Empty(BatchFileService.FindPlugins("D:\\does\\not\\exist\\" + Guid.NewGuid()));
+            Assert.Empty(BatchFileService.FindPlugins(null));
+        }
     }
 }

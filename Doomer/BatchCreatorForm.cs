@@ -1,5 +1,6 @@
 using Doomer.Options;
 using Doomer.Services;
+using System.Runtime.InteropServices;
 
 namespace Doomer
 {
@@ -31,6 +32,9 @@ namespace Doomer
 
             foreach (var port in Enum.GetValues<SourcePort>())
                 cmbSourcePort.Items.Add(BatchFileService.GetDisplayName(port));
+
+            // Still editable, so a plugin that isn't in the folder (or an older batch's) can be typed in.
+            cmbPlugins.Items.AddRange([.. BatchFileService.FindPlugins(BatchFileService.GetPluginsDirectory(_gzdoomSettings))]);
 
             SelectedPort = string.IsNullOrWhiteSpace(_gzdoomSettings.Location) && !string.IsNullOrWhiteSpace(_dsdaDoomSettings.Location)
                 ? SourcePort.DSDADoom
@@ -121,7 +125,7 @@ namespace Doomer
             txtIWad.Text = iwad;
             txtWad.Text = wad;
             SetExtraFiles(extraFiles);
-            txtPlugins.Text = plugins;
+            cmbPlugins.Text = plugins;
         }
 
         private void ApplyTexts()
@@ -142,6 +146,8 @@ namespace Doomer
             txtIWad.PlaceholderText = Strings.PlaceholderIWad;
             txtWad.PlaceholderText = Strings.PlaceholderWad;
             txtImage.PlaceholderText = Strings.PlaceholderImage;
+            txtPluginsUnsupported.PlaceholderText = Strings.PlaceholderPluginsUnsupported;
+            SetCueBanner(cmbPlugins, Strings.PlaceholderPlugins);
         }
 
         private void ApplyDarkTheme()
@@ -194,14 +200,28 @@ namespace Doomer
         }
 
         // DSDA Doom batches only take an IWAD and a WAD; plugins are a GZDoom-only feature.
+        // A disabled ComboBox ignores the dark theme, so DSDA Doom shows a disabled text box in its place.
         private void UpdatePluginsState()
         {
             var supportsPlugins = SelectedPort == SourcePort.GZDoom;
-            txtPlugins.Enabled = supportsPlugins;
+            cmbPlugins.Visible = supportsPlugins;
+            txtPluginsUnsupported.Visible = !supportsPlugins;
+
             if (!supportsPlugins)
-                txtPlugins.Clear();
-            txtPlugins.PlaceholderText = supportsPlugins ? Strings.PlaceholderPlugins : Strings.PlaceholderPluginsUnsupported;
+            {
+                cmbPlugins.SelectedIndex = -1;
+                cmbPlugins.Text = string.Empty;
+            }
         }
+
+        private const int CB_SETCUEBANNER = 0x1703;
+
+        [DllImport("user32.dll", EntryPoint = "SendMessageW", CharSet = CharSet.Unicode)]
+        private static extern nint SendMessage(nint hWnd, int msg, nint wParam, string lParam);
+
+        // ComboBox has no PlaceholderText, but Windows draws one for its text box when asked.
+        private static void SetCueBanner(ComboBox comboBox, string text) =>
+            SendMessage(comboBox.Handle, CB_SETCUEBANNER, 0, text);
 
         private void CmbSourcePort_SelectedIndexChanged(object? sender, EventArgs e) => UpdatePluginsState();
 
@@ -610,12 +630,24 @@ namespace Doomer
             return proceed == DialogResult.Yes;
         }
 
+        // Like GZDoom, a plugin without an extension is looked up as a .wad.
+        private bool ConfirmPluginIfMissing(string plugin)
+        {
+            var directory = BatchFileService.GetPluginsDirectory(_gzdoomSettings);
+
+            if (string.IsNullOrEmpty(plugin) || directory is null)
+                return true;
+
+            var path = Path.Combine(directory, plugin);
+            return File.Exists(path) || ConfirmPathIfMissing(Strings.PluginFileLabel, BatchFileService.EnsureWadExtension(path));
+        }
+
         private async void BtnCreate_Click(object sender, EventArgs e)
         {
             var port = SelectedPort;
             var iwad = txtIWad.Text.Trim();
             var wadFile = txtWad.Text.Trim();
-            var plugins = port == SourcePort.GZDoom ? txtPlugins.Text.Trim() : string.Empty;
+            var plugins = port == SourcePort.GZDoom ? cmbPlugins.Text.Trim() : string.Empty;
             var extraFiles = ExtraFiles;
             var fileName = txtFileName.Text.Trim();
 
@@ -649,7 +681,8 @@ namespace Doomer
 
             if (!ConfirmPathIfMissing("IWAD", BatchFileService.EnsureWadExtension(iwad)) ||
                 !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)) ||
-                !extraFiles.All(f => ConfirmPathIfMissing(Strings.ExtraFileLabel, BatchFileService.EnsureWadExtension(f))))
+                !extraFiles.All(f => ConfirmPathIfMissing(Strings.ExtraFileLabel, BatchFileService.EnsureWadExtension(f))) ||
+                !ConfirmPluginIfMissing(plugins))
             {
                 return;
             }

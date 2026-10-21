@@ -364,7 +364,7 @@ namespace Doomer
                 .Where(p => !Plugins.Contains(p, StringComparer.OrdinalIgnoreCase))
                 .ToList();
 
-            var menu = new ContextMenuStrip();
+            var menu = new ContextMenuStrip { Renderer = new DarkMenuRenderer() };
             menu.Closed += (s, args) => BeginInvoke(menu.Dispose);
 
             if (available.Count == 0)

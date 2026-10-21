@@ -11,7 +11,7 @@ namespace Doomer
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Localization.Apply(Options.AppConfiguration.General.Language);
+            Localization.Apply(Options.AppConfiguration.Interface.Language);
             Application.Run(new Doomer());
         }
     }

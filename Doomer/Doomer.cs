@@ -14,8 +14,8 @@ namespace Doomer
         private static readonly Color TextColor = Color.FromArgb(220, 220, 220);
         private static readonly Color MutedColor = Color.FromArgb(140, 140, 140);
 
-        private GZDoomSettings _gzdoomSettings = default!;
-        private DSDADoomSettings _dsdaDoomSettings = default!;
+        private PortsSettings _ports = default!;
+        private FoldersSettings _folders = default!;
         private IconsSettings _iconsSettings = default!;
         private readonly ToolTip _wadTooltip = new();
         private readonly Font _wadButtonFont = new("Segoe UI", 8.5f);
@@ -39,9 +39,9 @@ namespace Doomer
 
         private void LoadConfiguration()
         {
-            _gzdoomSettings = AppConfiguration.GZDoom;
-            _dsdaDoomSettings = AppConfiguration.DSDADoom;
-            _iconsSettings = AppConfiguration.Icons;
+            _ports = AppConfiguration.Ports;
+            _folders = AppConfiguration.Folders;
+            _iconsSettings = AppConfiguration.Interface.Icons;
         }
 
         private void ApplyDarkTheme()
@@ -159,14 +159,14 @@ namespace Doomer
             loadingPanel.Visible = true;
             loadingPanel.BringToFront();
 
-            var batchs = _gzdoomSettings.Batchs;
-            var images = _gzdoomSettings.Images;
+            var batches = _folders.Batches;
+            var images = _folders.Images;
             var iconSize = new Size(_iconsSettings.Width, _iconsSettings.Height);
 
             List<WadEntry> entries;
             try
             {
-                entries = await Task.Run(() => ReadWads(batchs, images, iconSize, cts.Token), cts.Token);
+                entries = await Task.Run(() => ReadWads(batches, images, iconSize, cts.Token), cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -193,15 +193,15 @@ namespace Doomer
             ShowButtons(entries);
         }
 
-        private static List<WadEntry> ReadWads(BatchSettings batchs, ImageSettings images, Size iconSize, CancellationToken token)
+        private static List<WadEntry> ReadWads(BatchSettings batches, ImageSettings images, Size iconSize, CancellationToken token)
         {
-            if (string.IsNullOrWhiteSpace(batchs.Location))
+            if (string.IsNullOrWhiteSpace(batches.Path))
                 return [];
 
             var entries = new List<WadEntry>();
             try
             {
-                foreach (var file in Directory.GetFiles(batchs.Location, $"*{batchs.Extension}"))
+                foreach (var file in Directory.GetFiles(batches.Path, $"*{batches.Extension}"))
                 {
                     token.ThrowIfCancellationRequested();
                     entries.Add(new WadEntry(file, Path.GetFileNameWithoutExtension(file),
@@ -309,7 +309,7 @@ namespace Doomer
             flowLayoutPanel1.ResumeLayout();
 
             var loaded = string.Format(count == 1 ? Strings.StatusWadCountOne : Strings.StatusWadCountMany, count);
-            lblStatus.Text = $"  {loaded}   |   {_gzdoomSettings.Batchs.Location}";
+            lblStatus.Text = $"  {loaded}   |   {_folders.Batches.Path}";
         }
 
         private void ApplyFavoriteStyle(Button boton)
@@ -423,17 +423,17 @@ namespace Doomer
         // so replacing an icon never takes a file away from where the user keeps it.
         private async void ChangeImage(string filePath)
         {
-            var images = _gzdoomSettings.Images;
+            var images = _folders.Images;
 
-            if (string.IsNullOrWhiteSpace(images.Location))
+            if (string.IsNullOrWhiteSpace(images.Path))
             {
                 MessageBox.Show(Strings.ImagesDirNotConfigured, Strings.ChangeImageTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (!Directory.Exists(images.Location))
+            if (!Directory.Exists(images.Path))
             {
-                MessageBox.Show(string.Format(Strings.ImagesDirNotFoundFixInSettings, images.Location), Strings.ChangeImageTitle,
+                MessageBox.Show(string.Format(Strings.ImagesDirNotFoundFixInSettings, images.Path), Strings.ChangeImageTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -479,13 +479,13 @@ namespace Doomer
                 return;
             }
 
-            if (!BatchFileService.TryParseCommand(command, _gzdoomSettings.Plugins, out var port, out _, out var wad, out _, out _))
+            if (!BatchFileService.TryParseCommand(command, _ports.GZDoom.Plugins, out var port, out _, out var wad, out _, out _))
             {
                 MessageBox.Show(Strings.WadNotInBatch, Strings.OpenWadFolderTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            var executable = port == SourcePort.DSDADoom ? _dsdaDoomSettings.Location : _gzdoomSettings.Location;
+            var executable = port == SourcePort.DSDADoom ? _ports.DSDADoom.Path : _ports.GZDoom.Path;
             var path = BatchFileService.ResolveWadPath(wad, executable);
 
             if (path is null || !File.Exists(path))
@@ -546,9 +546,9 @@ namespace Doomer
                 File.Copy(filePath, newPath);
 
                 // An image left over with the new name would become its icon anyway, so the copy replaces it.
-                var imagePath = BatchFileService.GetImagePath(filePath, _gzdoomSettings.Images);
+                var imagePath = BatchFileService.GetImagePath(filePath, _folders.Images);
                 if (File.Exists(imagePath))
-                    File.Copy(imagePath, BatchFileService.GetImagePath(newPath, _gzdoomSettings.Images), overwrite: true);
+                    File.Copy(imagePath, BatchFileService.GetImagePath(newPath, _folders.Images), overwrite: true);
             }
             catch (Exception ex)
             {
@@ -562,7 +562,7 @@ namespace Doomer
         private async void DeleteBatch(string filePath)
         {
             var name = Path.GetFileNameWithoutExtension(filePath);
-            var imagePath = BatchFileService.GetImagePath(filePath, _gzdoomSettings.Images);
+            var imagePath = BatchFileService.GetImagePath(filePath, _folders.Images);
 
             var confirm = MessageBox.Show(
                 string.Format(Strings.DeleteBatchConfirm, name),
@@ -685,7 +685,7 @@ namespace Doomer
             if (form.ShowDialog() == DialogResult.OK)
             {
                 // The language may have changed; the buttons' menus pick it up when they're rebuilt.
-                Localization.Apply(AppConfiguration.General.Language);
+                Localization.Apply(AppConfiguration.Interface.Language);
                 ApplyTexts();
                 LoadConfiguration();
                 await LoadButtonsBatchAsync();

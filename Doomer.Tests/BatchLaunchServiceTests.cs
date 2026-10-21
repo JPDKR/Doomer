@@ -1,4 +1,3 @@
-using Doomer.Options;
 using Doomer.Services;
 
 namespace Doomer.Tests
@@ -38,10 +37,10 @@ namespace Doomer.Tests
         }
 
         [Fact]
-        public async Task RunAsync_StillReportsErrors_WhenThePluginsFolderIsWrittenAfterTheCommand()
+        public async Task RunAsync_StillReportsErrors_WhenThePluginsFolderIsWrittenDown()
         {
-            var settings = new GZDoomSettings { Location = "C:\\nope\\gzdoom-missing.exe", Plugins = "plugins" };
-            var path = WriteBatch("plugins.bat", BatchFileService.BuildCommand(settings, "doom2", "sigil", ["smoothed.wad"]));
+            var command = BatchFileService.BuildGZDoomCommand("C:\\nope\\gzdoom-missing.exe", "plugins", "doom2", "sigil", ["smoothed.wad"]);
+            var path = WriteBatch("plugins.bat", command);
 
             Assert.False(string.IsNullOrWhiteSpace(await BatchLaunchService.RunAsync(path)));
         }

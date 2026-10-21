@@ -9,8 +9,8 @@ namespace Doomer
         private static string WadFileFilter => $"{Strings.FileFilterDoom}|*.wad;*.pk3;*.pk7;*.zip;*.deh;*.bex|{Strings.FileFilterAll}|*.*";
         private static string ArchiveFileFilter => $"{Strings.FileFilterArchives}|{ArchiveService.FilePatterns}|{Strings.FileFilterAll}|*.*";
 
-        private readonly GZDoomSettings _gzdoomSettings = AppConfiguration.GZDoom;
-        private readonly DSDADoomSettings _dsdaDoomSettings = AppConfiguration.DSDADoom;
+        private readonly PortsSettings _ports = AppConfiguration.Ports;
+        private readonly FoldersSettings _folders = AppConfiguration.Folders;
         private readonly string? _editingFilePath;
         private bool _hasExistingImage;
 
@@ -38,7 +38,7 @@ namespace Doomer
             foreach (var port in Enum.GetValues<SourcePort>())
                 cmbSourcePort.Items.Add(BatchFileService.GetDisplayName(port));
 
-            SelectedPort = string.IsNullOrWhiteSpace(_gzdoomSettings.Location) && !string.IsNullOrWhiteSpace(_dsdaDoomSettings.Location)
+            SelectedPort = string.IsNullOrWhiteSpace(_ports.GZDoom.Path) && !string.IsNullOrWhiteSpace(_ports.DSDADoom.Path)
                 ? SourcePort.DSDADoom
                 : SourcePort.GZDoom;
 
@@ -70,15 +70,15 @@ namespace Doomer
         // and WAD header, so it runs in the background; the box can be typed in meanwhile.
         private async Task LoadIWadsAsync()
         {
-            var batchs = _gzdoomSettings.Batchs;
-            var pluginsFolder = _gzdoomSettings.Plugins;
-            var wadsLocation = _gzdoomSettings.Wads.Location;
+            var batches = _folders.Batches;
+            var pluginsFolder = _ports.GZDoom.Plugins;
+            var wadsLocation = _folders.Wads.Path;
             List<string> iwads;
 
             try
             {
                 iwads = await Task.Run(() => IWadService.Merge([
-                    .. IWadService.FindUsedIWads(batchs.Location, batchs.Extension, pluginsFolder),
+                    .. IWadService.FindUsedIWads(batches.Path, batches.Extension, pluginsFolder),
                     .. IWadService.FindIWadFiles(wadsLocation)]));
             }
             catch (Exception)
@@ -158,7 +158,7 @@ namespace Doomer
                 return;
             }
 
-            if (!BatchFileService.TryParseCommand(command, _gzdoomSettings.Plugins, out var port, out var iwad, out var wad,
+            if (!BatchFileService.TryParseCommand(command, _ports.GZDoom.Plugins, out var port, out var iwad, out var wad,
                     out var extraFiles, out var plugins))
             {
                 MessageBox.Show(Strings.CantParseBatch,
@@ -359,7 +359,7 @@ namespace Doomer
         // Offers the plugins folder's files that aren't in the batch yet.
         private void BtnAddPlugin_Click(object sender, EventArgs e)
         {
-            var directory = BatchFileService.GetPluginsDirectory(_gzdoomSettings);
+            var directory = BatchFileService.GetPluginsDirectory(_ports.GZDoom.Plugins, _ports.GZDoom.Path);
             var available = BatchFileService.FindPlugins(directory)
                 .Where(p => !Plugins.Contains(p, StringComparer.OrdinalIgnoreCase))
                 .ToList();
@@ -371,7 +371,7 @@ namespace Doomer
             {
                 var message = Directory.Exists(directory)
                     ? string.Format(Strings.NoMorePlugins, directory)
-                    : string.Format(Strings.PluginsFolderNotFound, directory ?? _gzdoomSettings.Plugins);
+                    : string.Format(Strings.PluginsFolderNotFound, directory ?? _ports.GZDoom.Plugins);
                 menu.Items.Add(new ToolStripMenuItem(message) { Enabled = false });
             }
 
@@ -471,7 +471,7 @@ namespace Doomer
 
         private bool CheckWadsLocation()
         {
-            var wadsLocation = _gzdoomSettings.Wads.Location;
+            var wadsLocation = _folders.Wads.Path;
 
             if (!string.IsNullOrWhiteSpace(wadsLocation) && Directory.Exists(wadsLocation))
                 return true;
@@ -488,7 +488,7 @@ namespace Doomer
             if (!CheckWadsLocation())
                 return;
 
-            var wadsLocation = _gzdoomSettings.Wads.Location;
+            var wadsLocation = _folders.Wads.Path;
             var folderName = AskForWadName(ArchiveService.GetFolderName(archivePath));
 
             if (folderName is null)
@@ -587,7 +587,7 @@ namespace Doomer
 
         private void BtnBrowseImage_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location))
+            if (string.IsNullOrWhiteSpace(_folders.Images.Path))
             {
                 MessageBox.Show(Strings.ImagesDirNotConfigured,
                     Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -697,9 +697,9 @@ namespace Doomer
         }
 
         private string? GetImagePath(string batchPath) =>
-            string.IsNullOrWhiteSpace(_gzdoomSettings.Images.Location)
+            string.IsNullOrWhiteSpace(_folders.Images.Path)
                 ? null
-                : BatchFileService.GetImagePath(batchPath, _gzdoomSettings.Images);
+                : BatchFileService.GetImagePath(batchPath, _folders.Images);
 
         private static bool ConfirmPathIfMissing(string label, string path)
         {
@@ -716,7 +716,7 @@ namespace Doomer
         // Like GZDoom, a plugin without an extension is looked up as a .wad.
         private bool ConfirmPluginIfMissing(string plugin)
         {
-            var directory = BatchFileService.GetPluginsDirectory(_gzdoomSettings);
+            var directory = BatchFileService.GetPluginsDirectory(_ports.GZDoom.Plugins, _ports.GZDoom.Path);
 
             if (string.IsNullOrEmpty(plugin) || directory is null)
                 return true;
@@ -741,7 +741,7 @@ namespace Doomer
                 return;
             }
 
-            var executable = port == SourcePort.DSDADoom ? _dsdaDoomSettings.Location : _gzdoomSettings.Location;
+            var executable = port == SourcePort.DSDADoom ? _ports.DSDADoom.Path : _ports.GZDoom.Path;
 
             if (string.IsNullOrWhiteSpace(executable))
             {
@@ -773,14 +773,14 @@ namespace Doomer
             // A WAD outside the WADs directory gets moved into it, and the batch points to its new location.
             var wadSource = BatchFileService.EnsureWadExtension(wadFile);
             var wadDestination = File.Exists(wadSource)
-                ? BatchFileService.GetWadDestination(wadSource, _gzdoomSettings.Wads.Location)
+                ? BatchFileService.GetWadDestination(wadSource, _folders.Wads.Path)
                 : null;
 
             if (wadDestination is not null)
             {
-                if (!Directory.Exists(_gzdoomSettings.Wads.Location))
+                if (!Directory.Exists(_folders.Wads.Path))
                 {
-                    MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, _gzdoomSettings.Wads.Location),
+                    MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, _folders.Wads.Path),
                         Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -803,8 +803,8 @@ namespace Doomer
             try
             {
                 command = port == SourcePort.DSDADoom
-                    ? BatchFileService.BuildCommand(_dsdaDoomSettings, iwad, wadFile, extraFiles)
-                    : BatchFileService.BuildCommand(_gzdoomSettings, iwad, wadFile, plugins, extraFiles);
+                    ? BatchFileService.BuildDSDADoomCommand(_ports.DSDADoom.Path, iwad, wadFile, extraFiles)
+                    : BatchFileService.BuildGZDoomCommand(_ports.GZDoom.Path, _ports.GZDoom.Plugins, iwad, wadFile, plugins, extraFiles);
             }
             catch (ArgumentException ex)
             {
@@ -812,7 +812,7 @@ namespace Doomer
                 return;
             }
 
-            var path = _editingFilePath ?? Path.Combine(_gzdoomSettings.Batchs.Location, fileName + _gzdoomSettings.Batchs.Extension);
+            var path = _editingFilePath ?? Path.Combine(_folders.Batches.Path, fileName + _folders.Batches.Extension);
 
             // An existing image is never replaced; one can only be added if the batch has none yet.
             var imageSource = _hasExistingImage ? string.Empty : txtImage.Text.Trim();
@@ -821,9 +821,9 @@ namespace Doomer
 
             if (!string.IsNullOrEmpty(imageSource))
             {
-                if (imageDestination is null || !Directory.Exists(_gzdoomSettings.Images.Location))
+                if (imageDestination is null || !Directory.Exists(_folders.Images.Path))
                 {
-                    MessageBox.Show(string.Format(Strings.ImagesDirNotFoundFixInSettings, _gzdoomSettings.Images.Location),
+                    MessageBox.Show(string.Format(Strings.ImagesDirNotFoundFixInSettings, _folders.Images.Path),
                         Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }

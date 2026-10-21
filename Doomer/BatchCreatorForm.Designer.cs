@@ -183,6 +183,7 @@ namespace Doomer
             //
             // lstExtraFiles
             //
+            lstExtraFiles.AllowDrop = true;
             lstExtraFiles.HorizontalScrollbar = true;
             lstExtraFiles.IntegralHeight = false;
             lstExtraFiles.Location = new Point(106, 222);
@@ -192,6 +193,8 @@ namespace Doomer
             lstExtraFiles.TabIndex = 11;
             lstExtraFiles.SelectedIndexChanged += LstExtraFiles_SelectedIndexChanged;
             lstExtraFiles.KeyDown += LstExtraFiles_KeyDown;
+            lstExtraFiles.DragEnter += LstExtraFiles_DragEnter;
+            lstExtraFiles.DragDrop += LstExtraFiles_DragDrop;
             //
             // btnAddExtraFile
             //

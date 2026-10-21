@@ -27,6 +27,8 @@ namespace Doomer
             lblVersion.Text = $"v{UpdateService.CurrentVersion}";
             LoadConfiguration();
             ApplyDarkTheme();
+            EnableArchiveDrop(this);
+            EnableArchiveDrop(flowLayoutPanel1);
         }
 
         private void LoadConfiguration()
@@ -253,6 +255,7 @@ namespace Doomer
             }
 
             boton.Click += Boton_Click!;
+            EnableArchiveDrop(boton);
             return boton;
         }
 
@@ -351,14 +354,47 @@ namespace Doomer
             }
         }
 
-        private async void AddBatchFileToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            using var form = new BatchCreatorForm();
+        private async void AddBatchFileToolStripMenuItem_Click(object sender, EventArgs e) =>
+            await AddBatchAsync(new BatchCreatorForm());
 
-            if (form.ShowDialog() == DialogResult.OK)
+        private async Task AddBatchAsync(BatchCreatorForm form)
+        {
+            using (form)
             {
-                await LoadButtonsBatchAsync();
+                if (form.ShowDialog() != DialogResult.OK)
+                    return;
             }
+
+            await LoadButtonsBatchAsync();
+        }
+
+        // Dropping a downloaded .zip/.rar/.7z anywhere on the window opens Add Batch File
+        // with it already extracted, like "From archive...". Drag events only reach the control
+        // under the cursor, so the WAD buttons take drops too.
+        private void EnableArchiveDrop(Control control)
+        {
+            control.AllowDrop = true;
+            control.DragEnter += Archive_DragEnter;
+            control.DragDrop += Archive_DragDrop;
+        }
+
+        // Only a single archive is taken; anything else isn't something to make one batch from.
+        private static string? DroppedArchive(DragEventArgs e) =>
+            e.Data?.GetData(DataFormats.FileDrop) is string[] { Length: 1 } paths &&
+            ArchiveService.IsArchive(paths[0]) && File.Exists(paths[0])
+                ? paths[0]
+                : null;
+
+        private void Archive_DragEnter(object? sender, DragEventArgs e) =>
+            e.Effect = DroppedArchive(e) is not null ? DragDropEffects.Copy : DragDropEffects.None;
+
+        private void Archive_DragDrop(object? sender, DragEventArgs e)
+        {
+            if (DroppedArchive(e) is not { } archive)
+                return;
+
+            // Explorer waits for the drop to return, so the form opens after it instead of during it.
+            BeginInvoke(async () => await AddBatchAsync(BatchCreatorForm.FromArchive(archive)));
         }
 
         private async void RefreshListToolStripMenuItem_Click(object sender, EventArgs e)

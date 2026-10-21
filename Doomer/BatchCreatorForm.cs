@@ -22,7 +22,13 @@ namespace Doomer
         private int _baseClientHeight;
         private Dictionary<Control, int>? _belowExtraFiles;
 
+        // An archive dropped on the main window, extracted as soon as the form shows.
+        private string? _archiveToImport;
+
         public BatchCreatorForm() : this(null) { }
+
+        // A new batch filled in from an archive, as if it had been picked with "From archive...".
+        public static BatchCreatorForm FromArchive(string archivePath) => new() { _archiveToImport = archivePath };
 
         public BatchCreatorForm(string? existingFilePath)
         {
@@ -100,6 +106,14 @@ namespace Doomer
             // Full paths are long, so the list widens to show them whole.
             var widest = iwads.Select(i => TextRenderer.MeasureText(i, cmbIWad.Font).Width).DefaultIfEmpty(0).Max();
             cmbIWad.DropDownWidth = Math.Max(cmbIWad.Width, widest + SystemInformation.VerticalScrollBarWidth);
+        }
+
+        protected override async void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+
+            if (_archiveToImport is not null)
+                await ImportArchiveAsync(_archiveToImport);
         }
 
         private static void AlignToTextBox(Button button, Control textBox)
@@ -330,6 +344,19 @@ namespace Doomer
             SwitchToGZDoomIfNeeded();
         }
 
+        // Files dragged from Explorer onto the list are added like ones picked with Add...; folders aren't.
+        private static List<string> DroppedFiles(DragEventArgs e) =>
+            e.Data?.GetData(DataFormats.FileDrop) is string[] paths ? [.. paths.Where(File.Exists)] : [];
+
+        private void LstExtraFiles_DragEnter(object? sender, DragEventArgs e) =>
+            e.Effect = DroppedFiles(e).Count > 0 ? DragDropEffects.Copy : DragDropEffects.None;
+
+        private void LstExtraFiles_DragDrop(object? sender, DragEventArgs e)
+        {
+            AddExtraFiles(DroppedFiles(e));
+            SwitchToGZDoomIfNeeded();
+        }
+
         private void BtnRemoveExtraFile_Click(object sender, EventArgs e) => RemoveSelectedExtraFiles();
 
         private void LstExtraFiles_KeyDown(object? sender, KeyEventArgs e)
@@ -378,25 +405,38 @@ namespace Doomer
                 target.Text = stripWadExtension ? BatchFileService.StripWadExtension(dlg.FileName) : dlg.FileName;
         }
 
-        // Extracts a downloaded archive into its own folder in the WADs directory and fills
-        // in the WAD (and the file name, for a new batch) from what's inside.
         private async void BtnFromArchive_Click(object sender, EventArgs e)
         {
-            var wadsLocation = _gzdoomSettings.Wads.Location;
-
-            if (string.IsNullOrWhiteSpace(wadsLocation) || !Directory.Exists(wadsLocation))
-            {
-                MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, wadsLocation),
-                    Strings.ExtractArchiveTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            if (!CheckWadsLocation())
                 return;
-            }
 
             using var dlg = new OpenFileDialog { Title = Strings.SelectArchive, Filter = ArchiveFileFilter };
 
-            if (dlg.ShowDialog() != DialogResult.OK)
+            if (dlg.ShowDialog() == DialogResult.OK)
+                await ImportArchiveAsync(dlg.FileName);
+        }
+
+        private bool CheckWadsLocation()
+        {
+            var wadsLocation = _gzdoomSettings.Wads.Location;
+
+            if (!string.IsNullOrWhiteSpace(wadsLocation) && Directory.Exists(wadsLocation))
+                return true;
+
+            MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, wadsLocation),
+                Strings.ExtractArchiveTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
+        // Extracts a downloaded archive into its own folder in the WADs directory and fills
+        // in the WAD (and the file name, for a new batch) from what's inside.
+        private async Task ImportArchiveAsync(string archivePath)
+        {
+            if (!CheckWadsLocation())
                 return;
 
-            var folderName = AskForWadName(ArchiveService.GetFolderName(dlg.FileName));
+            var wadsLocation = _gzdoomSettings.Wads.Location;
+            var folderName = AskForWadName(ArchiveService.GetFolderName(archivePath));
 
             if (folderName is null)
                 return;
@@ -419,7 +459,7 @@ namespace Doomer
 
             try
             {
-                files = await Task.Run(() => ArchiveService.Extract(dlg.FileName, destination));
+                files = await Task.Run(() => ArchiveService.Extract(archivePath, destination));
             }
             catch (Exception ex)
             {

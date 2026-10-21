@@ -29,6 +29,15 @@ namespace Doomer.Services
             "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"(?:\\s+\"(?<file>[^\"]*)\")*",
             RegexOptions.Compiled);
 
+        // Written before a GZDoom command that has plugins, so they can be told apart from the extra files
+        // even after the plugins folder is changed in the settings. cmd skips it. It goes first because a
+        // line after the command would reset the exit code the launcher checks to report a failed batch.
+        private const string PluginsFolderMarker = "rem Doomer plugins folder: ";
+
+        private static readonly Regex PluginsFolderPattern = new(
+            "^" + Regex.Escape(PluginsFolderMarker) + "(?<folder>.+?)\\s*$",
+            RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
         private static readonly Regex DuplicateNamePattern = new("^(?<base>.+) \\((?<n>\\d{1,6})\\)$", RegexOptions.Compiled);
 
         public static string GetDisplayName(SourcePort port) => port switch
@@ -156,7 +165,11 @@ namespace Doomer.Services
 
             var command = $"\"{settings.Location}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
 
-            return command + string.Concat(plugins.Select(p => $" \"{settings.Plugins}/{p}\""));
+            if (plugins.Count == 0)
+                return command;
+
+            return $"{PluginsFolderMarker}{settings.Plugins}\r\n" + command +
+                string.Concat(plugins.Select(p => $" \"{settings.Plugins}/{p}\""));
         }
 
         // DSDA Doom tells loose files apart by extension, so DEH/BEX patches can be passed like WADs.
@@ -173,7 +186,8 @@ namespace Doomer.Services
         private static string QuoteFiles(IReadOnlyList<string> files) =>
             string.Concat(files.Select(f => $" \"{EnsureWadExtension(f)}\""));
 
-        // pluginsFolder tells the plugins apart from the extra files: they're the last paths, under that folder.
+        // The plugins are the last paths, under the plugins folder: the one the batch was written with, or
+        // pluginsFolder (the current setting) for batches from before that was written down.
         public static bool TryParseCommand(string command, string pluginsFolder, out SourcePort port, out string iwad,
             out string wad, out List<string> extraFiles, out List<string> plugins)
         {
@@ -187,7 +201,8 @@ namespace Doomer.Services
                 extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
                 plugins = [];
 
-                var prefix = pluginsFolder + "/";
+                var written = PluginsFolderPattern.Match(command);
+                var prefix = (written.Success ? written.Groups["folder"].Value : pluginsFolder) + "/";
                 while (extraFiles.Count > 0 && extraFiles[^1].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
                     plugins.Insert(0, extraFiles[^1][prefix.Length..]);

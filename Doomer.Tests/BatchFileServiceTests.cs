@@ -92,6 +92,7 @@ namespace Doomer.Tests
         {
             var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "aaliens", ["smoothed"]);
 
+            Assert.StartsWith("rem Doomer plugins folder: plugins\r\n\"D:", command);
             Assert.EndsWith("\"plugins/smoothed\"", command);
         }
 
@@ -122,6 +123,39 @@ namespace Doomer.Tests
             Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out _, out var extraFiles, out var plugins));
             Assert.Equal(["sunlust.deh"], extraFiles);
             Assert.Equal(["smoothed.wad", "cards/cards.pk3"], plugins);
+        }
+
+        [Fact]
+        public void BuildCommand_WithoutPlugins_WritesNoPluginsFolder()
+        {
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", [], ["sunlust.deh"]);
+
+            Assert.DoesNotContain("rem", command);
+        }
+
+        [Fact]
+        public void TryParseCommand_FindsThePluginsAfterThePluginsFolderChanged()
+        {
+            var command = BatchFileService.BuildCommand(Settings, "wads/doom2", "sunlust", ["smoothed.wad", "IDClever.pk3"],
+                ["sunlust.deh"]);
+
+            Assert.True(BatchFileService.TryParseCommand(command, "mods", out _, out _, out _, out var extraFiles, out var plugins));
+            Assert.Equal(["sunlust.deh"], extraFiles);
+            Assert.Equal(["smoothed.wad", "IDClever.pk3"], plugins);
+        }
+
+        [Fact]
+        public void TryParseCommand_WithoutAWrittenFolder_UsesTheCurrentSetting()
+        {
+            const string command = "\"D:\\gzdoom\\gzdoom\" -iwad \"doom2.wad\" -file \"sunlust.wad\" \"plugins/smoothed.wad\"";
+
+            Assert.True(BatchFileService.TryParseCommand(command, "mods", out _, out _, out _, out var extraFiles, out var plugins));
+            Assert.Equal(["plugins/smoothed.wad"], extraFiles);
+            Assert.Empty(plugins);
+
+            Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out _, out extraFiles, out plugins));
+            Assert.Empty(extraFiles);
+            Assert.Equal(["smoothed.wad"], plugins);
         }
 
         [Fact]
@@ -264,6 +298,7 @@ namespace Doomer.Tests
                 ["wads/Sunlust/music.wad", "wads/Sunlust/sunlust.deh"]);
 
             Assert.Equal(
+                "rem Doomer plugins folder: plugins\r\n" +
                 "\"D:\\gzdoom\\gzdoom\" -iwad \"wads/doom2.wad\" -file \"wads/Sunlust/sunlust.wad\" " +
                 "\"wads/Sunlust/music.wad\" \"wads/Sunlust/sunlust.deh\" \"plugins/smoothed\"",
                 command);

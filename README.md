@@ -98,6 +98,8 @@ GZDoom:    "D:\gzdoom\gzdoom" -iwad "wads/doom2.wad" -file "wads/Ancient Aliens/
 DSDA Doom: "E:\DSDA\dsda-doom" "WadSmoosh/source_wads/tnt.wad" "wads/D.O.O.M\DrakeRC2.wad"
 ```
 
+A GZDoom batch with plugins also gets a first line, `rem Doomer plugins folder: plugins`, recording the plugins folder it was written with. That way its plugins are still recognized when you edit it after changing the folder in Settings; when you save it again, they're written under the new folder.
+
 ## Building and testing
 
 ```

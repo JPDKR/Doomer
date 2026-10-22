@@ -70,7 +70,7 @@ UI texts live in `Doomer/Strings.resx` (English) and one `Strings.<language>.res
 
 The main window lists one button per batch file found in `Folders.Batches.Path`, using the matching image from `Folders.Images.Path` (same file name, different extension) as its icon — falling back to plain text if no image is found. Use the search box in the menu to filter the list by name.
 
-Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead.
+Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead. While a WAD's game is open, clicking its button again (or double-clicking it) doesn't launch a second copy; the status bar says it's already running.
 
 Use **Sort** in the menu to list the WADs **By name** or **By last played** (most recent first; WADs never played go last). Mark the ones you play the most as **Favorite** from their right-click menu: they're always shown first, with a gold border. Favorites, play history and the sort order are kept in `%AppData%\Doomer\library.json`.
 

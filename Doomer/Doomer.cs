@@ -22,6 +22,10 @@ namespace Doomer
         private CancellationTokenSource? _loadCts;
         private readonly LibraryService _library = new(AppConfiguration.LibraryFilePath);
 
+        // The batches whose game is still open, so a double click or a second click doesn't launch it again.
+        // Kept by path, so it survives the buttons being rebuilt.
+        private readonly HashSet<string> _runningBatches = new(StringComparer.OrdinalIgnoreCase);
+
         // A favorite's button gets a gold border so it stands out from the rest at the top.
         private static readonly Color FavoriteColor = Color.FromArgb(212, 160, 23);
 
@@ -597,38 +601,62 @@ namespace Doomer
 
         private async void Boton_Click(object sender, EventArgs e)
         {
-            if (sender is Button boton && boton.Tag is string path)
+            if (sender is not Button boton || boton.Tag is not string path)
+                return;
+
+            var alreadyRunning = "  " + string.Format(Strings.StatusAlreadyRunning, boton.Name);
+
+            if (!_runningBatches.Add(path))
             {
-                // Recorded before launching, since RunAsync only returns once the game is closed.
-                // Not being able to save it is no reason to keep the user from playing.
-                try
-                {
-                    _library.MarkPlayed(boton.Name, DateTime.UtcNow);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                }
-
-                if (_library.SortOrder == WadSortOrder.LastPlayed)
-                    ApplyOrder();
-
-                string? errors;
-
-                try
-                {
-                    errors = await BatchLaunchService.RunAsync(path);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                // The console is hidden, so whatever went wrong would otherwise go unseen.
-                if (errors is not null && !IsDisposed)
-                    MessageBox.Show(string.Format(Strings.BatchFailed, Path.GetFileNameWithoutExtension(path), errors),
-                        Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblStatus.Text = alreadyRunning;
+                return;
             }
+
+            try
+            {
+                await LaunchAsync(boton.Name, path);
+            }
+            finally
+            {
+                _runningBatches.Remove(path);
+
+                // The notice was about this game, which isn't running anymore.
+                if (!IsDisposed && lblStatus.Text == alreadyRunning)
+                    ApplyFilter();
+            }
+        }
+
+        private async Task LaunchAsync(string name, string path)
+        {
+            // Recorded before launching, since RunAsync only returns once the game is closed.
+            // Not being able to save it is no reason to keep the user from playing.
+            try
+            {
+                _library.MarkPlayed(name, DateTime.UtcNow);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            if (_library.SortOrder == WadSortOrder.LastPlayed)
+                ApplyOrder();
+
+            string? errors;
+
+            try
+            {
+                errors = await BatchLaunchService.RunAsync(path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // The console is hidden, so whatever went wrong would otherwise go unseen.
+            if (errors is not null && !IsDisposed)
+                MessageBox.Show(string.Format(Strings.BatchFailed, Path.GetFileNameWithoutExtension(path), errors),
+                    Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private async void AddBatchFileToolStripMenuItem_Click(object sender, EventArgs e) =>

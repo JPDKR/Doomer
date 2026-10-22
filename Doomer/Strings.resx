@@ -30,6 +30,9 @@
   <data name="StatusWadCountOne" xml:space="preserve">
     <value>{0} WAD loaded</value>
   </data>
+  <data name="StatusAlreadyRunning" xml:space="preserve">
+    <value>{0} is already running</value>
+  </data>
   <data name="StatusWadCountMany" xml:space="preserve">
     <value>{0} WADs loaded</value>
   </data>

@@ -69,7 +69,6 @@ namespace Doomer
             // lblArchiveSeparator
             //
             lblArchiveSeparator.AutoSize = false;
-            lblArchiveSeparator.BackColor = Color.FromArgb(60, 60, 60);
             lblArchiveSeparator.Location = new Point(8, 58);
             lblArchiveSeparator.Name = "lblArchiveSeparator";
             lblArchiveSeparator.Size = new Size(478, 1);

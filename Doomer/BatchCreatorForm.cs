@@ -213,50 +213,8 @@ namespace Doomer
 
         private void ApplyDarkTheme()
         {
-            BackColor = Color.FromArgb(18, 18, 18);
-            ForeColor = Color.FromArgb(220, 220, 220);
-
-            foreach (Control ctrl in Controls)
-            {
-                switch (ctrl)
-                {
-                    case TextBox tb:
-                        tb.BackColor = Color.FromArgb(38, 38, 38);
-                        tb.ForeColor = Color.FromArgb(220, 220, 220);
-                        tb.BorderStyle = BorderStyle.FixedSingle;
-                        break;
-                    case ListBox lb:
-                        lb.BackColor = Color.FromArgb(38, 38, 38);
-                        lb.ForeColor = Color.FromArgb(220, 220, 220);
-                        lb.BorderStyle = BorderStyle.FixedSingle;
-                        break;
-                    case ComboBox cb:
-                        cb.FlatStyle = FlatStyle.Flat;
-                        cb.BackColor = Color.FromArgb(38, 38, 38);
-                        cb.ForeColor = Color.FromArgb(220, 220, 220);
-                        break;
-                    case Label lbl:
-                        lbl.ForeColor = Color.FromArgb(170, 170, 170);
-                        break;
-                    case Button btn when btn == btnCreate:
-                        btn.FlatStyle = FlatStyle.Flat;
-                        btn.BackColor = Color.FromArgb(160, 15, 15);
-                        btn.ForeColor = Color.White;
-                        btn.FlatAppearance.BorderColor = Color.FromArgb(200, 25, 25);
-                        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(200, 25, 25);
-                        btn.Cursor = Cursors.Hand;
-                        break;
-                    case Button btn:
-                        btn.FlatStyle = FlatStyle.Flat;
-                        btn.BackColor = Color.FromArgb(50, 50, 50);
-                        btn.ForeColor = Color.FromArgb(220, 220, 220);
-                        btn.FlatAppearance.BorderColor = Color.FromArgb(75, 75, 75);
-                        btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(70, 70, 70);
-                        btn.Cursor = Cursors.Hand;
-                        break;
-                }
-            }
-
+            Theme.ApplyToDialog(this, btnCreate);
+            lblArchiveSeparator.BackColor = Theme.Separator;
             UpdatePluginsState();
         }
 

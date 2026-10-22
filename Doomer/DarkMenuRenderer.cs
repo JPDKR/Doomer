@@ -3,9 +3,6 @@ namespace Doomer
     // Paints menus, context menus and the status bar in the app's dark theme.
     internal class DarkMenuRenderer : ToolStripProfessionalRenderer
     {
-        private static readonly Color TextColor = Color.FromArgb(220, 220, 220);
-        private static readonly Color DisabledTextColor = Color.FromArgb(120, 120, 120);
-
         public DarkMenuRenderer() : base(new DarkColorTable())
         {
             RoundedEdges = false;
@@ -13,7 +10,7 @@ namespace Doomer
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            e.TextColor = e.Item.Enabled ? TextColor : DisabledTextColor;
+            e.TextColor = e.Item.Enabled ? Theme.Text : Theme.DisabledText;
             base.OnRenderItemText(e);
         }
 
@@ -26,9 +23,9 @@ namespace Doomer
 
         private class DarkColorTable : ProfessionalColorTable
         {
-            private static readonly Color Bg = Color.FromArgb(30, 30, 30);
-            private static readonly Color Accent = Color.FromArgb(140, 15, 15);
-            private static readonly Color Border = Color.FromArgb(55, 55, 55);
+            private static readonly Color Bg = Theme.Bar;
+            private static readonly Color Accent = Theme.MenuHighlight;
+            private static readonly Color Border = Theme.Border;
 
             public override Color MenuItemSelected => Accent;
             public override Color MenuItemBorder => Accent;
@@ -38,10 +35,10 @@ namespace Doomer
             public override Color MenuItemPressedGradientBegin => Accent;
             public override Color MenuItemPressedGradientEnd => Accent;
             public override Color MenuItemPressedGradientMiddle => Accent;
-            public override Color ToolStripDropDownBackground => Color.FromArgb(28, 28, 28);
-            public override Color ImageMarginGradientBegin => Color.FromArgb(28, 28, 28);
-            public override Color ImageMarginGradientMiddle => Color.FromArgb(28, 28, 28);
-            public override Color ImageMarginGradientEnd => Color.FromArgb(28, 28, 28);
+            public override Color ToolStripDropDownBackground => Theme.DropDown;
+            public override Color ImageMarginGradientBegin => Theme.DropDown;
+            public override Color ImageMarginGradientMiddle => Theme.DropDown;
+            public override Color ImageMarginGradientEnd => Theme.DropDown;
             public override Color MenuStripGradientBegin => Bg;
             public override Color MenuStripGradientEnd => Bg;
             public override Color ToolStripGradientBegin => Bg;

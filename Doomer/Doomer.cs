@@ -6,14 +6,6 @@ namespace Doomer
 {
     public partial class Doomer : Form
     {
-        private static readonly Color BgColor = Color.FromArgb(18, 18, 18);
-        private static readonly Color SurfaceColor = Color.FromArgb(30, 30, 30);
-        private static readonly Color AccentColor = Color.FromArgb(160, 15, 15);
-        private static readonly Color ButtonBgColor = Color.FromArgb(38, 38, 38);
-        private static readonly Color ButtonHoverColor = Color.FromArgb(65, 10, 10);
-        private static readonly Color TextColor = Color.FromArgb(220, 220, 220);
-        private static readonly Color MutedColor = Color.FromArgb(140, 140, 140);
-
         private PortsSettings _ports = default!;
         private FoldersSettings _folders = default!;
         private IconsSettings _iconsSettings = default!;
@@ -25,9 +17,6 @@ namespace Doomer
         // The batches whose game is still open, so a double click or a second click doesn't launch it again.
         // Kept by path, so it survives the buttons being rebuilt.
         private readonly HashSet<string> _runningBatches = new(StringComparer.OrdinalIgnoreCase);
-
-        // A favorite's button gets a gold border so it stands out from the rest at the top.
-        private static readonly Color FavoriteColor = Color.FromArgb(212, 160, 23);
 
         public Doomer()
         {
@@ -50,31 +39,31 @@ namespace Doomer
 
         private void ApplyDarkTheme()
         {
-            BackColor = BgColor;
-            ForeColor = TextColor;
+            BackColor = Theme.Background;
+            ForeColor = Theme.Text;
 
-            menuStrip1.BackColor = SurfaceColor;
-            menuStrip1.ForeColor = TextColor;
+            menuStrip1.BackColor = Theme.Bar;
+            menuStrip1.ForeColor = Theme.Text;
             menuStrip1.Renderer = new DarkMenuRenderer();
 
             sortToolStripMenuItem.DropDown.Renderer = menuStrip1.Renderer;
             UpdateSortMenu();
 
             foreach (ToolStripItem item in menuStrip1.Items)
-                item.ForeColor = TextColor;
+                item.ForeColor = Theme.Text;
 
-            txtSearch.BackColor = Color.FromArgb(48, 48, 48);
-            txtSearch.ForeColor = TextColor;
+            txtSearch.BackColor = Theme.SearchBox;
+            txtSearch.ForeColor = Theme.Text;
 
-            flowLayoutPanel1.BackColor = BgColor;
+            flowLayoutPanel1.BackColor = Theme.Background;
 
-            statusStrip1.BackColor = SurfaceColor;
+            statusStrip1.BackColor = Theme.Bar;
             statusStrip1.Renderer = new DarkMenuRenderer();
-            lblStatus.ForeColor = MutedColor;
+            lblStatus.ForeColor = Theme.MutedText;
 
-            loadingPanel.BackColor = BgColor;
-            lblLoading.ForeColor = MutedColor;
-            lblVersion.ForeColor = MutedColor;
+            loadingPanel.BackColor = Theme.Background;
+            lblLoading.ForeColor = Theme.MutedText;
+            lblVersion.ForeColor = Theme.MutedText;
         }
 
         private void ApplyTexts()
@@ -275,12 +264,12 @@ namespace Doomer
                 Name = entry.Name,
                 Margin = new Padding(_iconsSettings.Padding),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = ButtonBgColor,
-                ForeColor = TextColor,
+                BackColor = Theme.Input,
+                ForeColor = Theme.Text,
                 Cursor = Cursors.Hand,
             };
 
-            boton.FlatAppearance.MouseOverBackColor = ButtonHoverColor;
+            boton.FlatAppearance.MouseOverBackColor = Theme.WadButtonHover;
             ApplyFavoriteStyle(boton);
             boton.ContextMenuStrip = BuildWadContextMenu(boton);
 
@@ -322,7 +311,7 @@ namespace Doomer
         private void ApplyFavoriteStyle(Button boton)
         {
             var favorite = _library.IsFavorite(boton.Name);
-            boton.FlatAppearance.BorderColor = favorite ? FavoriteColor : AccentColor;
+            boton.FlatAppearance.BorderColor = favorite ? Theme.Favorite : Theme.Accent;
             boton.FlatAppearance.BorderSize = favorite ? 2 : 1;
             _wadTooltip.SetToolTip(boton, favorite ? $"★ {boton.Name}" : boton.Name);
         }

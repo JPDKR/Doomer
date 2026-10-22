@@ -77,7 +77,7 @@ Use **Sort** in the menu to list the WADs **By name** or **By last played** (mos
 Right-click any WAD button to:
 
 * Mark or unmark it as a **Favorite**.
-* **Edit** its batch file.
+* **Edit** its batch file. You can also rename it there: its icon and its favorite/play history go along with it (a name another batch already uses isn't accepted). The Image box shows its current icon; pick, paste or enter another one to replace it, or leave it as it is to keep it.
 * **Change image**: pick a new icon. The file is copied into `Folders.Images.Path`, so the original stays where it was.
 * **Open WAD folder**: opens Explorer with the batch's WAD selected. Relative WAD paths are resolved from the source port's folder.
 * **Duplicate** it under a new name (e.g. to try the same WAD with another plugin), along with its icon.

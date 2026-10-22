@@ -12,7 +12,11 @@ namespace Doomer
         private readonly PortsSettings _ports = AppConfiguration.Ports;
         private readonly FoldersSettings _folders = AppConfiguration.Folders;
         private readonly string? _editingFilePath;
-        private bool _hasExistingImage;
+        // The edited batch's icon, shown in the Image box. Leaving it there keeps it; picking another replaces it.
+        private string? _existingImagePath;
+        // Set once an edited batch is saved under a new name, so the main window can carry over its favorite and history.
+        public (string OldName, string NewName)? Renamed { get; private set; }
+
         // The temp file a Ctrl+V'd image was saved to, which is moved into the images folder instead of copied.
         private string? _pastedImagePath;
 
@@ -135,15 +139,11 @@ namespace Doomer
             btnCreate.Text = Strings.SaveButton;
             txtFileName.Text = Path.GetFileNameWithoutExtension(path);
 
-            // The batch name is fixed once created, and so is its image once it has one.
-            txtFileName.ReadOnly = true;
             var imagePath = GetImagePath(path);
-            _hasExistingImage = imagePath is not null && File.Exists(imagePath);
 
-            if (_hasExistingImage)
+            if (imagePath is not null && File.Exists(imagePath))
             {
-                btnBrowseImage.Enabled = false;
-                txtImage.ReadOnly = true;
+                _existingImagePath = imagePath;
                 txtImage.Text = imagePath;
             }
 
@@ -540,7 +540,8 @@ namespace Doomer
             SetItems(lstExtraFiles, ArchiveService.FindExtraFiles(files, wad));
             SwitchToGZDoomIfNeeded();
 
-            if (!txtFileName.ReadOnly)
+            // An edited batch keeps its name; it can still be renamed by hand.
+            if (_editingFilePath is null)
                 txtFileName.Text = folderName;
         }
 
@@ -548,7 +549,7 @@ namespace Doomer
         // Returns null if they cancel.
         private string? AskForWadName(string suggestion)
         {
-            var prompt = txtFileName.ReadOnly ? Strings.AskFolderName : Strings.AskFolderAndBatchName;
+            var prompt = _editingFilePath is not null ? Strings.AskFolderName : Strings.AskFolderAndBatchName;
             var name = suggestion;
 
             while (true)
@@ -618,7 +619,7 @@ namespace Doomer
         // Sites like Doom Wiki block downloads from apps, but the browser has already fetched the image.
         private void TxtImage_KeyDown(object? sender, KeyEventArgs e)
         {
-            if (txtImage.ReadOnly || !e.Control || e.KeyCode != Keys.V || !Clipboard.ContainsImage())
+            if (!e.Control || e.KeyCode != Keys.V || !Clipboard.ContainsImage())
                 return;
 
             e.SuppressKeyPress = true;
@@ -763,6 +764,21 @@ namespace Doomer
                 return;
             }
 
+            // An edited batch stays in its folder with its extension, so renaming only changes its name.
+            var path = _editingFilePath is null
+                ? Path.Combine(_folders.Batches.Path, fileName + _folders.Batches.Extension)
+                : Path.Combine(Path.GetDirectoryName(_editingFilePath)!, fileName + Path.GetExtension(_editingFilePath));
+            // Compared exactly, so changing only the case ("sigil" -> "Sigil") renames it too.
+            var renaming = _editingFilePath is not null && !string.Equals(path, _editingFilePath, StringComparison.Ordinal);
+
+            // Renaming never replaces another batch; only a new one can, after asking (see below).
+            if (renaming && File.Exists(path) && !string.Equals(path, _editingFilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(string.Format(Strings.BatchNameTaken, fileName), Strings.BatchCreationTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (port == SourcePort.DSDADoom && BatchFileService.RequiresGZDoom(wadFile, extraFiles))
             {
                 MessageBox.Show(Strings.DSDADoomNoPackages, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -818,10 +834,11 @@ namespace Doomer
                 return;
             }
 
-            var path = _editingFilePath ?? Path.Combine(_folders.Batches.Path, fileName + _folders.Batches.Extension);
+            // The current icon left in the Image box is kept (and follows a rename); anything else replaces it.
+            var imageSource = txtImage.Text.Trim();
+            if (string.Equals(imageSource, _existingImagePath, StringComparison.OrdinalIgnoreCase))
+                imageSource = string.Empty;
 
-            // An existing image is never replaced; one can only be added if the batch has none yet.
-            var imageSource = _hasExistingImage ? string.Empty : txtImage.Text.Trim();
             // Named from the batch's own path, so the icon always matches the batch file.
             var imageDestination = string.IsNullOrEmpty(imageSource) ? null : GetImagePath(path);
 
@@ -886,17 +903,32 @@ namespace Doomer
                 return;
             }
 
+            var batchMoved = false;
+
             try
             {
+                // Moved rather than written anew, so a rename that only changes the case takes effect.
+                if (renaming)
+                {
+                    File.Move(_editingFilePath!, path);
+                    batchMoved = true;
+                }
+
                 File.WriteAllText(path, command);
             }
             catch (Exception ex)
             {
-                // The files go back, so the form's paths still point to them for another try.
+                // Everything goes back, so the form's paths still point to the files for another try.
+                if (batchMoved)
+                    TryMove(path, _editingFilePath!);
+
                 WadMoveService.Undo(moves);
                 MessageBox.Show(string.Format(Strings.SaveBatchError, ex.Message), Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            if (renaming)
+                Renamed = (Path.GetFileNameWithoutExtension(_editingFilePath!), fileName);
 
             UpdateOtherBatches(path, moves);
 
@@ -906,6 +938,15 @@ namespace Doomer
             {
                 if (imageDestination is not null)
                     ImageFileService.Save(imageSource, imageDestination, move: imageIsTemporary);
+
+                // The old icon goes along with a renamed batch, or away once a new one took its place.
+                if (renaming && _existingImagePath is not null && GetImagePath(path) is { } renamedImage)
+                {
+                    if (imageDestination is null)
+                        File.Move(_existingImagePath, renamedImage, overwrite: true);
+                    else if (!string.Equals(_existingImagePath, renamedImage, StringComparison.OrdinalIgnoreCase))
+                        File.Delete(_existingImagePath);
+                }
             }
             catch (Exception ex)
             {
@@ -920,6 +961,18 @@ namespace Doomer
 
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        // Only called when something already failed, so there's nothing more to do if this fails too.
+        private static void TryMove(string source, string destination)
+        {
+            try
+            {
+                File.Move(source, destination);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
         }
 
         // Other batches that loaded the moved files would stop working, so they're pointed to the new place too.

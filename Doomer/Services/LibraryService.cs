@@ -78,6 +78,24 @@ namespace Doomer.Services
             Save();
         }
 
+        // For a renamed batch, so it's still a favorite and keeps its history under the new name.
+        public void Rename(string oldName, string newName)
+        {
+            var favorite = _favorites.Remove(oldName);
+            var played = _lastPlayed.Remove(oldName, out var when);
+
+            if (!favorite && !played)
+                return;
+
+            if (favorite)
+                _favorites.Add(newName);
+
+            if (played)
+                _lastPlayed[newName] = when;
+
+            Save();
+        }
+
         // For a deleted batch, so a new one with the same name doesn't inherit its history.
         public void Forget(string name)
         {

@@ -417,10 +417,14 @@ namespace Doomer
         {
             using var form = new BatchCreatorForm(filePath);
 
-            if (form.ShowDialog() == DialogResult.OK)
-            {
-                await LoadButtonsBatchAsync();
-            }
+            if (form.ShowDialog() != DialogResult.OK)
+                return;
+
+            // The library knows WADs by name, so a renamed one keeps its favorite and history.
+            if (form.Renamed is var (oldName, newName))
+                TrySaveLibrary(() => _library.Rename(oldName, newName));
+
+            await LoadButtonsBatchAsync();
         }
 
         // Like the batch form does with a picked image, this copies it, so replacing an icon never

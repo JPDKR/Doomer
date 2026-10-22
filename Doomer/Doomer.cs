@@ -92,6 +92,9 @@ namespace Doomer
 
         private async void MainForm_Load(object sender, EventArgs e)
         {
+            // Images a crash left in the temp folder. It never fails, so it runs on its own in the background.
+            _ = Task.Run(() => TempFileService.DeleteLeftovers(Path.GetTempPath(), TimeSpan.FromDays(1), DateTime.UtcNow));
+
             await LoadButtonsBatchAsync();
             await CheckForUpdateAsync();
         }

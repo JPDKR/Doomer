@@ -23,7 +23,7 @@ namespace Doomer.Services
                     : string.Format(Strings.DownloadHttpError, (int)response.StatusCode, response.ReasonPhrase));
             }
 
-            var path = Path.Combine(Path.GetTempPath(), $"Doomer-{Guid.NewGuid():N}.download");
+            var path = TempFileService.NewDownloadPath();
 
             await using (var file = File.Create(path))
                 await response.Content.CopyToAsync(file);

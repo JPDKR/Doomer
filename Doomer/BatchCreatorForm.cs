@@ -20,6 +20,10 @@ namespace Doomer
         // The temp file a Ctrl+V'd image was saved to, which is moved into the images folder instead of copied.
         private string? _pastedImagePath;
 
+        // Every pasted or downloaded image this form saved to the temp folder. The one used gets moved into the
+        // images folder; the rest (pasted over, or left by a cancel or failed save) are deleted when it closes.
+        private readonly List<string> _tempFiles = [];
+
         // The extras and plugins lists grow a row per file up to this many, then scroll.
         private const int MaxVisibleListRows = 8;
         private int _baseClientHeight;
@@ -101,6 +105,14 @@ namespace Doomer
             // Full paths are long, so the list widens to show them whole.
             var widest = iwads.Select(i => TextRenderer.MeasureText(i, cmbIWad.Font).Width).DefaultIfEmpty(0).Max();
             cmbIWad.DropDownWidth = Math.Max(cmbIWad.Width, widest + SystemInformation.VerticalScrollBarWidth);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            foreach (var file in _tempFiles)
+                TempFileService.TryDelete(file);
+
+            base.OnFormClosed(e);
         }
 
         protected override async void OnShown(EventArgs e)
@@ -633,7 +645,8 @@ namespace Doomer
                 return;
             }
 
-            var path = Path.Combine(Path.GetTempPath(), $"Doomer-pasted-{Guid.NewGuid():N}.png");
+            var path = TempFileService.NewPastedImagePath();
+            _tempFiles.Add(path);
 
             try
             {
@@ -890,6 +903,7 @@ namespace Doomer
 
                 imageSource = downloaded;
                 imageIsTemporary = true;
+                _tempFiles.Add(downloaded);
             }
 
             try

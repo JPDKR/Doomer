@@ -159,7 +159,7 @@ namespace Doomer
             }
 
             if (!BatchFileService.TryParseCommand(command, _ports.GZDoom.Plugins, out var port, out var iwad, out var wad,
-                    out var extraFiles, out var plugins))
+                    out var extraFiles, out var plugins, out var arguments))
             {
                 MessageBox.Show(Strings.CantParseBatch,
                     Strings.EditBatchTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -171,6 +171,7 @@ namespace Doomer
             txtWad.Text = wad;
             SetItems(lstExtraFiles, extraFiles);
             SetItems(lstPlugins, plugins);
+            txtArguments.Text = arguments;
         }
 
         private void ApplyTexts()
@@ -181,6 +182,7 @@ namespace Doomer
             lblFileName.Text = Strings.LabelFileName;
             lblSourcePort.Text = Strings.LabelSourcePort;
             lblExtraFiles.Text = Strings.LabelExtraFiles;
+            lblArguments.Text = Strings.LabelArguments;
             lblImage.Text = Strings.LabelImage;
             btnBrowseIWad.Text = btnBrowseWad.Text = btnBrowseImage.Text = Strings.BrowseButton;
             btnAddExtraFile.Text = btnAddPlugin.Text = Strings.AddButton;
@@ -189,6 +191,7 @@ namespace Doomer
 
             txtFileName.PlaceholderText = Strings.PlaceholderFileName;
             txtWad.PlaceholderText = Strings.PlaceholderWad;
+            txtArguments.PlaceholderText = Strings.PlaceholderArguments;
             txtImage.PlaceholderText = Strings.PlaceholderImage;
             txtPluginsUnsupported.PlaceholderText = Strings.PlaceholderPluginsUnsupported;
             SetCueBanner(cmbIWad, Strings.PlaceholderIWad);
@@ -732,6 +735,7 @@ namespace Doomer
             var wadFile = txtWad.Text.Trim();
             List<string> plugins = port == SourcePort.GZDoom ? Plugins : [];
             var extraFiles = ExtraFiles;
+            var arguments = txtArguments.Text.Trim();
             var fileName = txtFileName.Text.Trim();
 
             if (string.IsNullOrWhiteSpace(iwad) || string.IsNullOrWhiteSpace(wadFile) || string.IsNullOrWhiteSpace(fileName))
@@ -803,8 +807,8 @@ namespace Doomer
             try
             {
                 command = port == SourcePort.DSDADoom
-                    ? BatchFileService.BuildDSDADoomCommand(_ports.DSDADoom.Path, iwad, wadFile, extraFiles)
-                    : BatchFileService.BuildGZDoomCommand(_ports.GZDoom.Path, _ports.GZDoom.Plugins, iwad, wadFile, plugins, extraFiles);
+                    ? BatchFileService.BuildDSDADoomCommand(_ports.DSDADoom.Path, iwad, wadFile, extraFiles, arguments)
+                    : BatchFileService.BuildGZDoomCommand(_ports.GZDoom.Path, _ports.GZDoom.Plugins, iwad, wadFile, plugins, extraFiles, arguments);
             }
             catch (ArgumentException ex)
             {

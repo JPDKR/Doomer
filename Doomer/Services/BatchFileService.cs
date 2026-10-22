@@ -19,14 +19,14 @@ namespace Doomer.Services
         // The same kinds of files the WAD pickers offer.
         private static readonly string[] PluginExtensions = [".wad", ".pk3", ".pk7", ".zip", ".deh", ".bex"];
 
-        // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"]
+        // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"] [<arguments>]
         private static readonly Regex GZDoomPattern = new(
-            "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*",
+            "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*(?<arguments>[^\\r\\n]*)",
             RegexOptions.Compiled);
 
-        // <exe> "<iwad>" "<wad>" ["<extra file>"...] — the executable may or may not be quoted.
+        // <exe> "<iwad>" "<wad>" ["<extra file>"...] [<arguments>] — the executable may or may not be quoted.
         private static readonly Regex DSDADoomPattern = new(
-            "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"(?:\\s+\"(?<file>[^\"]*)\")*",
+            "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"(?:[ \\t]+\"(?<file>[^\"]*)\")*(?<arguments>[^\\r\\n]*)",
             RegexOptions.Compiled);
 
         // Written before a GZDoom command that has plugins, so they can be told apart from the extra files
@@ -153,9 +153,9 @@ namespace Doomer.Services
         }
 
         // Extra files (DEH/BEX patches, other WADs...) are loaded right after the WAD, then the plugins,
-        // in the order given, each under the plugins folder.
+        // in the order given, each under the plugins folder. The arguments (e.g. -skill 4) go last, as typed.
         public static string BuildGZDoomCommand(string executable, string pluginsFolder, string iwad, string wad,
-            IReadOnlyList<string> plugins, IReadOnlyList<string>? extraFiles = null)
+            IReadOnlyList<string> plugins, IReadOnlyList<string>? extraFiles = null, string? arguments = null)
         {
             extraFiles ??= [];
             plugins = [.. plugins.Where(p => !string.IsNullOrWhiteSpace(p))];
@@ -164,33 +164,45 @@ namespace Doomer.Services
                 ContainsQuote(iwad) || ContainsQuote(wad) || plugins.Any(ContainsQuote) || extraFiles.Any(ContainsQuote))
                 throw new ArgumentException(Strings.GZDoomPathsWithQuotes);
 
-            var command = $"\"{executable}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
+            var command = $"\"{executable}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}" +
+                string.Concat(plugins.Select(p => $" \"{pluginsFolder}/{p}\"")) + FormatArguments(arguments);
 
-            if (plugins.Count == 0)
-                return command;
-
-            return $"{PluginsFolderMarker}{pluginsFolder}\r\n" + command +
-                string.Concat(plugins.Select(p => $" \"{pluginsFolder}/{p}\""));
+            return plugins.Count == 0 ? command : $"{PluginsFolderMarker}{pluginsFolder}\r\n" + command;
         }
 
         // DSDA Doom tells loose files apart by extension, so DEH/BEX patches can be passed like WADs.
-        public static string BuildDSDADoomCommand(string executable, string iwad, string wad, IReadOnlyList<string>? extraFiles = null)
+        public static string BuildDSDADoomCommand(string executable, string iwad, string wad, IReadOnlyList<string>? extraFiles = null,
+            string? arguments = null)
         {
             extraFiles ??= [];
 
             if (ContainsQuote(executable) || ContainsQuote(iwad) || ContainsQuote(wad) || extraFiles.Any(ContainsQuote))
                 throw new ArgumentException(Strings.DSDADoomPathsWithQuotes);
 
-            return $"\"{executable}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}";
+            return $"\"{executable}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}" +
+                FormatArguments(arguments);
         }
 
         private static string QuoteFiles(IReadOnlyList<string> files) =>
             string.Concat(files.Select(f => $" \"{EnsureWadExtension(f)}\""));
 
+        // Written as typed, quotes included, so they only have to stay on the command's line.
+        private static string FormatArguments(string? arguments)
+        {
+            if (string.IsNullOrWhiteSpace(arguments))
+                return string.Empty;
+
+            if (arguments.AsSpan().IndexOfAny('\r', '\n') >= 0)
+                throw new ArgumentException(Strings.ArgumentsWithLineBreaks);
+
+            return " " + arguments.Trim();
+        }
+
         // The plugins are the last paths, under the plugins folder: the one the batch was written with, or
-        // pluginsFolder (the current setting) for batches from before that was written down.
+        // pluginsFolder (the current setting) for batches from before that was written down. Whatever follows
+        // the paths on the command's line (e.g. -skill 4 added by hand) comes back as the arguments.
         public static bool TryParseCommand(string command, string pluginsFolder, out SourcePort port, out string iwad,
-            out string wad, out List<string> extraFiles, out List<string> plugins)
+            out string wad, out List<string> extraFiles, out List<string> plugins, out string arguments)
         {
             var match = GZDoomPattern.Match(command);
 
@@ -201,6 +213,7 @@ namespace Doomer.Services
                 wad = StripWadExtension(match.Groups["wad"].Value);
                 extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
                 plugins = [];
+                arguments = match.Groups["arguments"].Value.Trim();
 
                 var written = PluginsFolderPattern.Match(command);
                 var prefix = (written.Success ? written.Groups["folder"].Value : pluginsFolder) + "/";
@@ -222,11 +235,12 @@ namespace Doomer.Services
                 wad = StripWadExtension(match.Groups["wad"].Value);
                 extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
                 plugins = [];
+                arguments = match.Groups["arguments"].Value.Trim();
                 return true;
             }
 
             port = SourcePort.GZDoom;
-            iwad = wad = string.Empty;
+            iwad = wad = arguments = string.Empty;
             extraFiles = [];
             plugins = [];
             return false;

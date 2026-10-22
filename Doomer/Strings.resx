@@ -205,6 +205,12 @@ Open Settings to fix the path.</value>
   <data name="LabelExtraFiles" xml:space="preserve">
     <value>Extra files</value>
   </data>
+  <data name="LabelArguments" xml:space="preserve">
+    <value>Arguments</value>
+  </data>
+  <data name="PlaceholderArguments" xml:space="preserve">
+    <value>Optional, e.g. -skill 4 -warp 1</value>
+  </data>
   <data name="LabelImage" xml:space="preserve">
     <value>Image</value>
   </data>
@@ -464,6 +470,9 @@ WAD buttons will show text instead of icons. Save anyway?</value>
   </data>
   <data name="DSDADoomPathsWithQuotes" xml:space="preserve">
     <value>DSDA Doom location, IWAD, WAD and extra file paths cannot contain quote characters.</value>
+  </data>
+  <data name="ArgumentsWithLineBreaks" xml:space="preserve">
+    <value>Arguments must fit on a single line.</value>
   </data>
   <data name="ArchiveUnsafePath" xml:space="preserve">
     <value>The archive contains an unsafe path: {0}</value>

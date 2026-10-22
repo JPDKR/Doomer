@@ -26,7 +26,7 @@ namespace Doomer.Services
                     continue;
                 }
 
-                if (BatchFileService.TryParseCommand(command, pluginsFolder, out _, out var iwad, out _, out _, out _) &&
+                if (BatchFileService.TryParseCommand(command, pluginsFolder, out _, out var iwad, out _, out _, out _, out _) &&
                     !string.IsNullOrWhiteSpace(iwad))
                 {
                     iwads.Add(BatchFileService.EnsureWadExtension(iwad));

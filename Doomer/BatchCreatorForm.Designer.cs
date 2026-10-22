@@ -39,6 +39,8 @@ namespace Doomer
             btnAddPlugin = new Button();
             btnRemovePlugin = new Button();
             txtPluginsUnsupported = new TextBox();
+            lblArguments = new Label();
+            txtArguments = new TextBox();
             lblImage = new Label();
             txtImage = new TextBox();
             btnBrowseImage = new Button();
@@ -257,19 +259,36 @@ namespace Doomer
             txtPluginsUnsupported.TabIndex = 23;
             txtPluginsUnsupported.Visible = false;
             //
+            // lblArguments
+            //
+            lblArguments.AutoSize = false;
+            lblArguments.Location = new Point(8, 366);
+            lblArguments.Name = "lblArguments";
+            lblArguments.Size = new Size(90, 27);
+            lblArguments.TabIndex = 26;
+            lblArguments.Text = "Arguments";
+            lblArguments.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtArguments
+            //
+            txtArguments.Location = new Point(106, 366);
+            txtArguments.Name = "txtArguments";
+            txtArguments.Size = new Size(380, 27);
+            txtArguments.TabIndex = 13;
+            //
             // lblImage
             //
             lblImage.AutoSize = false;
-            lblImage.Location = new Point(8, 366);
+            lblImage.Location = new Point(8, 402);
             lblImage.Name = "lblImage";
             lblImage.Size = new Size(90, 27);
-            lblImage.TabIndex = 13;
+            lblImage.TabIndex = 27;
             lblImage.Text = "Image";
             lblImage.TextAlign = ContentAlignment.MiddleRight;
             //
             // txtImage
             //
-            txtImage.Location = new Point(106, 366);
+            txtImage.Location = new Point(106, 402);
             txtImage.Name = "txtImage";
             txtImage.Size = new Size(296, 27);
             txtImage.TabIndex = 14;
@@ -277,7 +296,7 @@ namespace Doomer
             //
             // btnBrowseImage
             //
-            btnBrowseImage.Location = new Point(408, 366);
+            btnBrowseImage.Location = new Point(408, 402);
             btnBrowseImage.Name = "btnBrowseImage";
             btnBrowseImage.Size = new Size(78, 27);
             btnBrowseImage.TabIndex = 15;
@@ -286,7 +305,7 @@ namespace Doomer
             //
             // btnCreate
             //
-            btnCreate.Location = new Point(246, 410);
+            btnCreate.Location = new Point(246, 446);
             btnCreate.Name = "btnCreate";
             btnCreate.Size = new Size(100, 30);
             btnCreate.TabIndex = 16;
@@ -298,11 +317,13 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(502, 456);
+            ClientSize = new Size(502, 492);
             Controls.Add(btnCreate);
             Controls.Add(btnBrowseImage);
             Controls.Add(txtImage);
             Controls.Add(lblImage);
+            Controls.Add(txtArguments);
+            Controls.Add(lblArguments);
             Controls.Add(btnRemovePlugin);
             Controls.Add(btnAddPlugin);
             Controls.Add(lstPlugins);
@@ -360,6 +381,8 @@ namespace Doomer
         private Button btnAddPlugin;
         private Button btnRemovePlugin;
         private TextBox txtPluginsUnsupported;
+        private Label lblArguments;
+        private TextBox txtArguments;
         private Label lblImage;
         private TextBox txtImage;
         private Button btnBrowseImage;

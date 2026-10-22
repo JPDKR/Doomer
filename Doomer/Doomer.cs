@@ -479,7 +479,7 @@ namespace Doomer
                 return;
             }
 
-            if (!BatchFileService.TryParseCommand(command, _ports.GZDoom.Plugins, out var port, out _, out var wad, out _, out _))
+            if (!BatchFileService.TryParseCommand(command, _ports.GZDoom.Plugins, out var port, out _, out var wad, out _, out _, out _))
             {
                 MessageBox.Show(Strings.WadNotInBatch, Strings.OpenWadFolderTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;

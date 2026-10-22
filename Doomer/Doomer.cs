@@ -419,8 +419,8 @@ namespace Doomer
             }
         }
 
-        // Unlike the batch form, which moves a picked image into the images folder, this copies it,
-        // so replacing an icon never takes a file away from where the user keeps it.
+        // Like the batch form does with a picked image, this copies it, so replacing an icon never
+        // takes a file away from where the user keeps it.
         private async void ChangeImage(string filePath)
         {
             var images = _folders.Images;

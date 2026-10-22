@@ -13,6 +13,8 @@ namespace Doomer
         private readonly FoldersSettings _folders = AppConfiguration.Folders;
         private readonly string? _editingFilePath;
         private bool _hasExistingImage;
+        // The temp file a Ctrl+V'd image was saved to, which is moved into the images folder instead of copied.
+        private string? _pastedImagePath;
 
         // The extras and plugins lists grow a row per file up to this many, then scroll.
         private const int MaxVisibleListRows = 8;
@@ -643,6 +645,7 @@ namespace Doomer
                 return;
             }
 
+            _pastedImagePath = path;
             txtImage.Text = path;
         }
 
@@ -857,6 +860,10 @@ namespace Doomer
                     return;
             }
 
+            // Only the app's own temp files (a download or a pasted image) are moved; an image picked from
+            // the user's files is copied, so it stays where they keep it.
+            var imageIsTemporary = string.Equals(imageSource, _pastedImagePath, StringComparison.OrdinalIgnoreCase);
+
             // Downloaded last, once everything else is checked, so nothing is saved if it fails.
             if (ImageDownloadService.IsUrl(imageSource))
             {
@@ -866,6 +873,7 @@ namespace Doomer
                     return;
 
                 imageSource = downloaded;
+                imageIsTemporary = true;
             }
 
             if (wadDestination is not null)
@@ -894,21 +902,21 @@ namespace Doomer
                 return;
             }
 
-            var imageMoved = true;
+            var imageSaved = true;
 
             try
             {
                 if (imageDestination is not null)
-                    ImageFileService.Save(imageSource, imageDestination, move: true);
+                    ImageFileService.Save(imageSource, imageDestination, move: imageIsTemporary);
             }
             catch (Exception ex)
             {
-                imageMoved = false;
-                MessageBox.Show(string.Format(Strings.ImageMoveError, ex.Message),
+                imageSaved = false;
+                MessageBox.Show(string.Format(Strings.ImageSaveError, ex.Message),
                     Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
-            if (imageMoved)
+            if (imageSaved)
                 MessageBox.Show(_editingFilePath is null ? Strings.BatchCreated : Strings.BatchUpdated,
                     Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
 

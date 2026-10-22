@@ -365,8 +365,8 @@ Fix it in Settings first.</value>
   <data name="SaveBatchError" xml:space="preserve">
     <value>Error saving the batch: {0}</value>
   </data>
-  <data name="ImageMoveError" xml:space="preserve">
-    <value>The batch was saved, but the image couldn't be moved: {0}</value>
+  <data name="ImageSaveError" xml:space="preserve">
+    <value>The batch was saved, but the image couldn't be saved: {0}</value>
   </data>
   <data name="BatchCreated" xml:space="preserve">
     <value>Batch created successfully.</value>

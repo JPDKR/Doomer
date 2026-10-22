@@ -365,8 +365,8 @@ Corrígela primero en Configuración.</value>
   <data name="SaveBatchError" xml:space="preserve">
     <value>Error al guardar el batch: {0}</value>
   </data>
-  <data name="ImageMoveError" xml:space="preserve">
-    <value>El batch se guardó, pero no se pudo mover la imagen: {0}</value>
+  <data name="ImageSaveError" xml:space="preserve">
+    <value>El batch se guardó, pero no se pudo guardar la imagen: {0}</value>
   </data>
   <data name="BatchCreated" xml:space="preserve">
     <value>Batch creado correctamente.</value>

@@ -235,6 +235,21 @@ namespace Doomer
         private static bool ExecutableExists(string path) =>
             File.Exists(path) || File.Exists(path + ".exe");
 
+        // Shows the extension as it will be saved (e.g. "bat" becomes ".bat"), or says why it can't be used.
+        private static bool NormalizeExtension(TextBox textBox, string group, string example)
+        {
+            if (SettingsFile.TryNormalizeExtension(textBox.Text, out var extension))
+            {
+                textBox.Text = extension;
+                return true;
+            }
+
+            MessageBox.Show(string.Format(Strings.ExtensionInvalid, group, example), Strings.ValidationTitle,
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            textBox.Focus();
+            return false;
+        }
+
         private void BtnSave_Click(object sender, EventArgs e)
         {
             var gzdoomLocation = txtGZDoomLocation.Text.Trim();
@@ -250,6 +265,10 @@ namespace Doomer
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            if (!NormalizeExtension(txtBatchsExtension, Strings.GroupBatchFiles, new BatchSettings().Extension) ||
+                !NormalizeExtension(txtImagesExtension, Strings.GroupImages, new ImageSettings().Extension))
+                return;
 
             if (!string.IsNullOrWhiteSpace(dsdaDoomLocation) && !ExecutableExists(dsdaDoomLocation))
             {

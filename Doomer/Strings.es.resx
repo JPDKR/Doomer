@@ -444,6 +444,9 @@ Corrígela primero en Configuración.</value>
   <data name="ValidationTitle" xml:space="preserve">
     <value>Validación</value>
   </data>
+  <data name="ExtensionInvalid" xml:space="preserve">
+    <value>Escribe una extensión de archivo válida para {0}, por ejemplo {1}.</value>
+  </data>
   <data name="SettingsRequired" xml:space="preserve">
     <value>Se necesita al menos un ejecutable (GZDoom o DSDA Doom) y la carpeta de batches.</value>
   </data>

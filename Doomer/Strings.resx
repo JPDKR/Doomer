@@ -444,6 +444,9 @@ Fix it in Settings first.</value>
   <data name="ValidationTitle" xml:space="preserve">
     <value>Validation</value>
   </data>
+  <data name="ExtensionInvalid" xml:space="preserve">
+    <value>Enter a valid file extension for {0}, such as {1}.</value>
+  </data>
   <data name="SettingsRequired" xml:space="preserve">
     <value>At least one executable (GZDoom or DSDA Doom) and the batch directory are required.</value>
   </data>

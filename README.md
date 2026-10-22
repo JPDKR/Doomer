@@ -54,6 +54,8 @@ The app reads its settings from `%AppData%\Doomer\appsettings.json`, which is cr
 * **Ports.DSDADoom.Path**: full path to your `dsda-doom.exe` (optional — only needed for DSDA Doom batches). At least one of the two executables must be set.
 * **Folders.Batches**: where your `.bat` launchers live, and their extension.
 * **Folders.Images**: where the button icons live, and their extension.
+
+  Extensions can be written with or without the dot (`bat` is saved as `.bat`). Settings won't save an empty or invalid one, and if the file has one, the default (`.bat` or `.png`) is used instead.
 * **Folders.Wads**: where your WADs live. Archives opened with **From archive...** are extracted here, a WAD picked from somewhere else is moved here when its batch is saved, and the IWAD list looks here for IWADs.
 * **Interface.Language**: the app's language — `en` (English) or `es` (Español). Leave it empty to follow Windows' language (English if Windows uses one the app isn't translated to).
 * **Interface.Icons**: size and spacing of the buttons in the main window.

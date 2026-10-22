@@ -679,173 +679,24 @@ namespace Doomer
                 ? null
                 : BatchFileService.GetImagePath(batchPath, _folders.Images);
 
-        private static bool ConfirmPathIfMissing(string label, string path)
-        {
-            if (!Path.IsPathRooted(path) || File.Exists(path))
-                return true;
-
-            var proceed = MessageBox.Show(
-                string.Format(Strings.FileNotFoundCreateAnyway, label, path),
-                Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-            return proceed == DialogResult.Yes;
-        }
-
-        // Like GZDoom, a plugin without an extension is looked up as a .wad.
-        private bool ConfirmPluginIfMissing(string plugin)
-        {
-            var directory = BatchFileService.GetPluginsDirectory(_ports.GZDoom.Plugins, _ports.GZDoom.Path);
-
-            if (string.IsNullOrEmpty(plugin) || directory is null)
-                return true;
-
-            var path = Path.Combine(directory, plugin);
-            return File.Exists(path) || ConfirmPathIfMissing(Strings.PluginFileLabel, BatchFileService.EnsureWadExtension(path));
-        }
-
         private async void BtnCreate_Click(object sender, EventArgs e)
         {
-            var port = SelectedPort;
-            var iwad = cmbIWad.Text.Trim();
-            var wadFile = txtWad.Text.Trim();
-            List<string> plugins = port == SourcePort.GZDoom ? Plugins : [];
-            var extraFiles = ExtraFiles;
-            var arguments = txtArguments.Text.Trim();
-            var fileName = txtFileName.Text.Trim();
+            var draft = new BatchDraft(SelectedPort, txtFileName.Text, cmbIWad.Text, txtWad.Text, ExtraFiles, Plugins,
+                txtArguments.Text, txtImage.Text, _editingFilePath, _existingImagePath);
 
-            if (string.IsNullOrWhiteSpace(iwad) || string.IsNullOrWhiteSpace(wadFile) || string.IsNullOrWhiteSpace(fileName))
+            if (!BatchPlanService.TryPlan(draft, _ports, _folders, out var plan, out var error))
             {
-                MessageBox.Show(Strings.MissingRequiredFields, Strings.BatchCreationTitle,
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(error, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            var executable = port == SourcePort.DSDADoom ? _ports.DSDADoom.Path : _ports.GZDoom.Path;
-
-            if (string.IsNullOrWhiteSpace(executable))
+            foreach (var question in plan.Confirmations)
             {
-                MessageBox.Show(string.Format(Strings.ExecutableNotConfigured, BatchFileService.GetDisplayName(port)),
-                    Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (!BatchFileService.IsValidFileName(fileName, out var fileNameError))
-            {
-                MessageBox.Show(fileNameError, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // An edited batch stays in its folder with its extension, so renaming only changes its name.
-            var path = _editingFilePath is null
-                ? Path.Combine(_folders.Batches.Path, fileName + _folders.Batches.Extension)
-                : Path.Combine(Path.GetDirectoryName(_editingFilePath)!, fileName + Path.GetExtension(_editingFilePath));
-            // Compared exactly, so changing only the case ("sigil" -> "Sigil") renames it too.
-            var renaming = _editingFilePath is not null && !string.Equals(path, _editingFilePath, StringComparison.Ordinal);
-
-            // Renaming never replaces another batch; only a new one can, after asking (see below).
-            if (renaming && File.Exists(path) && !string.Equals(path, _editingFilePath, StringComparison.OrdinalIgnoreCase))
-            {
-                MessageBox.Show(string.Format(Strings.BatchNameTaken, fileName), Strings.BatchCreationTitle,
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (port == SourcePort.DSDADoom && BatchFileService.RequiresGZDoom(wadFile, extraFiles))
-            {
-                MessageBox.Show(Strings.DSDADoomNoPackages, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (!ConfirmPathIfMissing("IWAD", BatchFileService.EnsureWadExtension(iwad)) ||
-                !ConfirmPathIfMissing("WAD", BatchFileService.EnsureWadExtension(wadFile)) ||
-                !extraFiles.All(f => ConfirmPathIfMissing(Strings.ExtraFileLabel, BatchFileService.EnsureWadExtension(f))) ||
-                !plugins.All(ConfirmPluginIfMissing))
-            {
-                return;
-            }
-
-            // A WAD outside the WADs directory gets moved into it, along with the extra files next to it,
-            // and the batch points to their new location.
-            var moves = WadMoveService.Plan(wadFile, extraFiles, _folders.Wads.Path);
-
-            if (moves.Count > 0)
-            {
-                if (!Directory.Exists(_folders.Wads.Path))
-                {
-                    MessageBox.Show(string.Format(Strings.WadsDirNotFoundFixInSettings, _folders.Wads.Path),
-                        Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                foreach (var move in moves.Where(m => File.Exists(m.Destination)))
-                {
-                    var replace = MessageBox.Show(
-                        string.Format(Strings.WadExistsReplace, Path.GetRelativePath(_folders.Wads.Path, move.Destination)),
-                        Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-                    if (replace != DialogResult.Yes)
-                        return;
-                }
-
-                wadFile = BatchFileService.StripWadExtension(moves[0].Destination);
-                extraFiles = [.. extraFiles.Select(f => WadMoveService.GetDestination(f, moves) ?? f)];
-            }
-
-            string command;
-
-            try
-            {
-                command = port == SourcePort.DSDADoom
-                    ? BatchFileService.BuildDSDADoomCommand(_ports.DSDADoom.Path, iwad, wadFile, extraFiles, arguments)
-                    : BatchFileService.BuildGZDoomCommand(_ports.GZDoom.Path, _ports.GZDoom.Plugins, iwad, wadFile, plugins, extraFiles, arguments);
-            }
-            catch (ArgumentException ex)
-            {
-                MessageBox.Show(ex.Message, Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // The current icon left in the Image box is kept (and follows a rename); anything else replaces it.
-            var imageSource = txtImage.Text.Trim();
-            if (string.Equals(imageSource, _existingImagePath, StringComparison.OrdinalIgnoreCase))
-                imageSource = string.Empty;
-
-            // Named from the batch's own path, so the icon always matches the batch file.
-            var imageDestination = string.IsNullOrEmpty(imageSource) ? null : GetImagePath(path);
-
-            if (!string.IsNullOrEmpty(imageSource))
-            {
-                if (imageDestination is null || !Directory.Exists(_folders.Images.Path))
-                {
-                    MessageBox.Show(string.Format(Strings.ImagesDirNotFoundFixInSettings, _folders.Images.Path),
-                        Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                if (!ImageDownloadService.IsUrl(imageSource) && !File.Exists(imageSource))
-                {
-                    MessageBox.Show(string.Format(Strings.ImageFileNotFound, imageSource), Strings.BatchCreationTitle,
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                if (!ImageDownloadService.IsUrl(imageSource) && !ImageFileService.IsValidImage(imageSource))
-                {
-                    MessageBox.Show(string.Format(Strings.ImageFileInvalid, imageSource), Strings.BatchCreationTitle,
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
-
-            if (File.Exists(path) && _editingFilePath is null)
-            {
-                var overwrite = MessageBox.Show(
-                    string.Format(Strings.BatchExistsOverwrite, fileName),
-                    Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-                if (overwrite != DialogResult.Yes)
+                if (MessageBox.Show(question, Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                     return;
             }
+
+            var (path, renaming, command, moves, imageSource, imageDestination, _) = plan;
 
             // Only the app's own temp files (a download or a pasted image) are moved; an image picked from
             // the user's files is copied, so it stays where they keep it.
@@ -900,7 +751,7 @@ namespace Doomer
             }
 
             if (renaming)
-                Renamed = (Path.GetFileNameWithoutExtension(_editingFilePath!), fileName);
+                Renamed = (Path.GetFileNameWithoutExtension(_editingFilePath!), Path.GetFileNameWithoutExtension(path));
 
             UpdateOtherBatches(path, moves);
 

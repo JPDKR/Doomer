@@ -340,7 +340,7 @@ pero no tiene ningún .wad, .pk3 o .pk7. Elige el WAD manualmente.</value>
     <value>El ejecutable de {0} no está configurado. Defínelo primero en Configuración.</value>
   </data>
   <data name="WadExistsReplace" xml:space="preserve">
-    <value>Ya existe un WAD llamado "{0}" en la carpeta de WADs. ¿Reemplazarlo?</value>
+    <value>Ya existe un archivo llamado "{0}" en la carpeta de WADs. ¿Reemplazarlo?</value>
   </data>
   <data name="ImagesDirNotFoundFixInSettings" xml:space="preserve">
     <value>No se encontró la carpeta de imágenes:
@@ -360,7 +360,17 @@ Corrígela primero en Configuración.</value>
     <value>Ya existe un batch llamado "{0}". ¿Reemplazarlo?</value>
   </data>
   <data name="MoveWadError" xml:space="preserve">
-    <value>Error al mover el WAD a la carpeta de WADs: {0}</value>
+    <value>Error al mover el WAD y sus archivos a la carpeta de WADs: {0}</value>
+  </data>
+  <data name="OtherBatchesUpdated" xml:space="preserve">
+    <value>Estos batches cargaban los archivos movidos y ahora apuntan a su nuevo lugar:
+
+{0}</value>
+  </data>
+  <data name="OtherBatchesUpdateError" xml:space="preserve">
+    <value>Estos batches cargan los archivos movidos pero no se pudieron actualizar, así que siguen apuntando al lugar viejo:
+
+{0}</value>
   </data>
   <data name="SaveBatchError" xml:space="preserve">
     <value>Error al guardar el batch: {0}</value>

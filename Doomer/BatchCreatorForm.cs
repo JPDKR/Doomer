@@ -777,13 +777,11 @@ namespace Doomer
                 return;
             }
 
-            // A WAD outside the WADs directory gets moved into it, and the batch points to its new location.
-            var wadSource = BatchFileService.EnsureWadExtension(wadFile);
-            var wadDestination = File.Exists(wadSource)
-                ? BatchFileService.GetWadDestination(wadSource, _folders.Wads.Path)
-                : null;
+            // A WAD outside the WADs directory gets moved into it, along with the extra files next to it,
+            // and the batch points to their new location.
+            var moves = WadMoveService.Plan(wadFile, extraFiles, _folders.Wads.Path);
 
-            if (wadDestination is not null)
+            if (moves.Count > 0)
             {
                 if (!Directory.Exists(_folders.Wads.Path))
                 {
@@ -792,17 +790,18 @@ namespace Doomer
                     return;
                 }
 
-                if (File.Exists(wadDestination))
+                foreach (var move in moves.Where(m => File.Exists(m.Destination)))
                 {
                     var replace = MessageBox.Show(
-                        string.Format(Strings.WadExistsReplace, Path.GetFileName(wadDestination)),
+                        string.Format(Strings.WadExistsReplace, Path.GetRelativePath(_folders.Wads.Path, move.Destination)),
                         Strings.BatchCreationTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
                     if (replace != DialogResult.Yes)
                         return;
                 }
 
-                wadFile = BatchFileService.StripWadExtension(wadDestination);
+                wadFile = BatchFileService.StripWadExtension(moves[0].Destination);
+                extraFiles = [.. extraFiles.Select(f => WadMoveService.GetDestination(f, moves) ?? f)];
             }
 
             string command;
@@ -876,20 +875,15 @@ namespace Doomer
                 imageIsTemporary = true;
             }
 
-            if (wadDestination is not null)
+            try
             {
-                try
-                {
-                    File.Move(wadSource, wadDestination, overwrite: true);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(Strings.MoveWadError, ex.Message), Strings.BatchCreationTitle,
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                txtWad.Text = wadFile;
+                WadMoveService.Apply(moves);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.MoveWadError, ex.Message), Strings.BatchCreationTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
 
             try
@@ -898,9 +892,13 @@ namespace Doomer
             }
             catch (Exception ex)
             {
+                // The files go back, so the form's paths still point to them for another try.
+                WadMoveService.Undo(moves);
                 MessageBox.Show(string.Format(Strings.SaveBatchError, ex.Message), Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            UpdateOtherBatches(path, moves);
 
             var imageSaved = true;
 
@@ -922,6 +920,32 @@ namespace Doomer
 
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        // Other batches that loaded the moved files would stop working, so they're pointed to the new place too.
+        private void UpdateOtherBatches(string savedBatchPath, IReadOnlyList<FileMove> moves)
+        {
+            if (moves.Count == 0)
+                return;
+
+            BatchesUpdate result;
+
+            try
+            {
+                result = WadMoveService.UpdateBatches(_folders.Batches, _ports, savedBatchPath, moves);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                result = new BatchesUpdate([], [ex.Message]);
+            }
+
+            if (result.Updated.Count > 0)
+                MessageBox.Show(string.Format(Strings.OtherBatchesUpdated, string.Join(Environment.NewLine, result.Updated)),
+                    Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            if (result.Failed.Count > 0)
+                MessageBox.Show(string.Format(Strings.OtherBatchesUpdateError, string.Join(Environment.NewLine, result.Failed)),
+                    Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 }

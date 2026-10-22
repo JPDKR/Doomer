@@ -340,7 +340,7 @@ Create the batch anyway?</value>
     <value>The {0} executable isn't configured. Set it in Settings first.</value>
   </data>
   <data name="WadExistsReplace" xml:space="preserve">
-    <value>A WAD named "{0}" already exists in the WADs directory. Replace it?</value>
+    <value>A file named "{0}" already exists in the WADs directory. Replace it?</value>
   </data>
   <data name="ImagesDirNotFoundFixInSettings" xml:space="preserve">
     <value>Images directory not found:
@@ -360,7 +360,17 @@ Fix it in Settings first.</value>
     <value>A batch file named "{0}" already exists. Overwrite it?</value>
   </data>
   <data name="MoveWadError" xml:space="preserve">
-    <value>Error moving the WAD to the WADs directory: {0}</value>
+    <value>Error moving the WAD and its files to the WADs directory: {0}</value>
+  </data>
+  <data name="OtherBatchesUpdated" xml:space="preserve">
+    <value>These batches loaded the moved files and now point to their new place:
+
+{0}</value>
+  </data>
+  <data name="OtherBatchesUpdateError" xml:space="preserve">
+    <value>These batches load the moved files but couldn't be updated, so they still point to the old place:
+
+{0}</value>
   </data>
   <data name="SaveBatchError" xml:space="preserve">
     <value>Error saving the batch: {0}</value>

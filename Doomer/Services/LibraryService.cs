@@ -78,6 +78,24 @@ namespace Doomer.Services
             Save();
         }
 
+        // For a renamed batch, so it's still a favorite and keeps its history under the new name.
+        public void Rename(string oldName, string newName)
+        {
+            var favorite = _favorites.Remove(oldName);
+            var played = _lastPlayed.Remove(oldName, out var when);
+
+            if (!favorite && !played)
+                return;
+
+            if (favorite)
+                _favorites.Add(newName);
+
+            if (played)
+                _lastPlayed[newName] = when;
+
+            Save();
+        }
+
         // For a deleted batch, so a new one with the same name doesn't inherit its history.
         public void Forget(string name)
         {
@@ -97,7 +115,6 @@ namespace Doomer.Services
             return [.. ordered.ThenBy(n => n, StringComparer.OrdinalIgnoreCase)];
         }
 
-        // Written to a temp file first, so a crash mid-save can't leave a half-written library.
         private void Save()
         {
             var data = new LibraryData
@@ -107,10 +124,7 @@ namespace Doomer.Services
                 LastPlayed = new(_lastPlayed, StringComparer.OrdinalIgnoreCase)
             };
 
-            Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
-            var temp = _filePath + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(data, JsonOptions));
-            File.Move(temp, _filePath, overwrite: true);
+            AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(data, JsonOptions));
         }
 
         private class LibraryData

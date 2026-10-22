@@ -144,5 +144,41 @@ namespace Doomer.Tests
             Assert.Null(SettingsFile.MigrateLegacyJson(json));
             Assert.Equal(".bat", Bind(json).Folders.Batches.Extension);
         }
+
+        [Theory]
+        [InlineData(".bat", ".bat")]
+        [InlineData("bat", ".bat")]
+        [InlineData("  .PNG  ", ".PNG")]
+        [InlineData("cmd", ".cmd")]
+        [InlineData("tar.gz", ".tar.gz")]
+        public void TryNormalizeExtension_AddsTheMissingDot(string text, string expected)
+        {
+            Assert.True(SettingsFile.TryNormalizeExtension(text, out var extension));
+            Assert.Equal(expected, extension);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(".")]
+        [InlineData("bat.")]
+        [InlineData("*")]
+        [InlineData(".b?t")]
+        [InlineData("b at")]
+        [InlineData("..\\bat")]
+        public void TryNormalizeExtension_RejectsExtensionsThatCantEndAFileName(string? text)
+        {
+            Assert.False(SettingsFile.TryNormalizeExtension(text, out _));
+        }
+
+        [Theory]
+        [InlineData("png", ".png")]
+        [InlineData("", ".bat")]
+        [InlineData("*", ".bat")]
+        public void NormalizeExtension_FallsBackForInvalidOnes(string text, string expected)
+        {
+            Assert.Equal(expected, SettingsFile.NormalizeExtension(text, ".bat"));
+        }
     }
 }

@@ -54,6 +54,8 @@ The app reads its settings from `%AppData%\Doomer\appsettings.json`, which is cr
 * **Ports.DSDADoom.Path**: full path to your `dsda-doom.exe` (optional — only needed for DSDA Doom batches). At least one of the two executables must be set.
 * **Folders.Batches**: where your `.bat` launchers live, and their extension.
 * **Folders.Images**: where the button icons live, and their extension.
+
+  Extensions can be written with or without the dot (`bat` is saved as `.bat`). Settings won't save an empty or invalid one, and if the file has one, the default (`.bat` or `.png`) is used instead.
 * **Folders.Wads**: where your WADs live. Archives opened with **From archive...** are extracted here, a WAD picked from somewhere else is moved here when its batch is saved, and the IWAD list looks here for IWADs.
 * **Interface.Language**: the app's language — `en` (English) or `es` (Español). Leave it empty to follow Windows' language (English if Windows uses one the app isn't translated to).
 * **Interface.Icons**: size and spacing of the buttons in the main window.
@@ -68,14 +70,14 @@ UI texts live in `Doomer/Strings.resx` (English) and one `Strings.<language>.res
 
 The main window lists one button per batch file found in `Folders.Batches.Path`, using the matching image from `Folders.Images.Path` (same file name, different extension) as its icon — falling back to plain text if no image is found. Use the search box in the menu to filter the list by name.
 
-Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead.
+Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead. While a WAD's game is open, clicking its button again (or double-clicking it) doesn't launch a second copy; the status bar says it's already running.
 
 Use **Sort** in the menu to list the WADs **By name** or **By last played** (most recent first; WADs never played go last). Mark the ones you play the most as **Favorite** from their right-click menu: they're always shown first, with a gold border. Favorites, play history and the sort order are kept in `%AppData%\Doomer\library.json`.
 
 Right-click any WAD button to:
 
 * Mark or unmark it as a **Favorite**.
-* **Edit** its batch file.
+* **Edit** its batch file. You can also rename it there: its icon and its favorite/play history go along with it (a name another batch already uses isn't accepted). The Image box shows its current icon; pick, paste or enter another one to replace it, or leave it as it is to keep it.
 * **Change image**: pick a new icon. The file is copied into `Folders.Images.Path`, so the original stays where it was.
 * **Open WAD folder**: opens Explorer with the batch's WAD selected. Relative WAD paths are resolved from the source port's folder.
 * **Duplicate** it under a new name (e.g. to try the same WAD with another plugin), along with its icon.
@@ -93,9 +95,10 @@ Whenever you download a new WAD and want a launcher for it, use **Add Batch File
 * <ins>WAD</ins>: the path to the WAD itself, same rule — with or without `.wad`. Other extensions (e.g. `.pk3`) are kept as-is. For the Ancient Aliens WAD at `D:\GZDoom\wads\Ancient Aliens\aaliens.wad`, enter `wads/Ancient Aliens/aaliens`.
 * <ins>Extra files (optional)</ins>: other files loaded right after the WAD, such as `.deh`/`.bex` patches or a music WAD. Add them with **Add...** or by dropping them from Explorer onto the list, and take them out with **Remove** (or the Delete key).
 * <ins>Plugins (optional, GZDoom only)</ins>: extra files you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever), as many as you like. **Add...** lists the `.wad`/`.pk3`/`.pk7`/`.zip`/`.deh`/`.bex` files in the `Ports.GZDoom.Plugins` folder (relative to your GZDoom install) that the batch doesn't have yet; **Remove** (or the Delete key) takes them out. They're loaded last, in the order they're listed. If a plugin isn't in the folder when you save, you'll be asked to confirm.
-* <ins>Image (optional)</ins>: the icon for the WAD's button. Pick a file with **Browse...**, paste the image's URL (right-click the image in your browser > Copy image address; it's downloaded when you save), or right-click the image > Copy image and press **Ctrl+V** in the Image box. Either way the image is stored in `Folders.Images.Path` under the batch's name. Some sites, like Doom Wiki, block downloads from apps — use Copy image + Ctrl+V for those.
+* <ins>Arguments (optional)</ins>: anything else to pass to the source port, written at the end of the command as you type it, e.g. `-skill 4 -warp 1`, or `-complevel 9` for DSDA Doom. Arguments added by hand at the end of a batch's command show up here when you edit it, so saving it keeps them.
+* <ins>Image (optional)</ins>: the icon for the WAD's button. Pick a file with **Browse...**, paste the image's URL (right-click the image in your browser > Copy image address; it's downloaded when you save), or right-click the image > Copy image and press **Ctrl+V** in the Image box. Either way the image is stored in `Folders.Images.Path` under the batch's name; a file picked with **Browse...** is copied, so the original stays where it was. Some sites, like Doom Wiki, block downloads from apps — use Copy image + Ctrl+V for those.
 
-If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD, WAD or an extra file that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by the source port at launch time, not by Doomer. A WAD picked from outside `Folders.Wads.Path` is moved into it when you save, and the batch points to its new place.
+If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD, WAD or an extra file that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by the source port at launch time, not by Doomer. A WAD picked from outside `Folders.Wads.Path` is moved into it when you save, along with the extra files in the WAD's folder (those in other folders, like a music WAD you share between batches, stay put), and the batch points to their new place. Any other batch that loaded those files is updated to point there too, and you're told which ones.
 
 Both IWAD and WAD have a **Browse...** button to pick the file instead of typing the path.
 
@@ -105,7 +108,7 @@ The end result is a `.bat` file with a command like this:
 
 ```
 GZDoom:    "D:\gzdoom\gzdoom" -iwad "wads/doom2.wad" -file "wads/Ancient Aliens/aaliens.wad"
-DSDA Doom: "E:\DSDA\dsda-doom" "WadSmoosh/source_wads/tnt.wad" "wads/D.O.O.M\DrakeRC2.wad"
+DSDA Doom: "E:\DSDA\dsda-doom" "WadSmoosh/source_wads/tnt.wad" "wads/D.O.O.M\DrakeRC2.wad" -complevel 9
 ```
 
 A GZDoom batch with plugins also gets a first line, `rem Doomer plugins folder: plugins`, recording the plugins folder it was written with. That way its plugins are still recognized when you edit it after changing the folder in Settings; when you save it again, they're written under the new folder.

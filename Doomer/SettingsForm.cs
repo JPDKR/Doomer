@@ -1,24 +1,15 @@
 ﻿using Doomer.Options;
+using Doomer.Services;
 
 namespace Doomer
 {
     public partial class SettingsForm : Form
     {
-        private static readonly Color BgColor = Color.FromArgb(18, 18, 18);
-        private static readonly Color SurfaceColor = Color.FromArgb(38, 38, 38);
-        private static readonly Color TextColor = Color.FromArgb(220, 220, 220);
-        private static readonly Color MutedColor = Color.FromArgb(170, 170, 170);
-        private static readonly Color AccentColor = Color.FromArgb(160, 15, 15);
-        private static readonly Color AccentHoverColor = Color.FromArgb(200, 25, 25);
-        private static readonly Color NeutralBtnColor = Color.FromArgb(50, 50, 50);
-        private static readonly Color NeutralBtnHoverColor = Color.FromArgb(70, 70, 70);
-        private static readonly Color NeutralBorderColor = Color.FromArgb(75, 75, 75);
-
         public SettingsForm()
         {
             InitializeComponent();
             ApplyTexts();
-            ApplyDarkTheme();
+            Theme.ApplyToDialog(this, btnSave);
             LoadSettings();
         }
 
@@ -123,63 +114,8 @@ namespace Doomer
                 }
             };
 
-            File.WriteAllText(AppConfiguration.FilePath, SettingsFile.Serialize(root));
+            AtomicFile.WriteAllText(AppConfiguration.FilePath, SettingsFile.Serialize(root));
             AppConfiguration.Load();
-        }
-
-        private void ApplyDarkTheme()
-        {
-            BackColor = BgColor;
-            ForeColor = TextColor;
-            StyleControls(Controls);
-        }
-
-        private void StyleControls(Control.ControlCollection controls)
-        {
-            foreach (Control ctrl in controls)
-            {
-                switch (ctrl)
-                {
-                    case GroupBox gb:
-                        gb.BackColor = BgColor;
-                        gb.ForeColor = MutedColor;
-                        StyleControls(gb.Controls);
-                        break;
-                    case TextBox tb:
-                        tb.BackColor = SurfaceColor;
-                        tb.ForeColor = TextColor;
-                        tb.BorderStyle = BorderStyle.FixedSingle;
-                        break;
-                    case ComboBox cb:
-                        cb.FlatStyle = FlatStyle.Flat;
-                        cb.BackColor = SurfaceColor;
-                        cb.ForeColor = TextColor;
-                        break;
-                    case NumericUpDown nud:
-                        nud.BackColor = SurfaceColor;
-                        nud.ForeColor = TextColor;
-                        break;
-                    case Label lbl:
-                        lbl.ForeColor = MutedColor;
-                        break;
-                    case Button btn when btn.Name == "btnSave":
-                        btn.FlatStyle = FlatStyle.Flat;
-                        btn.BackColor = AccentColor;
-                        btn.ForeColor = Color.White;
-                        btn.FlatAppearance.BorderColor = AccentHoverColor;
-                        btn.FlatAppearance.MouseOverBackColor = AccentHoverColor;
-                        btn.Cursor = Cursors.Hand;
-                        break;
-                    case Button btn:
-                        btn.FlatStyle = FlatStyle.Flat;
-                        btn.BackColor = NeutralBtnColor;
-                        btn.ForeColor = TextColor;
-                        btn.FlatAppearance.BorderColor = NeutralBorderColor;
-                        btn.FlatAppearance.MouseOverBackColor = NeutralBtnHoverColor;
-                        btn.Cursor = Cursors.Hand;
-                        break;
-                }
-            }
         }
 
         private void BtnBrowseExe_Click(object sender, EventArgs e)
@@ -235,6 +171,21 @@ namespace Doomer
         private static bool ExecutableExists(string path) =>
             File.Exists(path) || File.Exists(path + ".exe");
 
+        // Shows the extension as it will be saved (e.g. "bat" becomes ".bat"), or says why it can't be used.
+        private static bool NormalizeExtension(TextBox textBox, string group, string example)
+        {
+            if (SettingsFile.TryNormalizeExtension(textBox.Text, out var extension))
+            {
+                textBox.Text = extension;
+                return true;
+            }
+
+            MessageBox.Show(string.Format(Strings.ExtensionInvalid, group, example), Strings.ValidationTitle,
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            textBox.Focus();
+            return false;
+        }
+
         private void BtnSave_Click(object sender, EventArgs e)
         {
             var gzdoomLocation = txtGZDoomLocation.Text.Trim();
@@ -250,6 +201,10 @@ namespace Doomer
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            if (!NormalizeExtension(txtBatchsExtension, Strings.GroupBatchFiles, new BatchSettings().Extension) ||
+                !NormalizeExtension(txtImagesExtension, Strings.GroupImages, new ImageSettings().Extension))
+                return;
 
             if (!string.IsNullOrWhiteSpace(dsdaDoomLocation) && !ExecutableExists(dsdaDoomLocation))
             {

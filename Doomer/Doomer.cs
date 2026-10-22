@@ -6,14 +6,6 @@ namespace Doomer
 {
     public partial class Doomer : Form
     {
-        private static readonly Color BgColor = Color.FromArgb(18, 18, 18);
-        private static readonly Color SurfaceColor = Color.FromArgb(30, 30, 30);
-        private static readonly Color AccentColor = Color.FromArgb(160, 15, 15);
-        private static readonly Color ButtonBgColor = Color.FromArgb(38, 38, 38);
-        private static readonly Color ButtonHoverColor = Color.FromArgb(65, 10, 10);
-        private static readonly Color TextColor = Color.FromArgb(220, 220, 220);
-        private static readonly Color MutedColor = Color.FromArgb(140, 140, 140);
-
         private PortsSettings _ports = default!;
         private FoldersSettings _folders = default!;
         private IconsSettings _iconsSettings = default!;
@@ -22,8 +14,9 @@ namespace Doomer
         private CancellationTokenSource? _loadCts;
         private readonly LibraryService _library = new(AppConfiguration.LibraryFilePath);
 
-        // A favorite's button gets a gold border so it stands out from the rest at the top.
-        private static readonly Color FavoriteColor = Color.FromArgb(212, 160, 23);
+        // The batches whose game is still open, so a double click or a second click doesn't launch it again.
+        // Kept by path, so it survives the buttons being rebuilt.
+        private readonly HashSet<string> _runningBatches = new(StringComparer.OrdinalIgnoreCase);
 
         public Doomer()
         {
@@ -46,31 +39,31 @@ namespace Doomer
 
         private void ApplyDarkTheme()
         {
-            BackColor = BgColor;
-            ForeColor = TextColor;
+            BackColor = Theme.Background;
+            ForeColor = Theme.Text;
 
-            menuStrip1.BackColor = SurfaceColor;
-            menuStrip1.ForeColor = TextColor;
+            menuStrip1.BackColor = Theme.Bar;
+            menuStrip1.ForeColor = Theme.Text;
             menuStrip1.Renderer = new DarkMenuRenderer();
 
             sortToolStripMenuItem.DropDown.Renderer = menuStrip1.Renderer;
             UpdateSortMenu();
 
             foreach (ToolStripItem item in menuStrip1.Items)
-                item.ForeColor = TextColor;
+                item.ForeColor = Theme.Text;
 
-            txtSearch.BackColor = Color.FromArgb(48, 48, 48);
-            txtSearch.ForeColor = TextColor;
+            txtSearch.BackColor = Theme.SearchBox;
+            txtSearch.ForeColor = Theme.Text;
 
-            flowLayoutPanel1.BackColor = BgColor;
+            flowLayoutPanel1.BackColor = Theme.Background;
 
-            statusStrip1.BackColor = SurfaceColor;
+            statusStrip1.BackColor = Theme.Bar;
             statusStrip1.Renderer = new DarkMenuRenderer();
-            lblStatus.ForeColor = MutedColor;
+            lblStatus.ForeColor = Theme.MutedText;
 
-            loadingPanel.BackColor = BgColor;
-            lblLoading.ForeColor = MutedColor;
-            lblVersion.ForeColor = MutedColor;
+            loadingPanel.BackColor = Theme.Background;
+            lblLoading.ForeColor = Theme.MutedText;
+            lblVersion.ForeColor = Theme.MutedText;
         }
 
         private void ApplyTexts()
@@ -88,6 +81,9 @@ namespace Doomer
 
         private async void MainForm_Load(object sender, EventArgs e)
         {
+            // Images a crash left in the temp folder. It never fails, so it runs on its own in the background.
+            _ = Task.Run(() => TempFileService.DeleteLeftovers(Path.GetTempPath(), TimeSpan.FromDays(1), DateTime.UtcNow));
+
             await LoadButtonsBatchAsync();
             await CheckForUpdateAsync();
         }
@@ -268,12 +264,12 @@ namespace Doomer
                 Name = entry.Name,
                 Margin = new Padding(_iconsSettings.Padding),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = ButtonBgColor,
-                ForeColor = TextColor,
+                BackColor = Theme.Input,
+                ForeColor = Theme.Text,
                 Cursor = Cursors.Hand,
             };
 
-            boton.FlatAppearance.MouseOverBackColor = ButtonHoverColor;
+            boton.FlatAppearance.MouseOverBackColor = Theme.WadButtonHover;
             ApplyFavoriteStyle(boton);
             boton.ContextMenuStrip = BuildWadContextMenu(boton);
 
@@ -315,7 +311,7 @@ namespace Doomer
         private void ApplyFavoriteStyle(Button boton)
         {
             var favorite = _library.IsFavorite(boton.Name);
-            boton.FlatAppearance.BorderColor = favorite ? FavoriteColor : AccentColor;
+            boton.FlatAppearance.BorderColor = favorite ? Theme.Favorite : Theme.Accent;
             boton.FlatAppearance.BorderSize = favorite ? 2 : 1;
             _wadTooltip.SetToolTip(boton, favorite ? $"★ {boton.Name}" : boton.Name);
         }
@@ -413,14 +409,18 @@ namespace Doomer
         {
             using var form = new BatchCreatorForm(filePath);
 
-            if (form.ShowDialog() == DialogResult.OK)
-            {
-                await LoadButtonsBatchAsync();
-            }
+            if (form.ShowDialog() != DialogResult.OK)
+                return;
+
+            // The library knows WADs by name, so a renamed one keeps its favorite and history.
+            if (form.Renamed is var (oldName, newName))
+                TrySaveLibrary(() => _library.Rename(oldName, newName));
+
+            await LoadButtonsBatchAsync();
         }
 
-        // Unlike the batch form, which moves a picked image into the images folder, this copies it,
-        // so replacing an icon never takes a file away from where the user keeps it.
+        // Like the batch form does with a picked image, this copies it, so replacing an icon never
+        // takes a file away from where the user keeps it.
         private async void ChangeImage(string filePath)
         {
             var images = _folders.Images;
@@ -479,7 +479,7 @@ namespace Doomer
                 return;
             }
 
-            if (!BatchFileService.TryParseCommand(command, _ports.GZDoom.Plugins, out var port, out _, out var wad, out _, out _))
+            if (!BatchFileService.TryParseCommand(command, _ports.GZDoom.Plugins, out var port, out _, out var wad, out _, out _, out _))
             {
                 MessageBox.Show(Strings.WadNotInBatch, Strings.OpenWadFolderTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -597,38 +597,62 @@ namespace Doomer
 
         private async void Boton_Click(object sender, EventArgs e)
         {
-            if (sender is Button boton && boton.Tag is string path)
+            if (sender is not Button boton || boton.Tag is not string path)
+                return;
+
+            var alreadyRunning = "  " + string.Format(Strings.StatusAlreadyRunning, boton.Name);
+
+            if (!_runningBatches.Add(path))
             {
-                // Recorded before launching, since RunAsync only returns once the game is closed.
-                // Not being able to save it is no reason to keep the user from playing.
-                try
-                {
-                    _library.MarkPlayed(boton.Name, DateTime.UtcNow);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                }
-
-                if (_library.SortOrder == WadSortOrder.LastPlayed)
-                    ApplyOrder();
-
-                string? errors;
-
-                try
-                {
-                    errors = await BatchLaunchService.RunAsync(path);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                // The console is hidden, so whatever went wrong would otherwise go unseen.
-                if (errors is not null && !IsDisposed)
-                    MessageBox.Show(string.Format(Strings.BatchFailed, Path.GetFileNameWithoutExtension(path), errors),
-                        Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblStatus.Text = alreadyRunning;
+                return;
             }
+
+            try
+            {
+                await LaunchAsync(boton.Name, path);
+            }
+            finally
+            {
+                _runningBatches.Remove(path);
+
+                // The notice was about this game, which isn't running anymore.
+                if (!IsDisposed && lblStatus.Text == alreadyRunning)
+                    ApplyFilter();
+            }
+        }
+
+        private async Task LaunchAsync(string name, string path)
+        {
+            // Recorded before launching, since RunAsync only returns once the game is closed.
+            // Not being able to save it is no reason to keep the user from playing.
+            try
+            {
+                _library.MarkPlayed(name, DateTime.UtcNow);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            if (_library.SortOrder == WadSortOrder.LastPlayed)
+                ApplyOrder();
+
+            string? errors;
+
+            try
+            {
+                errors = await BatchLaunchService.RunAsync(path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // The console is hidden, so whatever went wrong would otherwise go unseen.
+            if (errors is not null && !IsDisposed)
+                MessageBox.Show(string.Format(Strings.BatchFailed, Path.GetFileNameWithoutExtension(path), errors),
+                    Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private async void AddBatchFileToolStripMenuItem_Click(object sender, EventArgs e) =>

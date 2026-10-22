@@ -30,6 +30,9 @@
   <data name="StatusWadCountOne" xml:space="preserve">
     <value>{0} WAD loaded</value>
   </data>
+  <data name="StatusAlreadyRunning" xml:space="preserve">
+    <value>{0} is already running</value>
+  </data>
   <data name="StatusWadCountMany" xml:space="preserve">
     <value>{0} WADs loaded</value>
   </data>
@@ -205,6 +208,12 @@ Open Settings to fix the path.</value>
   <data name="LabelExtraFiles" xml:space="preserve">
     <value>Extra files</value>
   </data>
+  <data name="LabelArguments" xml:space="preserve">
+    <value>Arguments</value>
+  </data>
+  <data name="PlaceholderArguments" xml:space="preserve">
+    <value>Optional, e.g. -skill 4 -warp 1</value>
+  </data>
   <data name="LabelImage" xml:space="preserve">
     <value>Image</value>
   </data>
@@ -334,7 +343,7 @@ Create the batch anyway?</value>
     <value>The {0} executable isn't configured. Set it in Settings first.</value>
   </data>
   <data name="WadExistsReplace" xml:space="preserve">
-    <value>A WAD named "{0}" already exists in the WADs directory. Replace it?</value>
+    <value>A file named "{0}" already exists in the WADs directory. Replace it?</value>
   </data>
   <data name="ImagesDirNotFoundFixInSettings" xml:space="preserve">
     <value>Images directory not found:
@@ -354,13 +363,23 @@ Fix it in Settings first.</value>
     <value>A batch file named "{0}" already exists. Overwrite it?</value>
   </data>
   <data name="MoveWadError" xml:space="preserve">
-    <value>Error moving the WAD to the WADs directory: {0}</value>
+    <value>Error moving the WAD and its files to the WADs directory: {0}</value>
+  </data>
+  <data name="OtherBatchesUpdated" xml:space="preserve">
+    <value>These batches loaded the moved files and now point to their new place:
+
+{0}</value>
+  </data>
+  <data name="OtherBatchesUpdateError" xml:space="preserve">
+    <value>These batches load the moved files but couldn't be updated, so they still point to the old place:
+
+{0}</value>
   </data>
   <data name="SaveBatchError" xml:space="preserve">
     <value>Error saving the batch: {0}</value>
   </data>
-  <data name="ImageMoveError" xml:space="preserve">
-    <value>The batch was saved, but the image couldn't be moved: {0}</value>
+  <data name="ImageSaveError" xml:space="preserve">
+    <value>The batch was saved, but the image couldn't be saved: {0}</value>
   </data>
   <data name="BatchCreated" xml:space="preserve">
     <value>Batch created successfully.</value>
@@ -428,6 +447,9 @@ Fix it in Settings first.</value>
   <data name="ValidationTitle" xml:space="preserve">
     <value>Validation</value>
   </data>
+  <data name="ExtensionInvalid" xml:space="preserve">
+    <value>Enter a valid file extension for {0}, such as {1}.</value>
+  </data>
   <data name="SettingsRequired" xml:space="preserve">
     <value>At least one executable (GZDoom or DSDA Doom) and the batch directory are required.</value>
   </data>
@@ -464,6 +486,9 @@ WAD buttons will show text instead of icons. Save anyway?</value>
   </data>
   <data name="DSDADoomPathsWithQuotes" xml:space="preserve">
     <value>DSDA Doom location, IWAD, WAD and extra file paths cannot contain quote characters.</value>
+  </data>
+  <data name="ArgumentsWithLineBreaks" xml:space="preserve">
+    <value>Arguments must fit on a single line.</value>
   </data>
   <data name="ArchiveUnsafePath" xml:space="preserve">
     <value>The archive contains an unsafe path: {0}</value>

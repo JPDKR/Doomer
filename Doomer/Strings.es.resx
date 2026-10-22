@@ -30,6 +30,9 @@
   <data name="StatusWadCountOne" xml:space="preserve">
     <value>{0} WAD cargado</value>
   </data>
+  <data name="StatusAlreadyRunning" xml:space="preserve">
+    <value>{0} ya se está ejecutando</value>
+  </data>
   <data name="StatusWadCountMany" xml:space="preserve">
     <value>{0} WADs cargados</value>
   </data>
@@ -205,6 +208,12 @@ Abre Configuración para corregir la ruta.</value>
   <data name="LabelExtraFiles" xml:space="preserve">
     <value>Extras</value>
   </data>
+  <data name="LabelArguments" xml:space="preserve">
+    <value>Argumentos</value>
+  </data>
+  <data name="PlaceholderArguments" xml:space="preserve">
+    <value>Opcional, ej. -skill 4 -warp 1</value>
+  </data>
   <data name="LabelImage" xml:space="preserve">
     <value>Imagen</value>
   </data>
@@ -334,7 +343,7 @@ pero no tiene ningún .wad, .pk3 o .pk7. Elige el WAD manualmente.</value>
     <value>El ejecutable de {0} no está configurado. Defínelo primero en Configuración.</value>
   </data>
   <data name="WadExistsReplace" xml:space="preserve">
-    <value>Ya existe un WAD llamado "{0}" en la carpeta de WADs. ¿Reemplazarlo?</value>
+    <value>Ya existe un archivo llamado "{0}" en la carpeta de WADs. ¿Reemplazarlo?</value>
   </data>
   <data name="ImagesDirNotFoundFixInSettings" xml:space="preserve">
     <value>No se encontró la carpeta de imágenes:
@@ -354,13 +363,23 @@ Corrígela primero en Configuración.</value>
     <value>Ya existe un batch llamado "{0}". ¿Reemplazarlo?</value>
   </data>
   <data name="MoveWadError" xml:space="preserve">
-    <value>Error al mover el WAD a la carpeta de WADs: {0}</value>
+    <value>Error al mover el WAD y sus archivos a la carpeta de WADs: {0}</value>
+  </data>
+  <data name="OtherBatchesUpdated" xml:space="preserve">
+    <value>Estos batches cargaban los archivos movidos y ahora apuntan a su nuevo lugar:
+
+{0}</value>
+  </data>
+  <data name="OtherBatchesUpdateError" xml:space="preserve">
+    <value>Estos batches cargan los archivos movidos pero no se pudieron actualizar, así que siguen apuntando al lugar viejo:
+
+{0}</value>
   </data>
   <data name="SaveBatchError" xml:space="preserve">
     <value>Error al guardar el batch: {0}</value>
   </data>
-  <data name="ImageMoveError" xml:space="preserve">
-    <value>El batch se guardó, pero no se pudo mover la imagen: {0}</value>
+  <data name="ImageSaveError" xml:space="preserve">
+    <value>El batch se guardó, pero no se pudo guardar la imagen: {0}</value>
   </data>
   <data name="BatchCreated" xml:space="preserve">
     <value>Batch creado correctamente.</value>
@@ -428,6 +447,9 @@ Corrígela primero en Configuración.</value>
   <data name="ValidationTitle" xml:space="preserve">
     <value>Validación</value>
   </data>
+  <data name="ExtensionInvalid" xml:space="preserve">
+    <value>Escribe una extensión de archivo válida para {0}, por ejemplo {1}.</value>
+  </data>
   <data name="SettingsRequired" xml:space="preserve">
     <value>Se necesita al menos un ejecutable (GZDoom o DSDA Doom) y la carpeta de batches.</value>
   </data>
@@ -464,6 +486,9 @@ Los botones de los WADs mostrarán texto en lugar de íconos. ¿Guardar de todos
   </data>
   <data name="DSDADoomPathsWithQuotes" xml:space="preserve">
     <value>Las rutas de DSDA Doom, del IWAD, del WAD y de los extras no pueden tener comillas.</value>
+  </data>
+  <data name="ArgumentsWithLineBreaks" xml:space="preserve">
+    <value>Los argumentos tienen que ir en una sola línea.</value>
   </data>
   <data name="ArchiveUnsafePath" xml:space="preserve">
     <value>El archivo contiene una ruta insegura: {0}</value>

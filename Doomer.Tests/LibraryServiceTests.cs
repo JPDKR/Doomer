@@ -54,6 +54,42 @@ namespace Doomer.Tests
         }
 
         [Fact]
+        public void Rename_KeepsTheFavoriteAndHistoryUnderTheNewName()
+        {
+            var library = new LibraryService(FilePath);
+            library.SetFavorite("Sigil", true);
+            library.MarkPlayed("Sigil", new DateTime(2026, 10, 20));
+
+            library.Rename("sigil", "Sigil II");
+
+            var reloaded = new LibraryService(FilePath);
+            Assert.True(reloaded.IsFavorite("Sigil II"));
+            Assert.Equal(new DateTime(2026, 10, 20), reloaded.GetLastPlayed("Sigil II"));
+            Assert.False(reloaded.IsFavorite("Sigil"));
+            Assert.Null(reloaded.GetLastPlayed("Sigil"));
+        }
+
+        [Fact]
+        public void Rename_ChangingOnlyTheCaseKeepsTheWad()
+        {
+            var library = new LibraryService(FilePath);
+            library.SetFavorite("sigil", true);
+
+            library.Rename("sigil", "Sigil");
+
+            Assert.True(new LibraryService(FilePath).IsFavorite("Sigil"));
+            Assert.Contains("\"Sigil\"", File.ReadAllText(FilePath));
+        }
+
+        [Fact]
+        public void Rename_WithoutHistoryWritesNothing()
+        {
+            new LibraryService(FilePath).Rename("Sigil", "Sigil II");
+
+            Assert.False(File.Exists(FilePath));
+        }
+
+        [Fact]
         public void Forget_DropsTheWadsHistory()
         {
             var library = new LibraryService(FilePath);

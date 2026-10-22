@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Doomer.Services;
+using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -39,13 +40,26 @@ namespace Doomer.Options
             if (SettingsFile.MigrateLegacyFile(FilePath, LegacyBackupFilePath) is { } unsaved)
                 builder.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(unsaved)));
             else
-                builder.AddJsonFile(FileName, optional: false, reloadOnChange: true);
+                builder.AddJsonFile(FileName, optional: false, reloadOnChange: false);
 
+            // The values are copied out below and the app reloads them itself after saving the settings,
+            // so nothing watches the file and the configuration is let go once read.
             var config = builder.Build();
 
-            Ports = config.GetSection("Ports").Get<PortsSettings>() ?? new();
-            Folders = config.GetSection("Folders").Get<FoldersSettings>() ?? new();
-            Interface = config.GetSection("Interface").Get<InterfaceSettings>() ?? new();
+            try
+            {
+                Ports = config.GetSection("Ports").Get<PortsSettings>() ?? new();
+                Folders = config.GetSection("Folders").Get<FoldersSettings>() ?? new();
+                Interface = config.GetSection("Interface").Get<InterfaceSettings>() ?? new();
+            }
+            finally
+            {
+                (config as IDisposable)?.Dispose();
+            }
+
+            // Settings saves only valid extensions, but the file can be edited by hand.
+            Folders.Batches.Extension = SettingsFile.NormalizeExtension(Folders.Batches.Extension, new BatchSettings().Extension);
+            Folders.Images.Extension = SettingsFile.NormalizeExtension(Folders.Images.Extension, new ImageSettings().Extension);
         }
 
         // Seeds the per-user config on first run, since the app may be installed
@@ -79,6 +93,24 @@ namespace Doomer.Options
         };
 
         public static string Serialize(AppSettingsRoot settings) => JsonSerializer.Serialize(settings, JsonOptions);
+
+        // An extension the way the settings keep it, e.g. ".bat", adding the dot when it's left out ("bat").
+        // False when it can't end a file name: empty, just ".", ending in a dot, or with spaces or characters
+        // file names can't have (which include the * and ? that would turn it into a wildcard).
+        public static bool TryNormalizeExtension(string? text, out string extension)
+        {
+            extension = text?.Trim() ?? string.Empty;
+
+            if (extension.Length > 0 && extension[0] != '.')
+                extension = "." + extension;
+
+            return extension.Length > 1 && !extension.EndsWith('.') &&
+                   !extension.Any(char.IsWhiteSpace) && extension.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+        }
+
+        // The normalized extension, or fallback when it isn't a valid one.
+        public static string NormalizeExtension(string? text, string fallback) =>
+            TryNormalizeExtension(text, out var extension) ? extension : fallback;
 
         // Settings from 1.5 and earlier kept the executables and folders under "GZDoom" and "DSDADoom".
         // Returns the same settings in the current layout, or null when the JSON already uses it or can't be read.
@@ -160,7 +192,7 @@ namespace Doomer.Options
             try
             {
                 File.Copy(filePath, backupPath, overwrite: true);
-                File.WriteAllText(filePath, migrated);
+                AtomicFile.WriteAllText(filePath, migrated);
                 return null;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

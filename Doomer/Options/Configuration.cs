@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Doomer.Services;
+using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -39,13 +40,22 @@ namespace Doomer.Options
             if (SettingsFile.MigrateLegacyFile(FilePath, LegacyBackupFilePath) is { } unsaved)
                 builder.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(unsaved)));
             else
-                builder.AddJsonFile(FileName, optional: false, reloadOnChange: true);
+                builder.AddJsonFile(FileName, optional: false, reloadOnChange: false);
 
+            // The values are copied out below and the app reloads them itself after saving the settings,
+            // so nothing watches the file and the configuration is let go once read.
             var config = builder.Build();
 
-            Ports = config.GetSection("Ports").Get<PortsSettings>() ?? new();
-            Folders = config.GetSection("Folders").Get<FoldersSettings>() ?? new();
-            Interface = config.GetSection("Interface").Get<InterfaceSettings>() ?? new();
+            try
+            {
+                Ports = config.GetSection("Ports").Get<PortsSettings>() ?? new();
+                Folders = config.GetSection("Folders").Get<FoldersSettings>() ?? new();
+                Interface = config.GetSection("Interface").Get<InterfaceSettings>() ?? new();
+            }
+            finally
+            {
+                (config as IDisposable)?.Dispose();
+            }
 
             // Settings saves only valid extensions, but the file can be edited by hand.
             Folders.Batches.Extension = SettingsFile.NormalizeExtension(Folders.Batches.Extension, new BatchSettings().Extension);
@@ -182,7 +192,7 @@ namespace Doomer.Options
             try
             {
                 File.Copy(filePath, backupPath, overwrite: true);
-                File.WriteAllText(filePath, migrated);
+                AtomicFile.WriteAllText(filePath, migrated);
                 return null;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -1,4 +1,5 @@
 ﻿using Doomer.Options;
+using Doomer.Services;
 
 namespace Doomer
 {
@@ -113,7 +114,7 @@ namespace Doomer
                 }
             };
 
-            File.WriteAllText(AppConfiguration.FilePath, SettingsFile.Serialize(root));
+            AtomicFile.WriteAllText(AppConfiguration.FilePath, SettingsFile.Serialize(root));
             AppConfiguration.Load();
         }
 

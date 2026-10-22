@@ -115,7 +115,6 @@ namespace Doomer.Services
             return [.. ordered.ThenBy(n => n, StringComparer.OrdinalIgnoreCase)];
         }
 
-        // Written to a temp file first, so a crash mid-save can't leave a half-written library.
         private void Save()
         {
             var data = new LibraryData
@@ -125,10 +124,7 @@ namespace Doomer.Services
                 LastPlayed = new(_lastPlayed, StringComparer.OrdinalIgnoreCase)
             };
 
-            Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
-            var temp = _filePath + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(data, JsonOptions));
-            File.Move(temp, _filePath, overwrite: true);
+            AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(data, JsonOptions));
         }
 
         private class LibraryData

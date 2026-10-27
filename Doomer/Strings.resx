@@ -544,4 +544,13 @@ WAD buttons will show text instead of icons. Save anyway?</value>
     <value>Couldn't open the Doom Wiki page:
 {0}</value>
   </data>
+  <data name="MenuFavoritesOnly" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="MenuFavoritesOnlyTooltip" xml:space="preserve">
+    <value>Show only your favorite WADs</value>
+  </data>
+  <data name="StatusFavoritesOnly" xml:space="preserve">
+    <value>favorites only</value>
+  </data>
 </root>

@@ -10,7 +10,10 @@ namespace Doomer
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            e.TextColor = e.Item.Enabled ? Theme.Text : Theme.DisabledText;
+            // A checked item on the bar itself (the favorites filter) has no check mark to show it's on, so it turns gold.
+            e.TextColor = !e.Item.Enabled ? Theme.DisabledText
+                : e.Item is ToolStripMenuItem { Checked: true, IsOnDropDown: false } ? Theme.Favorite
+                : Theme.Text;
             base.OnRenderItemText(e);
         }
 

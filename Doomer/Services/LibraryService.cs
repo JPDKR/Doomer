@@ -25,6 +25,9 @@ namespace Doomer.Services
 
         public WadSortOrder SortOrder { get; private set; }
 
+        // Whether the main window lists only the favorites.
+        public bool FavoritesOnly { get; private set; }
+
         // A missing or unreadable file just starts an empty library, so it never stops the app from opening.
         public LibraryService(string filePath)
         {
@@ -45,6 +48,7 @@ namespace Doomer.Services
                 return;
 
             SortOrder = Enum.IsDefined(data.SortOrder) ? data.SortOrder : WadSortOrder.Name;
+            FavoritesOnly = data.FavoritesOnly;
             _favorites.UnionWith(data.Favorites ?? []);
 
             foreach (var (name, when) in data.LastPlayed ?? [])
@@ -59,6 +63,12 @@ namespace Doomer.Services
         public void SetSortOrder(WadSortOrder order)
         {
             SortOrder = order;
+            Save();
+        }
+
+        public void SetFavoritesOnly(bool favoritesOnly)
+        {
+            FavoritesOnly = favoritesOnly;
             Save();
         }
 
@@ -120,6 +130,7 @@ namespace Doomer.Services
             var data = new LibraryData
             {
                 SortOrder = SortOrder,
+                FavoritesOnly = FavoritesOnly,
                 Favorites = [.. _favorites.Order(StringComparer.OrdinalIgnoreCase)],
                 LastPlayed = new(_lastPlayed, StringComparer.OrdinalIgnoreCase)
             };
@@ -130,6 +141,7 @@ namespace Doomer.Services
         private class LibraryData
         {
             public WadSortOrder SortOrder { get; set; }
+            public bool FavoritesOnly { get; set; }
             public List<string>? Favorites { get; set; }
             public Dictionary<string, DateTime>? LastPlayed { get; set; }
         }

@@ -544,4 +544,13 @@ Los botones de los WADs mostrarán texto en lugar de íconos. ¿Guardar de todos
     <value>No se pudo abrir la página de Doom Wiki:
 {0}</value>
   </data>
+  <data name="MenuFavoritesOnly" xml:space="preserve">
+    <value>Favoritos</value>
+  </data>
+  <data name="MenuFavoritesOnlyTooltip" xml:space="preserve">
+    <value>Mostrar solo tus WADs favoritos</value>
+  </data>
+  <data name="StatusFavoritesOnly" xml:space="preserve">
+    <value>solo favoritos</value>
+  </data>
 </root>

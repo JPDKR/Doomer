@@ -42,12 +42,14 @@ namespace Doomer.Tests
         {
             var library = new LibraryService(FilePath);
             library.SetSortOrder(WadSortOrder.LastPlayed);
+            library.SetFavoritesOnly(true);
             library.SetFavorite("Sigil", true);
             library.MarkPlayed("Sunlust", new DateTime(2026, 10, 21, 18, 30, 0, DateTimeKind.Utc));
 
             var reloaded = new LibraryService(FilePath);
 
             Assert.Equal(WadSortOrder.LastPlayed, reloaded.SortOrder);
+            Assert.True(reloaded.FavoritesOnly);
             Assert.True(reloaded.IsFavorite("SIGIL"));
             Assert.Equal(new DateTime(2026, 10, 21, 18, 30, 0, DateTimeKind.Utc), reloaded.GetLastPlayed("sunlust"));
             Assert.False(File.Exists(FilePath + ".tmp"));
@@ -114,7 +116,19 @@ namespace Doomer.Tests
             var library = new LibraryService(FilePath);
 
             Assert.Equal(WadSortOrder.Name, library.SortOrder);
+            Assert.False(library.FavoritesOnly);
             Assert.False(library.IsFavorite("Sigil"));
+        }
+
+        [Fact]
+        public void AFileFromBeforeTheFavoritesFilter_ListsEveryWad()
+        {
+            File.WriteAllText(FilePath, "{\"SortOrder\": \"LastPlayed\", \"Favorites\": [\"Sigil\"]}");
+
+            var library = new LibraryService(FilePath);
+
+            Assert.False(library.FavoritesOnly);
+            Assert.True(library.IsFavorite("Sigil"));
         }
 
         [Fact]

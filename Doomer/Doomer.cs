@@ -54,6 +54,7 @@ namespace Doomer
 
             sortToolStripMenuItem.DropDown.Renderer = menuStrip1.Renderer;
             UpdateSortMenu();
+            UpdateFavoritesOnlyItem();
 
             foreach (ToolStripItem item in menuStrip1.Items)
                 item.ForeColor = Theme.Text;
@@ -83,6 +84,7 @@ namespace Doomer
             sortToolStripMenuItem.Text = Strings.MenuSort;
             sortByNameToolStripMenuItem.Text = Strings.MenuSortByName;
             sortByLastPlayedToolStripMenuItem.Text = Strings.MenuSortByLastPlayed;
+            favoritesOnlyToolStripMenuItem.ToolTipText = Strings.MenuFavoritesOnlyTooltip;
         }
 
         private async void MainForm_Load(object sender, EventArgs e)
@@ -311,18 +313,22 @@ namespace Doomer
         private void ApplyFilter()
         {
             var filter = txtSearch.Text;
+            var favoritesOnly = _library.FavoritesOnly;
             int count = 0;
 
             flowLayoutPanel1.SuspendLayout();
             foreach (Control control in flowLayoutPanel1.Controls)
             {
-                control.Visible = control.Name.Contains(filter, StringComparison.OrdinalIgnoreCase);
+                control.Visible = control.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
+                    (!favoritesOnly || _library.IsFavorite(control.Name));
                 if (control.Visible)
                     count++;
             }
             flowLayoutPanel1.ResumeLayout();
 
             var loaded = string.Format(count == 1 ? Strings.StatusWadCountOne : Strings.StatusWadCountMany, count);
+            if (favoritesOnly)
+                loaded += $" ({Strings.StatusFavoritesOnly})";
             lblStatus.Text = $"  {loaded}   |   {_folders.Batches.Path}";
         }
 
@@ -371,6 +377,26 @@ namespace Doomer
             TrySaveLibrary(() => _library.SetFavorite(boton.Name, !_library.IsFavorite(boton.Name)));
             ApplyFavoriteStyle(boton);
             ApplyOrder();
+
+            // A WAD unmarked while only the favorites are listed goes away.
+            if (_library.FavoritesOnly)
+                ApplyFilter();
+        }
+
+        private void FavoritesOnlyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Applied even if saving fails, like the sort order.
+            TrySaveLibrary(() => _library.SetFavoritesOnly(!_library.FavoritesOnly));
+            UpdateFavoritesOnlyItem();
+            ApplyFilter();
+        }
+
+        // A filled gold star while only the favorites are listed, an empty one otherwise.
+        private void UpdateFavoritesOnlyItem()
+        {
+            var on = _library.FavoritesOnly;
+            favoritesOnlyToolStripMenuItem.Checked = on;
+            favoritesOnlyToolStripMenuItem.Text = (on ? "★ " : "☆ ") + Strings.MenuFavoritesOnly;
         }
 
         // The library changes in memory before it's written, so a failed save only loses it on restart.

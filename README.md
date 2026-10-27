@@ -72,7 +72,7 @@ The main window lists one button per batch file found in `Folders.Batches.Path`,
 
 Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead. While a WAD's game is open, clicking its button again (or double-clicking it) doesn't launch a second copy; the status bar says it's already running.
 
-Use **Sort** in the menu to list the WADs **By name** or **By last played** (most recent first; WADs never played go last). Mark the ones you play the most as **Favorite** from their right-click menu: they're always shown first, with a gold border and a star in the corner. You can also click that star (it shows up when you hover over a WAD) to mark or unmark it. Favorites, play history and the sort order are kept in `%AppData%\Doomer\library.json`.
+Use **Sort** in the menu to list the WADs **By name** or **By last played** (most recent first; WADs never played go last). Mark the ones you play the most as **Favorite** from their right-click menu: they're always shown first, with a gold border and a star in the corner. You can also click that star (it shows up when you hover over a WAD) to mark or unmark it. Click **☆ Favorites** in the menu to list only your favorites (it turns into a gold ★ while on, and the search still applies); click it again to list them all. Favorites, play history, the sort order and the favorites filter are kept in `%AppData%\Doomer\library.json`.
 
 Right-click any WAD button to:
 

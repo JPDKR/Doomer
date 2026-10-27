@@ -221,12 +221,13 @@ namespace Doomer.Services
         }
 
         // An empty text means no page. Anything else has to be a web address; one typed without
-        // "https://" (e.g. doomwiki.org/wiki/Sigil) gets it. Only http and https are taken, so opening it
+        // "https://" (e.g. doomwiki.org/wiki/Sigil) gets it. Spaces become underscores, the way Doom Wiki names
+        // its pages ("Ancient Aliens" -> "Ancient_Aliens"). Only http and https are taken, so opening it
         // can never run a file, even from a batch edited by hand.
         public static bool TryNormalizeWikiUrl(string? text, out string url)
         {
             url = string.Empty;
-            text = text?.Trim() ?? string.Empty;
+            text = text?.Trim().Replace(' ', '_') ?? string.Empty;
 
             if (text.Length == 0)
                 return true;

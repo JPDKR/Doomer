@@ -536,6 +536,8 @@ namespace Doomer.Tests
         [InlineData("  https://doomwiki.org/wiki/Sigil  ", "https://doomwiki.org/wiki/Sigil")]
         [InlineData("doomwiki.org/wiki/Sigil", "https://doomwiki.org/wiki/Sigil")]
         [InlineData("http://doomwiki.org/wiki/Ancient_Aliens", "http://doomwiki.org/wiki/Ancient_Aliens")]
+        [InlineData("https://doomwiki.org/wiki/Ancient Aliens", "https://doomwiki.org/wiki/Ancient_Aliens")]
+        [InlineData(" doomwiki.org/wiki/Going Down ", "https://doomwiki.org/wiki/Going_Down")]
         public void TryNormalizeWikiUrl_TakesWebAddresses(string text, string expected)
         {
             Assert.True(BatchFileService.TryNormalizeWikiUrl(text, out var url));
@@ -546,7 +548,7 @@ namespace Doomer.Tests
         [InlineData("C:\\Games\\evil.exe")]
         [InlineData("file:///C:/Games/evil.exe")]
         [InlineData("ftp://doomwiki.org/wiki/Sigil")]
-        [InlineData("https://doomwiki.org/wiki/Ancient Aliens")]
+        [InlineData("https://doomwiki.org/wiki/Ancient\tAliens")]
         [InlineData("https://doomwiki.org/wiki/\"Sigil\"")]
         public void TryNormalizeWikiUrl_RejectsAnythingElse(string text)
         {

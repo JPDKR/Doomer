@@ -287,7 +287,14 @@ namespace Doomer
                 boton.Font = _wadButtonFont;
             }
 
-            boton.Click += Boton_Click!;
+            var star = new FavoriteStar(boton, () => _library.IsFavorite(boton.Name));
+            boton.Click += (s, e) =>
+            {
+                if (star.Pressed)
+                    ToggleFavorite(boton);
+                else
+                    Boton_Click(s!, e);
+            };
             EnableArchiveDrop(boton);
             return boton;
         }
@@ -316,6 +323,7 @@ namespace Doomer
             var favorite = _library.IsFavorite(boton.Name);
             boton.FlatAppearance.BorderColor = favorite ? Theme.Favorite : Theme.Accent;
             boton.FlatAppearance.BorderSize = favorite ? 2 : 1;
+            boton.Invalidate();
             _wadTooltip.SetToolTip(boton, favorite ? $"★ {boton.Name}" : boton.Name);
         }
 

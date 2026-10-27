@@ -18,6 +18,9 @@ namespace Doomer
         // Kept by path, so it survives the buttons being rebuilt.
         private readonly HashSet<string> _runningBatches = new(StringComparer.OrdinalIgnoreCase);
 
+        // The batches with a Doom Wiki page, whose buttons show the globe that opens it. Kept by path too.
+        private readonly HashSet<string> _wikiPages = new(StringComparer.OrdinalIgnoreCase);
+
         // How long a game's button shows it's loading when its window never takes the focus.
         private static readonly TimeSpan LoadingTimeout = TimeSpan.FromSeconds(20);
 
@@ -145,7 +148,7 @@ namespace Doomer
             }
         }
 
-        private record WadEntry(string File, string Name, Bitmap? Icon);
+        private record WadEntry(string File, string Name, Bitmap? Icon, bool HasWikiPage);
 
         // Reads the batch files and decodes their icons off the UI thread, then builds the buttons.
         // A newer call cancels an older one still running, so only the latest result is shown.
@@ -204,7 +207,7 @@ namespace Doomer
                 {
                     token.ThrowIfCancellationRequested();
                     entries.Add(new WadEntry(file, Path.GetFileNameWithoutExtension(file),
-                        LoadIcon(BatchFileService.GetImagePath(file, images), iconSize)));
+                        LoadIcon(BatchFileService.GetImagePath(file, images), iconSize), ReadWikiUrl(file) is not null));
                 }
             }
             catch
@@ -249,6 +252,8 @@ namespace Doomer
             }
 
             flowLayoutPanel1.Controls.Clear();
+            _wikiPages.Clear();
+            _wikiPages.UnionWith(entries.Where(e => e.HasWikiPage).Select(e => e.File));
             var order = _library.Sort(entries.Select(e => e.Name));
             flowLayoutPanel1.Controls.AddRange([.. entries.OrderBy(e => order.IndexOf(e.Name)).Select(CreateWadButton)]);
             ApplyFilter();
@@ -288,10 +293,13 @@ namespace Doomer
             }
 
             var star = new FavoriteStar(boton, () => _library.IsFavorite(boton.Name));
+            var wiki = new WikiIcon(boton, () => _wikiPages.Contains(entry.File));
             boton.Click += (s, e) =>
             {
                 if (star.Pressed)
                     ToggleFavorite(boton);
+                else if (wiki.Pressed)
+                    OpenWikiPage(entry.File);
                 else
                     Boton_Click(s!, e);
             };
@@ -404,7 +412,7 @@ namespace Doomer
             menu.Opening += (s, e) => openWikiItem.Enabled = ReadWikiUrl(filePath) is not null;
 
             var setWikiItem = new ToolStripMenuItem(Strings.MenuSetWikiUrl);
-            setWikiItem.Click += (s, e) => SetWikiUrl(filePath);
+            setWikiItem.Click += (s, e) => SetWikiUrl(boton);
 
             var duplicateItem = new ToolStripMenuItem(Strings.MenuDuplicate);
             duplicateItem.Click += (s, e) => DuplicateBatch(filePath);
@@ -559,8 +567,9 @@ namespace Doomer
         }
 
         // Writes the page into the batch file, so it goes along when the batch is renamed or duplicated.
-        private void SetWikiUrl(string filePath)
+        private void SetWikiUrl(Button boton)
         {
+            var filePath = (string)boton.Tag!;
             string batch;
 
             try
@@ -600,7 +609,15 @@ namespace Doomer
             {
                 MessageBox.Show(string.Format(Strings.WikiUrlSaveError, ex.Message), Strings.WikiUrlTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
+
+            if (url.Length > 0)
+                _wikiPages.Add(filePath);
+            else
+                _wikiPages.Remove(filePath);
+
+            boton.Invalidate();
         }
 
         // Copies the batch, and its icon if it has one, under a new name, e.g. to try the same WAD

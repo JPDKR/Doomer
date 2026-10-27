@@ -30,6 +30,12 @@
   <data name="StatusWadCountOne" xml:space="preserve">
     <value>{0} WAD cargado</value>
   </data>
+  <data name="StatusLaunching" xml:space="preserve">
+    <value>Iniciando {0}...</value>
+  </data>
+  <data name="LoadingGame" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
   <data name="StatusAlreadyRunning" xml:space="preserve">
     <value>{0} ya se está ejecutando</value>
   </data>

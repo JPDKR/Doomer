@@ -18,6 +18,9 @@ namespace Doomer
         // Kept by path, so it survives the buttons being rebuilt.
         private readonly HashSet<string> _runningBatches = new(StringComparer.OrdinalIgnoreCase);
 
+        // How long a game's button shows it's loading when its window never takes the focus.
+        private static readonly TimeSpan LoadingTimeout = TimeSpan.FromSeconds(20);
+
         public Doomer()
         {
             InitializeComponent();
@@ -608,12 +611,37 @@ namespace Doomer
                 return;
             }
 
+            var launching = "  " + string.Format(Strings.StatusLaunching, boton.Name);
+            var overlay = new LoadingOverlay(boton, Strings.LoadingGame);
+            var loading = true;
+            lblStatus.Text = launching;
+
+            // The batch only returns once the game is closed, so the loading lasts until the game's window
+            // takes the focus from Doomer, or a while if it never does (e.g. it opens behind another window).
+            void StopLoading(object? s, EventArgs e)
+            {
+                if (!loading)
+                    return;
+
+                loading = false;
+                Deactivate -= StopLoading;
+                overlay.Dispose();
+
+                if (!IsDisposed && lblStatus.Text == launching)
+                    ApplyFilter();
+            }
+
+            Deactivate += StopLoading;
+            _ = Task.Delay(LoadingTimeout).ContinueWith(_ => StopLoading(null, EventArgs.Empty),
+                TaskScheduler.FromCurrentSynchronizationContext());
+
             try
             {
                 await LaunchAsync(boton.Name, path);
             }
             finally
             {
+                StopLoading(null, EventArgs.Empty);
                 _runningBatches.Remove(path);
 
                 // The notice was about this game, which isn't running anymore.

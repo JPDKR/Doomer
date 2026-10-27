@@ -4,8 +4,10 @@ using System.Diagnostics.CodeAnalysis;
 namespace Doomer.Services
 {
     // What the batch form has filled in, as typed. EditingPath and ExistingImagePath are set when editing a batch.
+    // WikiUrl is the WAD's Doom Wiki page, if any.
     public record BatchDraft(SourcePort Port, string FileName, string IWad, string Wad, IReadOnlyList<string> ExtraFiles,
-        IReadOnlyList<string> Plugins, string Arguments, string Image, string? EditingPath = null, string? ExistingImagePath = null);
+        IReadOnlyList<string> Plugins, string Arguments, string Image, string? EditingPath = null, string? ExistingImagePath = null,
+        string WikiUrl = "");
 
     // Everything saving a batch will do, worked out before anything is touched. Confirmations are the yes/no
     // questions to ask first. ImageSource is the new icon (a file or a URL), or empty to keep the current one,
@@ -54,6 +56,9 @@ namespace Doomer.Services
             if (port == SourcePort.DSDADoom && BatchFileService.RequiresGZDoom(wad, extraFiles))
                 return Fail(Strings.DSDADoomNoPackages, out error);
 
+            if (!BatchFileService.TryNormalizeWikiUrl(draft.WikiUrl, out var wikiUrl))
+                return Fail(Strings.WikiUrlInvalid, out error);
+
             // A WAD outside the WADs directory gets moved into it, along with the extra files next to it,
             // and the batch points to their new location.
             var moves = WadMoveService.Plan(wad, extraFiles, folders.Wads.Path);
@@ -71,6 +76,7 @@ namespace Doomer.Services
                     ? BatchFileService.BuildDSDADoomCommand(ports.DSDADoom.Path, iwad, movedWad, movedExtraFiles, draft.Arguments)
                     : BatchFileService.BuildGZDoomCommand(ports.GZDoom.Path, ports.GZDoom.Plugins, iwad, movedWad, plugins,
                         movedExtraFiles, draft.Arguments);
+                command = BatchFileService.SetWikiUrl(command, wikiUrl);
             }
             catch (ArgumentException ex)
             {

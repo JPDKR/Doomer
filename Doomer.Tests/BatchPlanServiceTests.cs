@@ -59,11 +59,27 @@ namespace Doomer.Tests
 
         private static BatchDraft Draft(string fileName = "Sigil", string iwad = "doom", string wad = "wads/sigil",
             SourcePort port = SourcePort.GZDoom, IReadOnlyList<string>? extraFiles = null, IReadOnlyList<string>? plugins = null,
-            string image = "", string? editingPath = null, string? existingImagePath = null) =>
-            new(port, fileName, iwad, wad, extraFiles ?? [], plugins ?? [], "", image, editingPath, existingImagePath);
+            string image = "", string? editingPath = null, string? existingImagePath = null, string wikiUrl = "") =>
+            new(port, fileName, iwad, wad, extraFiles ?? [], plugins ?? [], "", image, editingPath, existingImagePath, wikiUrl);
 
         private bool TryPlan(BatchDraft draft, out BatchPlan? plan, out string error) =>
             BatchPlanService.TryPlan(draft, _ports, _folders, out plan, out error);
+
+        [Fact]
+        public void TryPlan_WritesTheWikiUrlBeforeTheCommand()
+        {
+            Assert.True(TryPlan(Draft(port: SourcePort.DSDADoom, wikiUrl: " doomwiki.org/wiki/Sigil "), out var plan, out _));
+
+            Assert.Equal("rem Doomer wiki: https://doomwiki.org/wiki/Sigil\r\n" +
+                $"\"{_ports.DSDADoom.Path}\" \"doom.wad\" \"wads/sigil.wad\"", plan!.Command);
+        }
+
+        [Fact]
+        public void TryPlan_RejectsAWikiUrlThatIsNotAWebAddress()
+        {
+            Assert.False(TryPlan(Draft(wikiUrl: "C:\\Games\\evil.exe"), out _, out var error));
+            Assert.NotEmpty(error);
+        }
 
         [Fact]
         public void TryPlan_WorksOutANewBatch()

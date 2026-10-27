@@ -398,6 +398,14 @@ namespace Doomer
             var openFolderItem = new ToolStripMenuItem(Strings.MenuOpenWadFolder);
             openFolderItem.Click += (s, e) => OpenWadFolder(filePath);
 
+            var openWikiItem = new ToolStripMenuItem(Strings.MenuOpenWiki);
+            openWikiItem.Click += (s, e) => OpenWikiPage(filePath);
+            // Read when it opens, since the page can be set from here or from Edit while the menu stays the same.
+            menu.Opening += (s, e) => openWikiItem.Enabled = ReadWikiUrl(filePath) is not null;
+
+            var setWikiItem = new ToolStripMenuItem(Strings.MenuSetWikiUrl);
+            setWikiItem.Click += (s, e) => SetWikiUrl(filePath);
+
             var duplicateItem = new ToolStripMenuItem(Strings.MenuDuplicate);
             duplicateItem.Click += (s, e) => DuplicateBatch(filePath);
 
@@ -409,6 +417,8 @@ namespace Doomer
             menu.Items.Add(editItem);
             menu.Items.Add(changeImageItem);
             menu.Items.Add(openFolderItem);
+            menu.Items.Add(openWikiItem);
+            menu.Items.Add(setWikiItem);
             menu.Items.Add(duplicateItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(deleteItem);
@@ -514,6 +524,82 @@ namespace Doomer
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // The batch's Doom Wiki page, or null when it has none, it isn't a web address or the batch can't be read.
+        private static string? ReadWikiUrl(string filePath)
+        {
+            try
+            {
+                return BatchFileService.TryNormalizeWikiUrl(BatchFileService.GetWikiUrl(File.ReadAllText(filePath)), out var url) &&
+                    url.Length > 0 ? url : null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        private void OpenWikiPage(string filePath)
+        {
+            if (ReadWikiUrl(filePath) is not { } url)
+                return;
+
+            try
+            {
+                // Only ever an http or https address, so this opens the browser and nothing else.
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantOpenWikiPage, ex.Message), Strings.ErrorTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Writes the page into the batch file, so it goes along when the batch is renamed or duplicated.
+        private void SetWikiUrl(string filePath)
+        {
+            string batch;
+
+            try
+            {
+                batch = File.ReadAllText(filePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantReadBatch, ex.Message), Strings.WikiUrlTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var text = BatchFileService.GetWikiUrl(batch) ?? string.Empty;
+            string url;
+
+            while (true)
+            {
+                using var dlg = new NamePromptForm(Strings.WikiUrlTitle, Strings.WikiUrlPrompt, text);
+
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                text = dlg.EnteredName;
+
+                if (BatchFileService.TryNormalizeWikiUrl(text, out url))
+                    break;
+
+                MessageBox.Show(Strings.WikiUrlInvalid, Strings.WikiUrlTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            try
+            {
+                File.WriteAllText(filePath, BatchFileService.SetWikiUrl(batch, url));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.WikiUrlSaveError, ex.Message), Strings.WikiUrlTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

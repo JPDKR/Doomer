@@ -189,6 +189,7 @@ namespace Doomer
             SetItems(lstExtraFiles, extraFiles);
             SetItems(lstPlugins, plugins);
             txtArguments.Text = arguments;
+            txtWikiUrl.Text = BatchFileService.GetWikiUrl(command) ?? string.Empty;
         }
 
         private void ApplyTexts()
@@ -201,6 +202,7 @@ namespace Doomer
             lblExtraFiles.Text = Strings.LabelExtraFiles;
             lblArguments.Text = Strings.LabelArguments;
             lblImage.Text = Strings.LabelImage;
+            lblWikiUrl.Text = Strings.LabelWikiUrl;
             btnBrowseIWad.Text = btnBrowseWad.Text = btnBrowseImage.Text = Strings.BrowseButton;
             btnAddExtraFile.Text = btnAddPlugin.Text = Strings.AddButton;
             btnRemoveExtraFile.Text = btnRemovePlugin.Text = Strings.RemoveButton;
@@ -210,6 +212,7 @@ namespace Doomer
             txtWad.PlaceholderText = Strings.PlaceholderWad;
             txtArguments.PlaceholderText = Strings.PlaceholderArguments;
             txtImage.PlaceholderText = Strings.PlaceholderImage;
+            txtWikiUrl.PlaceholderText = Strings.PlaceholderWikiUrl;
             txtPluginsUnsupported.PlaceholderText = Strings.PlaceholderPluginsUnsupported;
             SetCueBanner(cmbIWad, Strings.PlaceholderIWad);
         }
@@ -687,7 +690,7 @@ namespace Doomer
             // A named IWAD is saved as its path.
             var iwad = IWadService.Resolve(cmbIWad.Text, _namedIWads);
             var draft = new BatchDraft(SelectedPort, txtFileName.Text, iwad, txtWad.Text, ExtraFiles, Plugins,
-                txtArguments.Text, txtImage.Text, _editingFilePath, _existingImagePath);
+                txtArguments.Text, txtImage.Text, _editingFilePath, _existingImagePath, txtWikiUrl.Text);
 
             if (!BatchPlanService.TryPlan(draft, _ports, _folders, out var plan, out var error))
             {

@@ -515,4 +515,33 @@ WAD buttons will show text instead of icons. Save anyway?</value>
   <data name="DSDADoomNoPackages" xml:space="preserve">
     <value>DSDA Doom can't load .pk3 or .pk7 files. Use GZDoom for this batch.</value>
   </data>
+  <data name="LabelWikiUrl" xml:space="preserve">
+    <value>Doom Wiki</value>
+  </data>
+  <data name="PlaceholderWikiUrl" xml:space="preserve">
+    <value>Optional, e.g. https://doomwiki.org/wiki/Sigil</value>
+  </data>
+  <data name="WikiUrlInvalid" xml:space="preserve">
+    <value>The Doom Wiki URL isn't a valid web address (http or https).</value>
+  </data>
+  <data name="MenuOpenWiki" xml:space="preserve">
+    <value>Open Doom Wiki page</value>
+  </data>
+  <data name="MenuSetWikiUrl" xml:space="preserve">
+    <value>Doom Wiki URL...</value>
+  </data>
+  <data name="WikiUrlTitle" xml:space="preserve">
+    <value>Doom Wiki URL</value>
+  </data>
+  <data name="WikiUrlPrompt" xml:space="preserve">
+    <value>Doom Wiki page for this WAD (empty to remove it):</value>
+  </data>
+  <data name="WikiUrlSaveError" xml:space="preserve">
+    <value>Couldn't save the Doom Wiki URL:
+{0}</value>
+  </data>
+  <data name="CantOpenWikiPage" xml:space="preserve">
+    <value>Couldn't open the Doom Wiki page:
+{0}</value>
+  </data>
 </root>

@@ -38,6 +38,13 @@ namespace Doomer.Services
             "^" + Regex.Escape(PluginsFolderMarker) + "(?<folder>.+?)\\s*$",
             RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
+        // Written first when the batch has a Doom Wiki page, so the main window can open it. cmd skips it.
+        private const string WikiUrlMarker = "rem Doomer wiki: ";
+
+        private static readonly Regex WikiUrlPattern = new(
+            "^" + Regex.Escape(WikiUrlMarker) + "(?<url>[^\\r\\n]*?)[ \\t]*(?:\\r?\\n|$)",
+            RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
         private static readonly Regex DuplicateNamePattern = new("^(?<base>.+) \\((?<n>\\d{1,6})\\)$", RegexOptions.Compiled);
 
         public static string GetDisplayName(SourcePort port) => port switch
@@ -198,12 +205,54 @@ namespace Doomer.Services
             return " " + arguments.Trim();
         }
 
+        // The batch's Doom Wiki page as written in it, or null when it has none.
+        public static string? GetWikiUrl(string batch)
+        {
+            var match = WikiUrlPattern.Match(batch);
+            return match.Success && match.Groups["url"].Length > 0 ? match.Groups["url"].Value : null;
+        }
+
+        // Replaces the batch's Doom Wiki page with url, or removes it when url is empty. It goes on the first line,
+        // since a line after the command would reset the exit code the launcher checks.
+        public static string SetWikiUrl(string batch, string? url)
+        {
+            var command = WikiUrlPattern.Replace(batch, string.Empty);
+            return string.IsNullOrWhiteSpace(url) ? command : $"{WikiUrlMarker}{url}\r\n" + command;
+        }
+
+        // An empty text means no page. Anything else has to be a web address; one typed without
+        // "https://" (e.g. doomwiki.org/wiki/Sigil) gets it. Only http and https are taken, so opening it
+        // can never run a file, even from a batch edited by hand.
+        public static bool TryNormalizeWikiUrl(string? text, out string url)
+        {
+            url = string.Empty;
+            text = text?.Trim() ?? string.Empty;
+
+            if (text.Length == 0)
+                return true;
+
+            if (text.Any(char.IsWhiteSpace) || text.Contains('"'))
+                return false;
+
+            if (!text.Contains("://"))
+                text = "https://" + text;
+
+            if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) || string.IsNullOrEmpty(uri.Host))
+                return false;
+
+            url = uri.AbsoluteUri;
+            return true;
+        }
+
         // The plugins are the last paths, under the plugins folder: the one the batch was written with, or
         // pluginsFolder (the current setting) for batches from before that was written down. Whatever follows
         // the paths on the command's line (e.g. -skill 4 added by hand) comes back as the arguments.
         public static bool TryParseCommand(string command, string pluginsFolder, out SourcePort port, out string iwad,
             out string wad, out List<string> extraFiles, out List<string> plugins, out string arguments)
         {
+            // Taken out first, since the DSDA Doom command has to be the first line.
+            command = WikiUrlPattern.Replace(command, string.Empty);
             var match = GZDoomPattern.Match(command);
 
             if (match.Success)

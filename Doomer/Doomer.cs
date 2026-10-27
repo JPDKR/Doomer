@@ -71,6 +71,9 @@ namespace Doomer
             loadingPanel.BackColor = Theme.Background;
             lblLoading.ForeColor = Theme.MutedText;
             lblVersion.ForeColor = Theme.MutedText;
+
+            lblEmpty.BackColor = Theme.Background;
+            lblEmpty.ForeColor = Theme.MutedText;
         }
 
         private void ApplyTexts()
@@ -330,6 +333,14 @@ namespace Doomer
             if (favoritesOnly)
                 loaded += $" ({Strings.StatusFavoritesOnly})";
             lblStatus.Text = $"  {loaded}   |   {_folders.Batches.Path}";
+
+            // With only the favorites listed, an empty window says why and how to get out of it.
+            lblEmpty.Visible = favoritesOnly && count == 0;
+            if (lblEmpty.Visible)
+            {
+                var anyFavorite = flowLayoutPanel1.Controls.Cast<Control>().Any(c => _library.IsFavorite(c.Name));
+                lblEmpty.Text = anyFavorite ? Strings.NoFavoriteMatchesSearch : Strings.NoFavoritesYet;
+            }
         }
 
         private void ApplyFavoriteStyle(Button boton)

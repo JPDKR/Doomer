@@ -553,4 +553,11 @@ Los botones de los WADs mostrarán texto en lugar de íconos. ¿Guardar de todos
   <data name="StatusFavoritesOnly" xml:space="preserve">
     <value>solo favoritos</value>
   </data>
+  <data name="NoFavoritesYet" xml:space="preserve">
+    <value>Todavía no tienes WADs favoritos.
+Desactiva ★ Favoritos para ver todos tus WADs y marca algunos con la estrella de su esquina o desde su menú del clic derecho.</value>
+  </data>
+  <data name="NoFavoriteMatchesSearch" xml:space="preserve">
+    <value>Ningún WAD favorito coincide con la búsqueda.</value>
+  </data>
 </root>

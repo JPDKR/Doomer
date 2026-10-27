@@ -34,6 +34,7 @@ namespace Doomer
             loadingPanel = new TableLayoutPanel();
             lblLoading = new Label();
             progressLoading = new ProgressBar();
+            lblEmpty = new Label();
             lblVersion = new ToolStripStatusLabel();
             menuStrip1.SuspendLayout();
             statusStrip1.SuspendLayout();
@@ -178,6 +179,15 @@ namespace Doomer
             progressLoading.Size = new Size(220, 6);
             progressLoading.Style = ProgressBarStyle.Marquee;
             //
+            // lblEmpty
+            //
+            lblEmpty.Dock = DockStyle.Fill;
+            lblEmpty.Font = new Font("Segoe UI", 11F);
+            lblEmpty.Name = "lblEmpty";
+            lblEmpty.Padding = new Padding(20);
+            lblEmpty.TextAlign = ContentAlignment.MiddleCenter;
+            lblEmpty.Visible = false;
+            //
             // Doomer
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -185,6 +195,7 @@ namespace Doomer
             ClientSize = new Size(908, 456);
             MinimumSize = new Size(600, 350);
             Controls.Add(loadingPanel);
+            Controls.Add(lblEmpty);
             Controls.Add(flowLayoutPanel1);
             Controls.Add(statusStrip1);
             Controls.Add(menuStrip1);
@@ -222,6 +233,7 @@ namespace Doomer
         private TableLayoutPanel loadingPanel;
         private Label lblLoading;
         private ProgressBar progressLoading;
+        private Label lblEmpty;
         private ToolStripStatusLabel lblVersion;
     }
 }

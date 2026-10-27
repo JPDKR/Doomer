@@ -553,4 +553,11 @@ WAD buttons will show text instead of icons. Save anyway?</value>
   <data name="StatusFavoritesOnly" xml:space="preserve">
     <value>favorites only</value>
   </data>
+  <data name="NoFavoritesYet" xml:space="preserve">
+    <value>You have no favorite WADs yet.
+Turn off ★ Favorites to list all your WADs, then mark some with the star in their corner or from their right-click menu.</value>
+  </data>
+  <data name="NoFavoriteMatchesSearch" xml:space="preserve">
+    <value>No favorite WAD matches the search.</value>
+  </data>
 </root>

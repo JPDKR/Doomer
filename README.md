@@ -72,7 +72,7 @@ The main window lists one button per batch file found in `Folders.Batches.Path`,
 
 Click a button to run its batch file. It runs without a console window; if it fails (e.g. the executable was moved), Doomer shows the error instead. While a WAD's game is open, clicking its button again (or double-clicking it) doesn't launch a second copy; the status bar says it's already running.
 
-Use **Sort** in the menu to list the WADs **By name** or **By last played** (most recent first; WADs never played go last). Mark the ones you play the most as **Favorite** from their right-click menu: they're always shown first, with a gold border. Favorites, play history and the sort order are kept in `%AppData%\Doomer\library.json`.
+Use **Sort** in the menu to list the WADs **By name** or **By last played** (most recent first; WADs never played go last). Mark the ones you play the most as **Favorite** from their right-click menu: they're always shown first, with a gold border and a star in the corner. You can also click that star (it shows up when you hover over a WAD) to mark or unmark it. Favorites, play history and the sort order are kept in `%AppData%\Doomer\library.json`.
 
 Right-click any WAD button to:
 
@@ -80,6 +80,8 @@ Right-click any WAD button to:
 * **Edit** its batch file. You can also rename it there: its icon and its favorite/play history go along with it (a name another batch already uses isn't accepted). The Image box shows its current icon; pick, paste or enter another one to replace it, or leave it as it is to keep it.
 * **Change image**: pick a new icon. The file is copied into `Folders.Images.Path`, so the original stays where it was.
 * **Open WAD folder**: opens Explorer with the batch's WAD selected. Relative WAD paths are resolved from the source port's folder.
+* **Open Doom Wiki page**: opens the WAD's Doom Wiki page in your browser, if it has one. A WAD with a page also shows a globe in its button's bottom-right corner; clicking it opens the page too.
+* **Doom Wiki URL...**: set, change or remove (leave it empty) the WAD's Doom Wiki page. It's also in the batch form.
 * **Duplicate** it under a new name (e.g. to try the same WAD with another plugin), along with its icon.
 * **Delete** it. Deleting a batch also removes its icon image, if one exists.
 
@@ -97,6 +99,7 @@ Whenever you download a new WAD and want a launcher for it, use **Add Batch File
 * <ins>Plugins (optional, GZDoom only)</ins>: extra files you want loaded alongside the WAD (e.g. SmoothDoom, Corruption Cards, IDClever), as many as you like. **Add...** lists the `.wad`/`.pk3`/`.pk7`/`.zip`/`.deh`/`.bex` files in the `Ports.GZDoom.Plugins` folder (relative to your GZDoom install) that the batch doesn't have yet; **Remove** (or the Delete key) takes them out. They're loaded last, in the order they're listed. If a plugin isn't in the folder when you save, you'll be asked to confirm.
 * <ins>Arguments (optional)</ins>: anything else to pass to the source port, written at the end of the command as you type it, e.g. `-skill 4 -warp 1`, or `-complevel 9` for DSDA Doom. Arguments added by hand at the end of a batch's command show up here when you edit it, so saving it keeps them.
 * <ins>Image (optional)</ins>: the icon for the WAD's button. Pick a file with **Browse...**, paste the image's URL (right-click the image in your browser > Copy image address; it's downloaded when you save), or right-click the image > Copy image and press **Ctrl+V** in the Image box. Either way the image is stored in `Folders.Images.Path` under the batch's name; a file picked with **Browse...** is copied, so the original stays where it was. Some sites, like Doom Wiki, block downloads from apps — use Copy image + Ctrl+V for those.
+* <ins>Doom Wiki (optional)</ins>: the WAD's Doom Wiki page (or any other web page about it), e.g. `https://doomwiki.org/wiki/Sigil`; `https://` is added if you leave it out. It's saved in the batch file as a `rem` line, which cmd skips, so it stays with the batch when it's renamed or duplicated. Right-click the WAD's button > **Open Doom Wiki page** to open it.
 
 If a batch file with the same name already exists, you'll be asked to confirm before it's overwritten. If you enter a full (rooted) path for IWAD, WAD or an extra file that doesn't exist on disk, you'll also get a confirmation before the batch is created — relative paths aren't checked, since they're resolved by the source port at launch time, not by Doomer. A WAD picked from outside `Folders.Wads.Path` is moved into it when you save, along with the extra files in the WAD's folder (those in other folders, like a music WAD you share between batches, stay put), and the batch points to their new place. Any other batch that loaded those files is updated to point there too, and you're told which ones.
 

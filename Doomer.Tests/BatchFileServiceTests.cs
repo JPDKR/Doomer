@@ -488,5 +488,69 @@ namespace Doomer.Tests
             Assert.Empty(BatchFileService.FindPlugins("D:\\does\\not\\exist\\" + Guid.NewGuid()));
             Assert.Empty(BatchFileService.FindPlugins(null));
         }
+
+        [Fact]
+        public void TryParseCommand_SkipsTheWikiUrlBeforeADSDADoomCommand()
+        {
+            var command = BatchFileService.SetWikiUrl(
+                BatchFileService.BuildDSDADoomCommand("D:\\dsda\\dsda-doom.exe", "doom2", "wads/sigil", arguments: "-skill 4"),
+                "https://doomwiki.org/wiki/Sigil");
+
+            Assert.True(BatchFileService.TryParseCommand(command, "plugins", out var port, out var iwad, out var wad,
+                out _, out _, out var arguments));
+            Assert.Equal(SourcePort.DSDADoom, port);
+            Assert.Equal("doom2", iwad);
+            Assert.Equal("wads/sigil", wad);
+            Assert.Equal("-skill 4", arguments);
+            Assert.Equal("https://doomwiki.org/wiki/Sigil", BatchFileService.GetWikiUrl(command));
+        }
+
+        [Fact]
+        public void TryParseCommand_KeepsThePluginsWithAWikiUrl()
+        {
+            var command = BatchFileService.SetWikiUrl(
+                BatchFileService.BuildGZDoomCommand(GZDoomPath, "plugins", "doom2", "wads/sigil", ["smooth.pk3"]),
+                "https://doomwiki.org/wiki/Sigil");
+
+            Assert.True(BatchFileService.TryParseCommand(command, "other", out _, out _, out _, out var extraFiles,
+                out var plugins, out var arguments));
+            Assert.Empty(extraFiles);
+            Assert.Equal(["smooth.pk3"], plugins);
+            Assert.Empty(arguments);
+        }
+
+        [Fact]
+        public void SetWikiUrl_ReplacesOrRemovesTheOneThere()
+        {
+            var command = $"\"{GZDoomPath}\" -iwad \"doom2.wad\" -file \"wads/sigil.wad\"";
+            var withUrl = BatchFileService.SetWikiUrl(command, "https://doomwiki.org/wiki/Sigil");
+            var replaced = BatchFileService.SetWikiUrl(withUrl, "https://doomwiki.org/wiki/Sigil_II");
+
+            Assert.Equal("rem Doomer wiki: https://doomwiki.org/wiki/Sigil_II\r\n" + command, replaced);
+            Assert.Equal(command, BatchFileService.SetWikiUrl(replaced, ""));
+            Assert.Null(BatchFileService.GetWikiUrl(command));
+        }
+
+        [Theory]
+        [InlineData("", "")]
+        [InlineData("  https://doomwiki.org/wiki/Sigil  ", "https://doomwiki.org/wiki/Sigil")]
+        [InlineData("doomwiki.org/wiki/Sigil", "https://doomwiki.org/wiki/Sigil")]
+        [InlineData("http://doomwiki.org/wiki/Ancient_Aliens", "http://doomwiki.org/wiki/Ancient_Aliens")]
+        public void TryNormalizeWikiUrl_TakesWebAddresses(string text, string expected)
+        {
+            Assert.True(BatchFileService.TryNormalizeWikiUrl(text, out var url));
+            Assert.Equal(expected, url);
+        }
+
+        [Theory]
+        [InlineData("C:\\Games\\evil.exe")]
+        [InlineData("file:///C:/Games/evil.exe")]
+        [InlineData("ftp://doomwiki.org/wiki/Sigil")]
+        [InlineData("https://doomwiki.org/wiki/Ancient Aliens")]
+        [InlineData("https://doomwiki.org/wiki/\"Sigil\"")]
+        public void TryNormalizeWikiUrl_RejectsAnythingElse(string text)
+        {
+            Assert.False(BatchFileService.TryNormalizeWikiUrl(text, out _));
+        }
     }
 }

@@ -18,6 +18,9 @@ namespace Doomer
         // Kept by path, so it survives the buttons being rebuilt.
         private readonly HashSet<string> _runningBatches = new(StringComparer.OrdinalIgnoreCase);
 
+        // The batches with a Doom Wiki page, whose buttons show the globe that opens it. Kept by path too.
+        private readonly HashSet<string> _wikiPages = new(StringComparer.OrdinalIgnoreCase);
+
         // How long a game's button shows it's loading when its window never takes the focus.
         private static readonly TimeSpan LoadingTimeout = TimeSpan.FromSeconds(20);
 
@@ -145,7 +148,7 @@ namespace Doomer
             }
         }
 
-        private record WadEntry(string File, string Name, Bitmap? Icon);
+        private record WadEntry(string File, string Name, Bitmap? Icon, bool HasWikiPage);
 
         // Reads the batch files and decodes their icons off the UI thread, then builds the buttons.
         // A newer call cancels an older one still running, so only the latest result is shown.
@@ -204,7 +207,7 @@ namespace Doomer
                 {
                     token.ThrowIfCancellationRequested();
                     entries.Add(new WadEntry(file, Path.GetFileNameWithoutExtension(file),
-                        LoadIcon(BatchFileService.GetImagePath(file, images), iconSize)));
+                        LoadIcon(BatchFileService.GetImagePath(file, images), iconSize), ReadWikiUrl(file) is not null));
                 }
             }
             catch
@@ -249,6 +252,8 @@ namespace Doomer
             }
 
             flowLayoutPanel1.Controls.Clear();
+            _wikiPages.Clear();
+            _wikiPages.UnionWith(entries.Where(e => e.HasWikiPage).Select(e => e.File));
             var order = _library.Sort(entries.Select(e => e.Name));
             flowLayoutPanel1.Controls.AddRange([.. entries.OrderBy(e => order.IndexOf(e.Name)).Select(CreateWadButton)]);
             ApplyFilter();
@@ -287,7 +292,17 @@ namespace Doomer
                 boton.Font = _wadButtonFont;
             }
 
-            boton.Click += Boton_Click!;
+            var star = new FavoriteStar(boton, () => _library.IsFavorite(boton.Name));
+            var wiki = new WikiIcon(boton, () => _wikiPages.Contains(entry.File));
+            boton.Click += (s, e) =>
+            {
+                if (star.Pressed)
+                    ToggleFavorite(boton);
+                else if (wiki.Pressed)
+                    OpenWikiPage(entry.File);
+                else
+                    Boton_Click(s!, e);
+            };
             EnableArchiveDrop(boton);
             return boton;
         }
@@ -316,6 +331,7 @@ namespace Doomer
             var favorite = _library.IsFavorite(boton.Name);
             boton.FlatAppearance.BorderColor = favorite ? Theme.Favorite : Theme.Accent;
             boton.FlatAppearance.BorderSize = favorite ? 2 : 1;
+            boton.Invalidate();
             _wadTooltip.SetToolTip(boton, favorite ? $"★ {boton.Name}" : boton.Name);
         }
 
@@ -390,6 +406,14 @@ namespace Doomer
             var openFolderItem = new ToolStripMenuItem(Strings.MenuOpenWadFolder);
             openFolderItem.Click += (s, e) => OpenWadFolder(filePath);
 
+            var openWikiItem = new ToolStripMenuItem(Strings.MenuOpenWiki);
+            openWikiItem.Click += (s, e) => OpenWikiPage(filePath);
+            // Read when it opens, since the page can be set from here or from Edit while the menu stays the same.
+            menu.Opening += (s, e) => openWikiItem.Enabled = ReadWikiUrl(filePath) is not null;
+
+            var setWikiItem = new ToolStripMenuItem(Strings.MenuSetWikiUrl);
+            setWikiItem.Click += (s, e) => SetWikiUrl(boton);
+
             var duplicateItem = new ToolStripMenuItem(Strings.MenuDuplicate);
             duplicateItem.Click += (s, e) => DuplicateBatch(filePath);
 
@@ -401,6 +425,8 @@ namespace Doomer
             menu.Items.Add(editItem);
             menu.Items.Add(changeImageItem);
             menu.Items.Add(openFolderItem);
+            menu.Items.Add(openWikiItem);
+            menu.Items.Add(setWikiItem);
             menu.Items.Add(duplicateItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(deleteItem);
@@ -507,6 +533,91 @@ namespace Doomer
             {
                 MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // The batch's Doom Wiki page, or null when it has none, it isn't a web address or the batch can't be read.
+        private static string? ReadWikiUrl(string filePath)
+        {
+            try
+            {
+                return BatchFileService.TryNormalizeWikiUrl(BatchFileService.GetWikiUrl(File.ReadAllText(filePath)), out var url) &&
+                    url.Length > 0 ? url : null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        private void OpenWikiPage(string filePath)
+        {
+            if (ReadWikiUrl(filePath) is not { } url)
+                return;
+
+            try
+            {
+                // Only ever an http or https address, so this opens the browser and nothing else.
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantOpenWikiPage, ex.Message), Strings.ErrorTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Writes the page into the batch file, so it goes along when the batch is renamed or duplicated.
+        private void SetWikiUrl(Button boton)
+        {
+            var filePath = (string)boton.Tag!;
+            string batch;
+
+            try
+            {
+                batch = File.ReadAllText(filePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantReadBatch, ex.Message), Strings.WikiUrlTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var text = BatchFileService.GetWikiUrl(batch) ?? string.Empty;
+            string url;
+
+            while (true)
+            {
+                using var dlg = new NamePromptForm(Strings.WikiUrlTitle, Strings.WikiUrlPrompt, text);
+
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                text = dlg.EnteredName;
+
+                if (BatchFileService.TryNormalizeWikiUrl(text, out url))
+                    break;
+
+                MessageBox.Show(Strings.WikiUrlInvalid, Strings.WikiUrlTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            try
+            {
+                File.WriteAllText(filePath, BatchFileService.SetWikiUrl(batch, url));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.WikiUrlSaveError, ex.Message), Strings.WikiUrlTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (url.Length > 0)
+                _wikiPages.Add(filePath);
+            else
+                _wikiPages.Remove(filePath);
+
+            boton.Invalidate();
         }
 
         // Copies the batch, and its icon if it has one, under a new name, e.g. to try the same WAD

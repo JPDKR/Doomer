@@ -44,6 +44,8 @@ namespace Doomer
             lblImage = new Label();
             txtImage = new TextBox();
             btnBrowseImage = new Button();
+            lblWikiUrl = new Label();
+            txtWikiUrl = new TextBox();
             btnCreate = new Button();
             SuspendLayout();
             //
@@ -52,7 +54,7 @@ namespace Doomer
             btnFromArchive.Location = new Point(8, 14);
             btnFromArchive.Name = "btnFromArchive";
             btnFromArchive.Size = new Size(150, 30);
-            btnFromArchive.TabIndex = 17;
+            btnFromArchive.TabIndex = 29;
             btnFromArchive.Text = "From archive...";
             btnFromArchive.Click += BtnFromArchive_Click;
             //
@@ -302,12 +304,29 @@ namespace Doomer
             btnBrowseImage.Text = "Browse...";
             btnBrowseImage.Click += BtnBrowseImage_Click;
             //
+            // lblWikiUrl
+            //
+            lblWikiUrl.AutoSize = false;
+            lblWikiUrl.Location = new Point(8, 438);
+            lblWikiUrl.Name = "lblWikiUrl";
+            lblWikiUrl.Size = new Size(90, 27);
+            lblWikiUrl.TabIndex = 28;
+            lblWikiUrl.Text = "Doom Wiki";
+            lblWikiUrl.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtWikiUrl
+            //
+            txtWikiUrl.Location = new Point(106, 438);
+            txtWikiUrl.Name = "txtWikiUrl";
+            txtWikiUrl.Size = new Size(380, 27);
+            txtWikiUrl.TabIndex = 16;
+            //
             // btnCreate
             //
-            btnCreate.Location = new Point(246, 446);
+            btnCreate.Location = new Point(246, 482);
             btnCreate.Name = "btnCreate";
             btnCreate.Size = new Size(100, 30);
-            btnCreate.TabIndex = 16;
+            btnCreate.TabIndex = 17;
             btnCreate.Text = "Create";
             btnCreate.UseVisualStyleBackColor = true;
             btnCreate.Click += BtnCreate_Click;
@@ -316,8 +335,10 @@ namespace Doomer
             //
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(502, 492);
+            ClientSize = new Size(502, 528);
             Controls.Add(btnCreate);
+            Controls.Add(txtWikiUrl);
+            Controls.Add(lblWikiUrl);
             Controls.Add(btnBrowseImage);
             Controls.Add(txtImage);
             Controls.Add(lblImage);
@@ -385,6 +406,8 @@ namespace Doomer
         private Label lblImage;
         private TextBox txtImage;
         private Button btnBrowseImage;
+        private Label lblWikiUrl;
+        private TextBox txtWikiUrl;
         private Button btnCreate;
     }
 }

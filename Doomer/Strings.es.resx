@@ -515,4 +515,33 @@ Los botones de los WADs mostrarán texto en lugar de íconos. ¿Guardar de todos
   <data name="DSDADoomNoPackages" xml:space="preserve">
     <value>DSDA Doom no puede cargar archivos .pk3 ni .pk7. Usa GZDoom para este batch.</value>
   </data>
+  <data name="LabelWikiUrl" xml:space="preserve">
+    <value>Doom Wiki</value>
+  </data>
+  <data name="PlaceholderWikiUrl" xml:space="preserve">
+    <value>Opcional, ej. https://doomwiki.org/wiki/Sigil</value>
+  </data>
+  <data name="WikiUrlInvalid" xml:space="preserve">
+    <value>La URL de Doom Wiki no es una dirección web válida (http o https).</value>
+  </data>
+  <data name="MenuOpenWiki" xml:space="preserve">
+    <value>Abrir página de Doom Wiki</value>
+  </data>
+  <data name="MenuSetWikiUrl" xml:space="preserve">
+    <value>URL de Doom Wiki...</value>
+  </data>
+  <data name="WikiUrlTitle" xml:space="preserve">
+    <value>URL de Doom Wiki</value>
+  </data>
+  <data name="WikiUrlPrompt" xml:space="preserve">
+    <value>Página de Doom Wiki de este WAD (vacía para quitarla):</value>
+  </data>
+  <data name="WikiUrlSaveError" xml:space="preserve">
+    <value>No se pudo guardar la URL de Doom Wiki:
+{0}</value>
+  </data>
+  <data name="CantOpenWikiPage" xml:space="preserve">
+    <value>No se pudo abrir la página de Doom Wiki:
+{0}</value>
+  </data>
 </root>

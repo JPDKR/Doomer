@@ -1,3 +1,4 @@
+using Doomer.Options;
 using Doomer.Services;
 using System.Text;
 
@@ -51,6 +52,35 @@ namespace Doomer.Tests
             Assert.Empty(IWadService.FindUsedIWads(missing, ".bat", "plugins"));
             Assert.Empty(IWadService.FindIWadFiles(missing));
             Assert.Empty(IWadService.FindIWadFiles(null));
+        }
+
+        private static readonly List<NamedIWad> Named = IWadService.Configured(new IWadsSettings
+        {
+            Doom2 = " D:\\DSDA\\DOOM2.WAD ",
+            Plutonia = "D:\\DSDA\\plutonia.wad"
+        });
+
+        [Fact]
+        public void Configured_ListsOnlyTheGamesWithAPath()
+        {
+            Assert.Equal([new("Doom II", "D:\\DSDA\\DOOM2.WAD"), new("The Plutonia Experiment", "D:\\DSDA\\plutonia.wad")], Named);
+            Assert.Equal("Doom II (D:\\DSDA\\DOOM2.WAD)", Named[0].ToString());
+        }
+
+        [Fact]
+        public void ResolveAndDescribe_SwapANamedIWadForItsPath()
+        {
+            Assert.Equal("D:\\DSDA\\DOOM2.WAD", IWadService.Resolve("Doom II (D:\\DSDA\\DOOM2.WAD)", Named));
+            Assert.Equal("wads/tnt.wad", IWadService.Resolve("wads/tnt.wad", Named));
+
+            Assert.Equal("Doom II (D:\\DSDA\\DOOM2.WAD)", IWadService.Describe("d:/dsda/doom2.wad", Named));
+            Assert.Equal("D:\\DSDA\\tnt.wad", IWadService.Describe("D:\\DSDA\\tnt.wad", Named));
+        }
+
+        [Fact]
+        public void ExceptNamed_DropsTheIWadsListedByName()
+        {
+            Assert.Equal(["D:\\DSDA\\doom.wad"], IWadService.ExceptNamed(["D:\\DSDA\\doom.wad", "d:/DSDA/Doom2.wad"], Named));
         }
 
         [Fact]

@@ -30,6 +30,12 @@
   <data name="StatusWadCountOne" xml:space="preserve">
     <value>{0} WAD cargado</value>
   </data>
+  <data name="StatusLaunching" xml:space="preserve">
+    <value>Iniciando {0}...</value>
+  </data>
+  <data name="LoadingGame" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
   <data name="StatusAlreadyRunning" xml:space="preserve">
     <value>{0} ya se está ejecutando</value>
   </data>
@@ -423,6 +429,9 @@ Corrígela primero en Configuración.</value>
   <data name="LabelPadding" xml:space="preserve">
     <value>Margen</value>
   </data>
+  <data name="GroupIWads" xml:space="preserve">
+    <value>IWADs</value>
+  </data>
   <data name="GroupInterface" xml:space="preserve">
     <value>Interfaz</value>
   </data>
@@ -460,6 +469,10 @@ Corrígela primero en Configuración.</value>
   <data name="BatchsDirNotFound" xml:space="preserve">
     <value>No se encontró la carpeta de batches:
 {0}</value>
+  </data>
+  <data name="IWadNotFound" xml:space="preserve">
+    <value>No se encontró el IWAD de {0}:
+{1}</value>
   </data>
   <data name="WadsDirNotFound" xml:space="preserve">
     <value>No se encontró la carpeta de WADs:

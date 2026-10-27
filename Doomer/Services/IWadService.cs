@@ -1,9 +1,43 @@
+using Doomer.Options;
 using System.Text;
 
 namespace Doomer.Services
 {
+    // An IWAD set up in the settings, listed by its game's name with the path it's at.
+    public record NamedIWad(string Name, string Path)
+    {
+        public override string ToString() => $"{Name} ({Path})";
+    }
+
     public static class IWadService
     {
+        // The games' IWADs that have a path in the settings, in release order.
+        public static List<NamedIWad> Configured(IWadsSettings settings) =>
+            [.. new NamedIWad[]
+                {
+                    new("DOOM", settings.Doom),
+                    new("Doom II", settings.Doom2),
+                    new("TNT", settings.Tnt),
+                    new("The Plutonia Experiment", settings.Plutonia)
+                }
+                .Where(i => !string.IsNullOrWhiteSpace(i.Path))
+                .Select(i => i with { Path = i.Path.Trim() })];
+
+        // The path to launch for what the IWAD box shows: a named IWAD's path, or the text as typed.
+        public static string Resolve(string text, IEnumerable<NamedIWad> named) =>
+            named.FirstOrDefault(i => i.ToString() == text.Trim())?.Path ?? text;
+
+        // How the IWAD box shows a batch's IWAD: by name when it's one of the named ones.
+        public static string Describe(string iwad, IEnumerable<NamedIWad> named) =>
+            named.FirstOrDefault(i => SamePath(i.Path, iwad))?.ToString() ?? iwad;
+
+        // The found IWADs that aren't already listed by name.
+        public static List<string> ExceptNamed(IEnumerable<string> iwads, IEnumerable<NamedIWad> named) =>
+            [.. iwads.Where(i => !named.Any(n => SamePath(n.Path, i)))];
+
+        private static bool SamePath(string a, string b) =>
+            string.Equals(a.Replace('/', '\\'), b.Replace('/', '\\'), StringComparison.OrdinalIgnoreCase);
+
         // The IWADs the existing batches launch, exactly as each batch has them (e.g. D:\DSDA\doom.wad
         // or wads/doom2.wad), so picking one keeps its path. Batches that can't be read are skipped.
         public static List<string> FindUsedIWads(string? batchsDirectory, string batchExtension, string pluginsFolder)

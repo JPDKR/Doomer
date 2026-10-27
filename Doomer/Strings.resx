@@ -30,6 +30,12 @@
   <data name="StatusWadCountOne" xml:space="preserve">
     <value>{0} WAD loaded</value>
   </data>
+  <data name="StatusLaunching" xml:space="preserve">
+    <value>Starting {0}...</value>
+  </data>
+  <data name="LoadingGame" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
   <data name="StatusAlreadyRunning" xml:space="preserve">
     <value>{0} is already running</value>
   </data>
@@ -423,6 +429,9 @@ Fix it in Settings first.</value>
   <data name="LabelPadding" xml:space="preserve">
     <value>Padding</value>
   </data>
+  <data name="GroupIWads" xml:space="preserve">
+    <value>IWADs</value>
+  </data>
   <data name="GroupInterface" xml:space="preserve">
     <value>Interface</value>
   </data>
@@ -460,6 +469,10 @@ Fix it in Settings first.</value>
   <data name="BatchsDirNotFound" xml:space="preserve">
     <value>Batch files directory not found:
 {0}</value>
+  </data>
+  <data name="IWadNotFound" xml:space="preserve">
+    <value>{0} IWAD not found:
+{1}</value>
   </data>
   <data name="WadsDirNotFound" xml:space="preserve">
     <value>WADs directory not found:

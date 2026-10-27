@@ -26,6 +26,7 @@ namespace Doomer.Options
 
         public static PortsSettings Ports { get; private set; } = default!;
         public static FoldersSettings Folders { get; private set; } = default!;
+        public static IWadsSettings IWads { get; private set; } = default!;
         public static InterfaceSettings Interface { get; private set; } = default!;
 
         static AppConfiguration() => Load();
@@ -50,6 +51,7 @@ namespace Doomer.Options
             {
                 Ports = config.GetSection("Ports").Get<PortsSettings>() ?? new();
                 Folders = config.GetSection("Folders").Get<FoldersSettings>() ?? new();
+                IWads = config.GetSection("IWads").Get<IWadsSettings>() ?? new();
                 Interface = config.GetSection("Interface").Get<InterfaceSettings>() ?? new();
             }
             finally
@@ -209,6 +211,7 @@ namespace Doomer.Options
     {
         public PortsSettings Ports { get; set; } = new();
         public FoldersSettings Folders { get; set; } = new();
+        public IWadsSettings IWads { get; set; } = new();
         public InterfaceSettings Interface { get; set; } = new();
     }
 
@@ -253,6 +256,15 @@ namespace Doomer.Options
     public class WadSettings
     {
         public string Path { get; set; } = string.Empty;
+    }
+
+    // Where each of the games' IWADs is (e.g. D:\DSDA\DOOM2.WAD), offered by name when adding a batch. Empty when not set.
+    public class IWadsSettings
+    {
+        public string Doom { get; set; } = string.Empty;
+        public string Doom2 { get; set; } = string.Empty;
+        public string Tnt { get; set; } = string.Empty;
+        public string Plutonia { get; set; } = string.Empty;
     }
 
     public class InterfaceSettings

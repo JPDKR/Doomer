@@ -43,6 +43,19 @@
             lblWadsLocation = new Label();
             txtWadsLocation = new TextBox();
             btnBrowseWads = new Button();
+            grpIWads = new GroupBox();
+            lblIWadDoom = new Label();
+            txtIWadDoom = new TextBox();
+            btnBrowseIWadDoom = new Button();
+            lblIWadDoom2 = new Label();
+            txtIWadDoom2 = new TextBox();
+            btnBrowseIWadDoom2 = new Button();
+            lblIWadTnt = new Label();
+            txtIWadTnt = new TextBox();
+            btnBrowseIWadTnt = new Button();
+            lblIWadPlutonia = new Label();
+            txtIWadPlutonia = new TextBox();
+            btnBrowseIWadPlutonia = new Button();
             grpIcons = new GroupBox();
             lblIconsWidth = new Label();
             nudWidth = new NumericUpDown();
@@ -60,6 +73,7 @@
             grpBatchs.SuspendLayout();
             grpImages.SuspendLayout();
             grpWads.SuspendLayout();
+            grpIWads.SuspendLayout();
             grpIcons.SuspendLayout();
             grpInterface.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudWidth).BeginInit();
@@ -274,7 +288,7 @@
             grpWads.Controls.Add(lblWadsLocation);
             grpWads.Controls.Add(txtWadsLocation);
             grpWads.Controls.Add(btnBrowseWads);
-            grpWads.Location = new Point(8, 404);
+            grpWads.Location = new Point(540, 8);
             grpWads.Name = "grpWads";
             grpWads.Size = new Size(524, 64);
             grpWads.TabIndex = 4;
@@ -306,6 +320,127 @@
             btnBrowseWads.Text = "Browse...";
             btnBrowseWads.Click += BtnBrowseWads_Click;
             //
+            // grpIWads
+            //
+            grpIWads.Controls.Add(lblIWadDoom);
+            grpIWads.Controls.Add(txtIWadDoom);
+            grpIWads.Controls.Add(btnBrowseIWadDoom);
+            grpIWads.Controls.Add(lblIWadDoom2);
+            grpIWads.Controls.Add(txtIWadDoom2);
+            grpIWads.Controls.Add(btnBrowseIWadDoom2);
+            grpIWads.Controls.Add(lblIWadTnt);
+            grpIWads.Controls.Add(txtIWadTnt);
+            grpIWads.Controls.Add(btnBrowseIWadTnt);
+            grpIWads.Controls.Add(lblIWadPlutonia);
+            grpIWads.Controls.Add(txtIWadPlutonia);
+            grpIWads.Controls.Add(btnBrowseIWadPlutonia);
+            grpIWads.Location = new Point(540, 80);
+            grpIWads.Name = "grpIWads";
+            grpIWads.Size = new Size(524, 160);
+            grpIWads.TabIndex = 5;
+            grpIWads.TabStop = false;
+            grpIWads.Text = "IWADs";
+            //
+            // lblIWadDoom
+            //
+            lblIWadDoom.AutoSize = false;
+            lblIWadDoom.Location = new Point(8, 22);
+            lblIWadDoom.Name = "lblIWadDoom";
+            lblIWadDoom.Size = new Size(160, 27);
+            lblIWadDoom.Text = "DOOM";
+            lblIWadDoom.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtIWadDoom
+            //
+            txtIWadDoom.Location = new Point(172, 22);
+            txtIWadDoom.Name = "txtIWadDoom";
+            txtIWadDoom.Size = new Size(234, 27);
+            txtIWadDoom.TabIndex = 0;
+            //
+            // btnBrowseIWadDoom
+            //
+            btnBrowseIWadDoom.Location = new Point(412, 22);
+            btnBrowseIWadDoom.Name = "btnBrowseIWadDoom";
+            btnBrowseIWadDoom.Size = new Size(90, 27);
+            btnBrowseIWadDoom.TabIndex = 1;
+            btnBrowseIWadDoom.Text = "Browse...";
+            btnBrowseIWadDoom.Click += BtnBrowseIWad_Click;
+            //
+            // lblIWadDoom2
+            //
+            lblIWadDoom2.AutoSize = false;
+            lblIWadDoom2.Location = new Point(8, 56);
+            lblIWadDoom2.Name = "lblIWadDoom2";
+            lblIWadDoom2.Size = new Size(160, 27);
+            lblIWadDoom2.Text = "Doom II";
+            lblIWadDoom2.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtIWadDoom2
+            //
+            txtIWadDoom2.Location = new Point(172, 56);
+            txtIWadDoom2.Name = "txtIWadDoom2";
+            txtIWadDoom2.Size = new Size(234, 27);
+            txtIWadDoom2.TabIndex = 2;
+            //
+            // btnBrowseIWadDoom2
+            //
+            btnBrowseIWadDoom2.Location = new Point(412, 56);
+            btnBrowseIWadDoom2.Name = "btnBrowseIWadDoom2";
+            btnBrowseIWadDoom2.Size = new Size(90, 27);
+            btnBrowseIWadDoom2.TabIndex = 3;
+            btnBrowseIWadDoom2.Text = "Browse...";
+            btnBrowseIWadDoom2.Click += BtnBrowseIWad_Click;
+            //
+            // lblIWadTnt
+            //
+            lblIWadTnt.AutoSize = false;
+            lblIWadTnt.Location = new Point(8, 90);
+            lblIWadTnt.Name = "lblIWadTnt";
+            lblIWadTnt.Size = new Size(160, 27);
+            lblIWadTnt.Text = "TNT";
+            lblIWadTnt.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtIWadTnt
+            //
+            txtIWadTnt.Location = new Point(172, 90);
+            txtIWadTnt.Name = "txtIWadTnt";
+            txtIWadTnt.Size = new Size(234, 27);
+            txtIWadTnt.TabIndex = 4;
+            //
+            // btnBrowseIWadTnt
+            //
+            btnBrowseIWadTnt.Location = new Point(412, 90);
+            btnBrowseIWadTnt.Name = "btnBrowseIWadTnt";
+            btnBrowseIWadTnt.Size = new Size(90, 27);
+            btnBrowseIWadTnt.TabIndex = 5;
+            btnBrowseIWadTnt.Text = "Browse...";
+            btnBrowseIWadTnt.Click += BtnBrowseIWad_Click;
+            //
+            // lblIWadPlutonia
+            //
+            lblIWadPlutonia.AutoSize = false;
+            lblIWadPlutonia.Location = new Point(8, 124);
+            lblIWadPlutonia.Name = "lblIWadPlutonia";
+            lblIWadPlutonia.Size = new Size(160, 27);
+            lblIWadPlutonia.Text = "The Plutonia Experiment";
+            lblIWadPlutonia.TextAlign = ContentAlignment.MiddleRight;
+            //
+            // txtIWadPlutonia
+            //
+            txtIWadPlutonia.Location = new Point(172, 124);
+            txtIWadPlutonia.Name = "txtIWadPlutonia";
+            txtIWadPlutonia.Size = new Size(234, 27);
+            txtIWadPlutonia.TabIndex = 6;
+            //
+            // btnBrowseIWadPlutonia
+            //
+            btnBrowseIWadPlutonia.Location = new Point(412, 124);
+            btnBrowseIWadPlutonia.Name = "btnBrowseIWadPlutonia";
+            btnBrowseIWadPlutonia.Size = new Size(90, 27);
+            btnBrowseIWadPlutonia.TabIndex = 7;
+            btnBrowseIWadPlutonia.Text = "Browse...";
+            btnBrowseIWadPlutonia.Click += BtnBrowseIWad_Click;
+            //
             // grpIcons
             //
             grpIcons.Controls.Add(lblIconsWidth);
@@ -314,10 +449,10 @@
             grpIcons.Controls.Add(nudHeight);
             grpIcons.Controls.Add(lblIconsPadding);
             grpIcons.Controls.Add(nudPadding);
-            grpIcons.Location = new Point(8, 476);
+            grpIcons.Location = new Point(540, 248);
             grpIcons.Name = "grpIcons";
             grpIcons.Size = new Size(524, 66);
-            grpIcons.TabIndex = 5;
+            grpIcons.TabIndex = 6;
             grpIcons.TabStop = false;
             grpIcons.Text = "Icons";
             //
@@ -381,10 +516,10 @@
             //
             grpInterface.Controls.Add(lblLanguage);
             grpInterface.Controls.Add(cmbLanguage);
-            grpInterface.Location = new Point(8, 550);
+            grpInterface.Location = new Point(540, 322);
             grpInterface.Name = "grpInterface";
             grpInterface.Size = new Size(524, 64);
-            grpInterface.TabIndex = 6;
+            grpInterface.TabIndex = 7;
             grpInterface.TabStop = false;
             grpInterface.Text = "Interface";
             //
@@ -407,7 +542,7 @@
             //
             // btnCancel
             //
-            btnCancel.Location = new Point(346, 630);
+            btnCancel.Location = new Point(878, 412);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(90, 30);
             btnCancel.TabIndex = 12;
@@ -416,7 +551,7 @@
             //
             // btnSave
             //
-            btnSave.Location = new Point(442, 630);
+            btnSave.Location = new Point(974, 412);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(90, 30);
             btnSave.TabIndex = 13;
@@ -427,12 +562,13 @@
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(540, 672);
+            ClientSize = new Size(1072, 454);
             Controls.Add(grpGZDoom);
             Controls.Add(grpDSDADoom);
             Controls.Add(grpBatchs);
             Controls.Add(grpImages);
             Controls.Add(grpWads);
+            Controls.Add(grpIWads);
             Controls.Add(grpIcons);
             Controls.Add(grpInterface);
             Controls.Add(btnCancel);
@@ -449,6 +585,7 @@
             grpBatchs.ResumeLayout(false);
             grpImages.ResumeLayout(false);
             grpWads.ResumeLayout(false);
+            grpIWads.ResumeLayout(false);
             grpIcons.ResumeLayout(false);
             grpInterface.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)nudWidth).EndInit();
@@ -485,6 +622,19 @@
         private Label lblWadsLocation;
         private TextBox txtWadsLocation;
         private Button btnBrowseWads;
+        private GroupBox grpIWads;
+        private Label lblIWadDoom;
+        private TextBox txtIWadDoom;
+        private Button btnBrowseIWadDoom;
+        private Label lblIWadDoom2;
+        private TextBox txtIWadDoom2;
+        private Button btnBrowseIWadDoom2;
+        private Label lblIWadTnt;
+        private TextBox txtIWadTnt;
+        private Button btnBrowseIWadTnt;
+        private Label lblIWadPlutonia;
+        private TextBox txtIWadPlutonia;
+        private Button btnBrowseIWadPlutonia;
         private GroupBox grpIcons;
         private Label lblIconsWidth;
         private NumericUpDown nudWidth;

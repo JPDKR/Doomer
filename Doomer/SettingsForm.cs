@@ -28,6 +28,12 @@ namespace Doomer
             txtImagesExtension.Text = folders.Images.Extension;
             txtWadsLocation.Text = folders.Wads.Path;
 
+            var iwads = AppConfiguration.IWads;
+            txtIWadDoom.Text = iwads.Doom;
+            txtIWadDoom2.Text = iwads.Doom2;
+            txtIWadTnt.Text = iwads.Tnt;
+            txtIWadPlutonia.Text = iwads.Plutonia;
+
             nudWidth.Value = Math.Clamp(icons.Width, (int)nudWidth.Minimum, (int)nudWidth.Maximum);
             nudHeight.Value = Math.Clamp(icons.Height, (int)nudHeight.Minimum, (int)nudHeight.Maximum);
             nudPadding.Value = Math.Clamp(icons.Padding, (int)nudPadding.Minimum, (int)nudPadding.Maximum);
@@ -55,6 +61,7 @@ namespace Doomer
             grpBatchs.Text = Strings.GroupBatchFiles;
             grpImages.Text = Strings.GroupImages;
             grpWads.Text = Strings.GroupWads;
+            grpIWads.Text = Strings.GroupIWads;
             lblBatchsLocation.Text = lblImagesLocation.Text = lblWadsLocation.Text = Strings.LabelDirectory;
             lblBatchsExtension.Text = lblImagesExtension.Text = Strings.LabelExtension;
             grpIcons.Text = Strings.GroupIcons;
@@ -64,7 +71,8 @@ namespace Doomer
             grpInterface.Text = Strings.GroupInterface;
             lblLanguage.Text = Strings.LabelLanguage;
             btnBrowseExe.Text = btnBrowseDSDAExe.Text = btnBrowseBatchs.Text =
-                btnBrowseImages.Text = btnBrowseWads.Text = Strings.BrowseButton;
+                btnBrowseImages.Text = btnBrowseWads.Text = btnBrowseIWadDoom.Text = btnBrowseIWadDoom2.Text =
+                btnBrowseIWadTnt.Text = btnBrowseIWadPlutonia.Text = Strings.BrowseButton;
             btnCancel.Text = Strings.CancelButton;
             btnSave.Text = Strings.SaveButton;
         }
@@ -101,6 +109,13 @@ namespace Doomer
                     {
                         Path = txtWadsLocation.Text.Trim()
                     }
+                },
+                IWads = new IWadsSettings
+                {
+                    Doom = txtIWadDoom.Text.Trim(),
+                    Doom2 = txtIWadDoom2.Text.Trim(),
+                    Tnt = txtIWadTnt.Text.Trim(),
+                    Plutonia = txtIWadPlutonia.Text.Trim()
                 },
                 Interface = new InterfaceSettings
                 {
@@ -157,6 +172,35 @@ namespace Doomer
         private void BtnBrowseWads_Click(object sender, EventArgs e)
         {
             BrowseFolder(txtWadsLocation, Strings.SelectWadsDir);
+        }
+
+        // Each game's row: its name, the path box and its Browse button.
+        private (Label Name, TextBox Path, Button Browse)[] IWadRows =>
+        [
+            (lblIWadDoom, txtIWadDoom, btnBrowseIWadDoom),
+            (lblIWadDoom2, txtIWadDoom2, btnBrowseIWadDoom2),
+            (lblIWadTnt, txtIWadTnt, btnBrowseIWadTnt),
+            (lblIWadPlutonia, txtIWadPlutonia, btnBrowseIWadPlutonia)
+        ];
+
+        private void BtnBrowseIWad_Click(object? sender, EventArgs e)
+        {
+            var (name, target, _) = IWadRows.First(r => r.Browse == sender);
+
+            using var dlg = new OpenFileDialog
+            {
+                Title = $"{Strings.SelectIWad} - {name.Text}",
+                Filter = $"IWAD|*.wad|{Strings.FileFilterAll}|*.*"
+            };
+
+            var dir = Path.GetDirectoryName(target.Text);
+            if (Directory.Exists(dir))
+                dlg.InitialDirectory = dir;
+            else if (Directory.Exists(txtWadsLocation.Text))
+                dlg.InitialDirectory = txtWadsLocation.Text;
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+                target.Text = dlg.FileName;
         }
 
         private void BrowseFolder(TextBox target, string description)
@@ -232,6 +276,19 @@ namespace Doomer
                 MessageBox.Show(string.Format(Strings.WadsDirNotFound, wadsLocation), Strings.ValidationTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+
+            foreach (var (name, path, _) in IWadRows)
+            {
+                var iwad = path.Text.Trim();
+
+                if (!string.IsNullOrWhiteSpace(iwad) && !File.Exists(iwad))
+                {
+                    MessageBox.Show(string.Format(Strings.IWadNotFound, name.Text, iwad), Strings.ValidationTitle,
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    path.Focus();
+                    return;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(imagesLocation) && !Directory.Exists(imagesLocation))

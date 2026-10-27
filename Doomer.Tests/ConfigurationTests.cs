@@ -31,6 +31,7 @@ namespace Doomer.Tests
             {
                 Ports = config.GetSection("Ports").Get<PortsSettings>() ?? new(),
                 Folders = config.GetSection("Folders").Get<FoldersSettings>() ?? new(),
+                IWads = config.GetSection("IWads").Get<IWadsSettings>() ?? new(),
                 Interface = config.GetSection("Interface").Get<InterfaceSettings>() ?? new()
             };
         }
@@ -123,13 +124,14 @@ namespace Doomer.Tests
         {
             var root = JsonNode.Parse(SettingsFile.Serialize(new AppSettingsRoot()))!.AsObject();
 
-            Assert.Equal(["Ports", "Folders", "Interface"], root.Select(p => p.Key));
+            Assert.Equal(["Ports", "Folders", "IWads", "Interface"], root.Select(p => p.Key));
             Assert.Equal(["GZDoom", "DSDADoom"], root["Ports"]!.AsObject().Select(p => p.Key));
             Assert.Equal(["Path", "Plugins"], root["Ports"]!["GZDoom"]!.AsObject().Select(p => p.Key));
             Assert.Equal(["Path"], root["Ports"]!["DSDADoom"]!.AsObject().Select(p => p.Key));
             Assert.Equal(["Batches", "Images", "Wads"], root["Folders"]!.AsObject().Select(p => p.Key));
             Assert.Equal(["Path", "Extension"], root["Folders"]!["Batches"]!.AsObject().Select(p => p.Key));
             Assert.Equal(["Path"], root["Folders"]!["Wads"]!.AsObject().Select(p => p.Key));
+            Assert.Equal(["Doom", "Doom2", "Tnt", "Plutonia"], root["IWads"]!.AsObject().Select(p => p.Key));
             Assert.Equal(["Language", "Icons"], root["Interface"]!.AsObject().Select(p => p.Key));
         }
 

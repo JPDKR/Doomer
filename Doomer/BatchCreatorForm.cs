@@ -11,6 +11,8 @@ namespace Doomer
 
         private readonly PortsSettings _ports = AppConfiguration.Ports;
         private readonly FoldersSettings _folders = AppConfiguration.Folders;
+        // The IWADs set up in the settings, listed first and by name.
+        private readonly List<NamedIWad> _namedIWads = IWadService.Configured(AppConfiguration.IWads);
         private readonly string? _editingFilePath;
         // The edited batch's icon, shown in the Image box. Leaving it there keeps it; picking another replaces it.
         private string? _existingImagePath;
@@ -76,8 +78,8 @@ namespace Doomer
             _ = LoadIWadsAsync();
         }
 
-        // Lists the IWADs the other batches use and the ones in the WADs folder. It reads every batch
-        // and WAD header, so it runs in the background; the box can be typed in meanwhile.
+        // Lists the IWADs set up in the settings by name, then the ones the other batches use and the ones in the
+        // WADs folder. It reads every batch and WAD header, so it runs in the background; the box can be typed in meanwhile.
         private async Task LoadIWadsAsync()
         {
             var batches = _folders.Batches;
@@ -87,23 +89,24 @@ namespace Doomer
 
             try
             {
-                iwads = await Task.Run(() => IWadService.Merge([
+                iwads = await Task.Run(() => IWadService.ExceptNamed(IWadService.Merge([
                     .. IWadService.FindUsedIWads(batches.Path, batches.Extension, pluginsFolder),
-                    .. IWadService.FindIWadFiles(wadsLocation)]));
+                    .. IWadService.FindIWadFiles(wadsLocation)]), _namedIWads));
             }
             catch (Exception)
             {
-                // They're only suggestions; a folder that can't be read just leaves the list empty.
-                return;
+                // They're only suggestions; a folder that can't be read just leaves the named ones.
+                iwads = [];
             }
 
             if (IsDisposed)
                 return;
 
-            cmbIWad.Items.AddRange([.. iwads]);
+            object[] items = [.. _namedIWads, .. iwads];
+            cmbIWad.Items.AddRange(items);
 
             // Full paths are long, so the list widens to show them whole.
-            var widest = iwads.Select(i => TextRenderer.MeasureText(i, cmbIWad.Font).Width).DefaultIfEmpty(0).Max();
+            var widest = items.Select(i => TextRenderer.MeasureText(i.ToString(), cmbIWad.Font).Width).DefaultIfEmpty(0).Max();
             cmbIWad.DropDownWidth = Math.Max(cmbIWad.Width, widest + SystemInformation.VerticalScrollBarWidth);
         }
 
@@ -181,7 +184,7 @@ namespace Doomer
             }
 
             SelectedPort = port;
-            cmbIWad.Text = BatchFileService.EnsureWadExtension(iwad);
+            cmbIWad.Text = IWadService.Describe(BatchFileService.EnsureWadExtension(iwad), _namedIWads);
             txtWad.Text = wad;
             SetItems(lstExtraFiles, extraFiles);
             SetItems(lstPlugins, plugins);
@@ -681,7 +684,9 @@ namespace Doomer
 
         private async void BtnCreate_Click(object sender, EventArgs e)
         {
-            var draft = new BatchDraft(SelectedPort, txtFileName.Text, cmbIWad.Text, txtWad.Text, ExtraFiles, Plugins,
+            // A named IWAD is saved as its path.
+            var iwad = IWadService.Resolve(cmbIWad.Text, _namedIWads);
+            var draft = new BatchDraft(SelectedPort, txtFileName.Text, iwad, txtWad.Text, ExtraFiles, Plugins,
                 txtArguments.Text, txtImage.Text, _editingFilePath, _existingImagePath);
 
             if (!BatchPlanService.TryPlan(draft, _ports, _folders, out var plan, out var error))

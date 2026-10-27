@@ -423,6 +423,9 @@ Corrígela primero en Configuración.</value>
   <data name="LabelPadding" xml:space="preserve">
     <value>Margen</value>
   </data>
+  <data name="GroupIWads" xml:space="preserve">
+    <value>IWADs</value>
+  </data>
   <data name="GroupInterface" xml:space="preserve">
     <value>Interfaz</value>
   </data>
@@ -460,6 +463,10 @@ Corrígela primero en Configuración.</value>
   <data name="BatchsDirNotFound" xml:space="preserve">
     <value>No se encontró la carpeta de batches:
 {0}</value>
+  </data>
+  <data name="IWadNotFound" xml:space="preserve">
+    <value>No se encontró el IWAD de {0}:
+{1}</value>
   </data>
   <data name="WadsDirNotFound" xml:space="preserve">
     <value>No se encontró la carpeta de WADs:

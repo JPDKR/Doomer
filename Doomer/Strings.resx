@@ -96,6 +96,9 @@ Open Settings to fix the path.</value>
   <data name="MenuFavorite" xml:space="preserve">
     <value>Favorite</value>
   </data>
+  <data name="MenuCompleted" xml:space="preserve">
+    <value>Completed</value>
+  </data>
   <data name="LibrarySaveError" xml:space="preserve">
     <value>Couldn't save the change:
 {0}</value>

@@ -96,6 +96,9 @@ Abre Configuración para corregir la ruta.</value>
   <data name="MenuFavorite" xml:space="preserve">
     <value>Favorito</value>
   </data>
+  <data name="MenuCompleted" xml:space="preserve">
+    <value>Completado</value>
+  </data>
   <data name="LibrarySaveError" xml:space="preserve">
     <value>No se pudo guardar el cambio:
 {0}</value>

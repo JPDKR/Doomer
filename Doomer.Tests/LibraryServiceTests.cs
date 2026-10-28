@@ -13,13 +13,13 @@ namespace Doomer.Tests
         private static readonly string[] Wads = ["Sunlust", "ancient aliens", "Eviternity", "Sigil"];
 
         [Fact]
-        public void Sort_ByName_PutsFavoritesFirst()
+        public void Sort_ByName_LeavesFavoritesInPlace()
         {
             var library = new LibraryService(FilePath);
             library.SetFavorite("Sigil", true);
             library.SetFavorite("eviternity", true);
 
-            Assert.Equal(["Eviternity", "Sigil", "ancient aliens", "Sunlust"], library.Sort(Wads));
+            Assert.Equal(["ancient aliens", "Eviternity", "Sigil", "Sunlust"], library.Sort(Wads));
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace Doomer.Tests
 
             library.SetFavorite("Eviternity", true);
 
-            Assert.Equal(["Eviternity", "Sigil", "Sunlust", "ancient aliens"], library.Sort(Wads));
+            Assert.Equal(["Sigil", "Sunlust", "ancient aliens", "Eviternity"], library.Sort(Wads));
         }
 
         [Fact]
@@ -89,6 +89,26 @@ namespace Doomer.Tests
             new LibraryService(FilePath).Rename("Sigil", "Sigil II");
 
             Assert.False(File.Exists(FilePath));
+        }
+
+        [Fact]
+        public void Completed_IsKeptAcrossRestartsAndRenames()
+        {
+            var library = new LibraryService(FilePath);
+            library.SetCompleted("Sigil", true);
+            library.SetCompleted("Sunlust", true);
+            library.SetCompleted("sunlust", false);
+
+            library.Rename("Sigil", "Sigil II");
+            var reloaded = new LibraryService(FilePath);
+
+            Assert.True(reloaded.IsCompleted("SIGIL II"));
+            Assert.False(reloaded.IsCompleted("Sigil"));
+            Assert.False(reloaded.IsCompleted("Sunlust"));
+
+            reloaded.Forget("Sigil II");
+
+            Assert.False(new LibraryService(FilePath).IsCompleted("Sigil II"));
         }
 
         [Fact]

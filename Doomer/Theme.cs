@@ -28,9 +28,13 @@ namespace Doomer
         // A selected, pressed or checked menu item.
         public static readonly Color MenuHighlight = Color.FromArgb(140, 15, 15);
         public static readonly Color WadButtonHover = Color.FromArgb(65, 10, 10);
-        // A favorite's button gets a gold border and star so it stands out from the rest at the top.
+        // A favorite's button gets a gold border and star so it stands out from the rest.
         public static readonly Color Favorite = Color.FromArgb(212, 160, 23);
         public static readonly Color FavoriteHover = Color.FromArgb(240, 190, 50);
+        // A completed WAD's check, and the shade laid over its button.
+        public static readonly Color Completed = Color.FromArgb(70, 180, 80);
+        public static readonly Color CompletedHover = Color.FromArgb(100, 210, 110);
+        public static readonly Color CompletedShade = Color.FromArgb(130, 0, 0, 0);
 
         // Buttons other than a dialog's main action.
         public static readonly Color NeutralButton = Color.FromArgb(50, 50, 50);

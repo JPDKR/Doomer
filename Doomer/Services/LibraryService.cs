@@ -30,6 +30,9 @@ namespace Doomer.Services
         // Whether the main window lists only the favorites.
         public bool FavoritesOnly { get; private set; }
 
+        // Whether the main window leaves out the completed WADs.
+        public bool HideCompleted { get; private set; }
+
         // A missing or unreadable file just starts an empty library, so it never stops the app from opening.
         public LibraryService(string filePath)
         {
@@ -51,6 +54,7 @@ namespace Doomer.Services
 
             SortOrder = Enum.IsDefined(data.SortOrder) ? data.SortOrder : WadSortOrder.Name;
             FavoritesOnly = data.FavoritesOnly;
+            HideCompleted = data.HideCompleted;
             _favorites.UnionWith(data.Favorites ?? []);
             _completed.UnionWith(data.Completed ?? []);
 
@@ -74,6 +78,12 @@ namespace Doomer.Services
         public void SetFavoritesOnly(bool favoritesOnly)
         {
             FavoritesOnly = favoritesOnly;
+            Save();
+        }
+
+        public void SetHideCompleted(bool hideCompleted)
+        {
+            HideCompleted = hideCompleted;
             Save();
         }
 
@@ -150,6 +160,7 @@ namespace Doomer.Services
             {
                 SortOrder = SortOrder,
                 FavoritesOnly = FavoritesOnly,
+                HideCompleted = HideCompleted,
                 Favorites = [.. _favorites.Order(StringComparer.OrdinalIgnoreCase)],
                 Completed = [.. _completed.Order(StringComparer.OrdinalIgnoreCase)],
                 LastPlayed = new(_lastPlayed, StringComparer.OrdinalIgnoreCase)
@@ -162,6 +173,7 @@ namespace Doomer.Services
         {
             public WadSortOrder SortOrder { get; set; }
             public bool FavoritesOnly { get; set; }
+            public bool HideCompleted { get; set; }
             public List<string>? Favorites { get; set; }
             public List<string>? Completed { get; set; }
             public Dictionary<string, DateTime>? LastPlayed { get; set; }

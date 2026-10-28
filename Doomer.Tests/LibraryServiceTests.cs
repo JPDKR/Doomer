@@ -43,6 +43,7 @@ namespace Doomer.Tests
             var library = new LibraryService(FilePath);
             library.SetSortOrder(WadSortOrder.LastPlayed);
             library.SetFavoritesOnly(true);
+            library.SetHideCompleted(true);
             library.SetFavorite("Sigil", true);
             library.MarkPlayed("Sunlust", new DateTime(2026, 10, 21, 18, 30, 0, DateTimeKind.Utc));
 
@@ -50,6 +51,7 @@ namespace Doomer.Tests
 
             Assert.Equal(WadSortOrder.LastPlayed, reloaded.SortOrder);
             Assert.True(reloaded.FavoritesOnly);
+            Assert.True(reloaded.HideCompleted);
             Assert.True(reloaded.IsFavorite("SIGIL"));
             Assert.Equal(new DateTime(2026, 10, 21, 18, 30, 0, DateTimeKind.Utc), reloaded.GetLastPlayed("sunlust"));
             Assert.False(File.Exists(FilePath + ".tmp"));
@@ -148,6 +150,7 @@ namespace Doomer.Tests
             var library = new LibraryService(FilePath);
 
             Assert.False(library.FavoritesOnly);
+            Assert.False(library.HideCompleted);
             Assert.True(library.IsFavorite("Sigil"));
         }
 

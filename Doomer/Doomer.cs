@@ -63,6 +63,7 @@ namespace Doomer
             sortToolStripMenuItem.DropDown.Renderer = menuStrip1.Renderer;
             UpdateSortMenu();
             UpdateFavoritesOnlyItem();
+            UpdateHideCompletedItem();
 
             foreach (ToolStripItem item in menuStrip1.Items)
                 item.ForeColor = Theme.Text;
@@ -96,6 +97,8 @@ namespace Doomer
             sortByNameToolStripMenuItem.Text = Strings.MenuSortByName;
             sortByLastPlayedToolStripMenuItem.Text = Strings.MenuSortByLastPlayed;
             favoritesOnlyToolStripMenuItem.ToolTipText = Strings.MenuFavoritesOnlyTooltip;
+            hideCompletedToolStripMenuItem.ToolTipText = Strings.MenuHideCompletedTooltip;
+            hideCompletedToolStripMenuItem.Tag = Theme.Completed;
         }
 
         private async void MainForm_Load(object sender, EventArgs e)
@@ -338,29 +341,49 @@ namespace Doomer
         {
             var filter = txtSearch.Text;
             var favoritesOnly = _library.FavoritesOnly;
+            var hideCompleted = _library.HideCompleted;
             int count = 0;
+
+            // Whether a WAD gets past the favorites and completed filters, regardless of the search.
+            bool PassesFilters(Control c) =>
+                (!favoritesOnly || _library.IsFavorite(c.Name)) && (!hideCompleted || !_library.IsCompleted(c.Name));
 
             flowLayoutPanel1.SuspendLayout();
             foreach (Control control in flowLayoutPanel1.Controls)
             {
-                control.Visible = control.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
-                    (!favoritesOnly || _library.IsFavorite(control.Name));
+                control.Visible = control.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) && PassesFilters(control);
                 if (control.Visible)
                     count++;
             }
             flowLayoutPanel1.ResumeLayout();
 
             var loaded = string.Format(count == 1 ? Strings.StatusWadCountOne : Strings.StatusWadCountMany, count);
+            var filters = new List<string>();
             if (favoritesOnly)
-                loaded += $" ({Strings.StatusFavoritesOnly})";
+                filters.Add(Strings.StatusFavoritesOnly);
+            if (hideCompleted)
+                filters.Add(Strings.StatusCompletedHidden);
+            if (filters.Count > 0)
+                loaded += $" ({string.Join(", ", filters)})";
             lblStatus.Text = $"  {loaded}   |   {_folders.Batches.Path}";
 
-            // With only the favorites listed, an empty window says why and how to get out of it.
-            lblEmpty.Visible = favoritesOnly && count == 0;
+            // With a filter on, an empty window says why and how to get out of it. Hiding the completed WADs
+            // of an empty list has nothing to explain, though.
+            var wads = flowLayoutPanel1.Controls.Cast<Control>().ToList();
+            lblEmpty.Visible = count == 0 && (favoritesOnly || (hideCompleted && wads.Count > 0));
             if (lblEmpty.Visible)
             {
-                var anyFavorite = flowLayoutPanel1.Controls.Cast<Control>().Any(c => _library.IsFavorite(c.Name));
-                lblEmpty.Text = anyFavorite ? Strings.NoFavoriteMatchesSearch : Strings.NoFavoritesYet;
+                var anyPasses = wads.Any(PassesFilters);
+                var anyFavorite = wads.Any(c => _library.IsFavorite(c.Name));
+                lblEmpty.Text = (favoritesOnly, hideCompleted, anyPasses) switch
+                {
+                    (true, false, true) => Strings.NoFavoriteMatchesSearch,
+                    (true, true, true) => Strings.NoPendingFavoriteMatchesSearch,
+                    (false, _, true) => Strings.NoPendingMatchesSearch,
+                    (true, _, false) when !anyFavorite => Strings.NoFavoritesYet,
+                    (true, _, false) => Strings.AllFavoritesCompleted,
+                    (false, _, false) => Strings.AllCompleted
+                };
             }
         }
 
@@ -420,6 +443,10 @@ namespace Doomer
         {
             TrySaveLibrary(() => _library.SetCompleted(boton.Name, !_library.IsCompleted(boton.Name)));
             ApplyMarkStyle(boton);
+
+            // A WAD marked while the completed ones are hidden goes away.
+            if (_library.HideCompleted)
+                ApplyFilter();
         }
 
         private void FavoritesOnlyToolStripMenuItem_Click(object sender, EventArgs e)
@@ -436,6 +463,22 @@ namespace Doomer
             var on = _library.FavoritesOnly;
             favoritesOnlyToolStripMenuItem.Checked = on;
             favoritesOnlyToolStripMenuItem.Text = (on ? "★ " : "☆ ") + Strings.MenuFavoritesOnly;
+        }
+
+        private void HideCompletedToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Applied even if saving fails, like the favorites filter.
+            TrySaveLibrary(() => _library.SetHideCompleted(!_library.HideCompleted));
+            UpdateHideCompletedItem();
+            ApplyFilter();
+        }
+
+        // A green checked box while the completed WADs are hidden, an empty one otherwise.
+        private void UpdateHideCompletedItem()
+        {
+            var on = _library.HideCompleted;
+            hideCompletedToolStripMenuItem.Checked = on;
+            hideCompletedToolStripMenuItem.Text = (on ? "☑ " : "☐ ") + Strings.MenuHideCompleted;
         }
 
         // The library changes in memory before it's written, so a failed save only loses it on restart.

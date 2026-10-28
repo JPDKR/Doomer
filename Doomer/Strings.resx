@@ -563,4 +563,27 @@ Turn off ★ Favorites to list all your WADs, then mark some with the star in th
   <data name="NoFavoriteMatchesSearch" xml:space="preserve">
     <value>No favorite WAD matches the search.</value>
   </data>
+  <data name="MenuHideCompleted" xml:space="preserve">
+    <value>Hide completed</value>
+  </data>
+  <data name="MenuHideCompletedTooltip" xml:space="preserve">
+    <value>Hide the WADs you've completed</value>
+  </data>
+  <data name="StatusCompletedHidden" xml:space="preserve">
+    <value>completed hidden</value>
+  </data>
+  <data name="NoPendingMatchesSearch" xml:space="preserve">
+    <value>No WAD you haven't completed matches the search.</value>
+  </data>
+  <data name="NoPendingFavoriteMatchesSearch" xml:space="preserve">
+    <value>No favorite WAD you haven't completed matches the search.</value>
+  </data>
+  <data name="AllCompleted" xml:space="preserve">
+    <value>You've completed all your WADs!
+Turn off ☑ Hide completed to list them.</value>
+  </data>
+  <data name="AllFavoritesCompleted" xml:space="preserve">
+    <value>You've completed all your favorite WADs!
+Turn off ☑ Hide completed or ★ Favorites to list more WADs.</value>
+  </data>
 </root>

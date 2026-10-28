@@ -5,6 +5,7 @@ namespace Doomer
     internal enum Corner
     {
         TopLeft,
+        BottomLeft,
         BottomRight
     }
 
@@ -43,9 +44,12 @@ namespace Doomer
 
         protected abstract void Draw(Graphics g, Rectangle bounds, bool overIcon);
 
-        private Rectangle Bounds => _corner == Corner.TopLeft
-            ? new(Inset, Inset, Size, Size)
-            : new(_button.ClientSize.Width - Inset - Size, _button.ClientSize.Height - Inset - Size, Size, Size);
+        private Rectangle Bounds => _corner switch
+        {
+            Corner.TopLeft => new(Inset, Inset, Size, Size),
+            Corner.BottomLeft => new(Inset, _button.ClientSize.Height - Inset - Size, Size, Size),
+            _ => new(_button.ClientSize.Width - Inset - Size, _button.ClientSize.Height - Inset - Size, Size, Size)
+        };
 
         public void Refresh() => _button.Invalidate(Rectangle.Inflate(Bounds, 2, 2));
 

@@ -24,9 +24,17 @@ namespace Doomer
         // How long a game's button shows it's loading when its window never takes the focus.
         private static readonly TimeSpan LoadingTimeout = TimeSpan.FromSeconds(20);
 
+        // Keeps the window from being used while a game loads.
+        private readonly InputBlocker _inputBlocker;
+
+        // Set while the window is minimized because a game started, so it comes back when the last one closes.
+        private bool _minimizedForGame;
+        private FormWindowState _stateBeforeGame;
+
         public Doomer()
         {
             InitializeComponent();
+            _inputBlocker = new(this);
             components?.Add(_wadTooltip);
             ApplyTexts();
             lblVersion.Text = $"v{UpdateService.CurrentVersion}";
@@ -55,6 +63,7 @@ namespace Doomer
             sortToolStripMenuItem.DropDown.Renderer = menuStrip1.Renderer;
             UpdateSortMenu();
             UpdateFavoritesOnlyItem();
+            UpdateHideCompletedItem();
 
             foreach (ToolStripItem item in menuStrip1.Items)
                 item.ForeColor = Theme.Text;
@@ -88,6 +97,8 @@ namespace Doomer
             sortByNameToolStripMenuItem.Text = Strings.MenuSortByName;
             sortByLastPlayedToolStripMenuItem.Text = Strings.MenuSortByLastPlayed;
             favoritesOnlyToolStripMenuItem.ToolTipText = Strings.MenuFavoritesOnlyTooltip;
+            hideCompletedToolStripMenuItem.ToolTipText = Strings.MenuHideCompletedTooltip;
+            hideCompletedToolStripMenuItem.Tag = Theme.Completed;
         }
 
         private async void MainForm_Load(object sender, EventArgs e)
@@ -283,7 +294,7 @@ namespace Doomer
             };
 
             boton.FlatAppearance.MouseOverBackColor = Theme.WadButtonHover;
-            ApplyFavoriteStyle(boton);
+            ApplyMarkStyle(boton);
             boton.ContextMenuStrip = BuildWadContextMenu(boton);
 
             if (entry.Icon is not null)
@@ -297,12 +308,25 @@ namespace Doomer
                 boton.Font = _wadButtonFont;
             }
 
+            // A completed WAD is shaded, under the corner icons since they paint after it.
+            boton.Paint += (s, e) =>
+            {
+                if (!_library.IsCompleted(boton.Name))
+                    return;
+
+                using var shade = new SolidBrush(Theme.CompletedShade);
+                e.Graphics.FillRectangle(shade, boton.ClientRectangle);
+            };
+
             var star = new FavoriteStar(boton, () => _library.IsFavorite(boton.Name));
+            var check = new CompletedCheck(boton, () => _library.IsCompleted(boton.Name));
             var wiki = new WikiIcon(boton, () => _wikiPages.Contains(entry.File));
             boton.Click += (s, e) =>
             {
                 if (star.Pressed)
                     ToggleFavorite(boton);
+                else if (check.Pressed)
+                    ToggleCompleted(boton);
                 else if (wiki.Pressed)
                     OpenWikiPage(entry.File);
                 else
@@ -317,42 +341,64 @@ namespace Doomer
         {
             var filter = txtSearch.Text;
             var favoritesOnly = _library.FavoritesOnly;
+            var hideCompleted = _library.HideCompleted;
             int count = 0;
+
+            // Whether a WAD gets past the favorites and completed filters, regardless of the search.
+            bool PassesFilters(Control c) =>
+                (!favoritesOnly || _library.IsFavorite(c.Name)) && (!hideCompleted || !_library.IsCompleted(c.Name));
 
             flowLayoutPanel1.SuspendLayout();
             foreach (Control control in flowLayoutPanel1.Controls)
             {
-                control.Visible = control.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) &&
-                    (!favoritesOnly || _library.IsFavorite(control.Name));
+                control.Visible = control.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) && PassesFilters(control);
                 if (control.Visible)
                     count++;
             }
             flowLayoutPanel1.ResumeLayout();
 
             var loaded = string.Format(count == 1 ? Strings.StatusWadCountOne : Strings.StatusWadCountMany, count);
+            var filters = new List<string>();
             if (favoritesOnly)
-                loaded += $" ({Strings.StatusFavoritesOnly})";
+                filters.Add(Strings.StatusFavoritesOnly);
+            if (hideCompleted)
+                filters.Add(Strings.StatusCompletedHidden);
+            if (filters.Count > 0)
+                loaded += $" ({string.Join(", ", filters)})";
             lblStatus.Text = $"  {loaded}   |   {_folders.Batches.Path}";
 
-            // With only the favorites listed, an empty window says why and how to get out of it.
-            lblEmpty.Visible = favoritesOnly && count == 0;
+            // With a filter on, an empty window says why and how to get out of it. Hiding the completed WADs
+            // of an empty list has nothing to explain, though.
+            var wads = flowLayoutPanel1.Controls.Cast<Control>().ToList();
+            lblEmpty.Visible = count == 0 && (favoritesOnly || (hideCompleted && wads.Count > 0));
             if (lblEmpty.Visible)
             {
-                var anyFavorite = flowLayoutPanel1.Controls.Cast<Control>().Any(c => _library.IsFavorite(c.Name));
-                lblEmpty.Text = anyFavorite ? Strings.NoFavoriteMatchesSearch : Strings.NoFavoritesYet;
+                var anyPasses = wads.Any(PassesFilters);
+                var anyFavorite = wads.Any(c => _library.IsFavorite(c.Name));
+                lblEmpty.Text = (favoritesOnly, hideCompleted, anyPasses) switch
+                {
+                    (true, false, true) => Strings.NoFavoriteMatchesSearch,
+                    (true, true, true) => Strings.NoPendingFavoriteMatchesSearch,
+                    (false, _, true) => Strings.NoPendingMatchesSearch,
+                    (true, _, false) when !anyFavorite => Strings.NoFavoritesYet,
+                    (true, _, false) => Strings.AllFavoritesCompleted,
+                    (false, _, false) => Strings.AllCompleted
+                };
             }
         }
 
-        private void ApplyFavoriteStyle(Button boton)
+        // A favorite gets a gold border; the tooltip shows whether it's a favorite and whether it's completed.
+        private void ApplyMarkStyle(Button boton)
         {
             var favorite = _library.IsFavorite(boton.Name);
+            var completed = _library.IsCompleted(boton.Name);
             boton.FlatAppearance.BorderColor = favorite ? Theme.Favorite : Theme.Accent;
             boton.FlatAppearance.BorderSize = favorite ? 2 : 1;
             boton.Invalidate();
-            _wadTooltip.SetToolTip(boton, favorite ? $"★ {boton.Name}" : boton.Name);
+            _wadTooltip.SetToolTip(boton, (favorite ? "★ " : "") + (completed ? "✓ " : "") + boton.Name);
         }
 
-        // Reorders the buttons already shown (after a favorite changes, a WAD is played or the sort
+        // Reorders the buttons already shown (after a WAD is played or the sort
         // changes), so their icons don't have to be loaded again.
         private void ApplyOrder()
         {
@@ -386,11 +432,20 @@ namespace Doomer
         private void ToggleFavorite(Button boton)
         {
             TrySaveLibrary(() => _library.SetFavorite(boton.Name, !_library.IsFavorite(boton.Name)));
-            ApplyFavoriteStyle(boton);
-            ApplyOrder();
+            ApplyMarkStyle(boton);
 
             // A WAD unmarked while only the favorites are listed goes away.
             if (_library.FavoritesOnly)
+                ApplyFilter();
+        }
+
+        private void ToggleCompleted(Button boton)
+        {
+            TrySaveLibrary(() => _library.SetCompleted(boton.Name, !_library.IsCompleted(boton.Name)));
+            ApplyMarkStyle(boton);
+
+            // A WAD marked while the completed ones are hidden goes away.
+            if (_library.HideCompleted)
                 ApplyFilter();
         }
 
@@ -408,6 +463,22 @@ namespace Doomer
             var on = _library.FavoritesOnly;
             favoritesOnlyToolStripMenuItem.Checked = on;
             favoritesOnlyToolStripMenuItem.Text = (on ? "★ " : "☆ ") + Strings.MenuFavoritesOnly;
+        }
+
+        private void HideCompletedToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Applied even if saving fails, like the favorites filter.
+            TrySaveLibrary(() => _library.SetHideCompleted(!_library.HideCompleted));
+            UpdateHideCompletedItem();
+            ApplyFilter();
+        }
+
+        // A green checked box while the completed WADs are hidden, an empty one otherwise.
+        private void UpdateHideCompletedItem()
+        {
+            var on = _library.HideCompleted;
+            hideCompletedToolStripMenuItem.Checked = on;
+            hideCompletedToolStripMenuItem.Text = (on ? "☑ " : "☐ ") + Strings.MenuHideCompleted;
         }
 
         // The library changes in memory before it's written, so a failed save only loses it on restart.
@@ -434,6 +505,10 @@ namespace Doomer
             // Checked when it opens, since the same menu stays with the button while favorites change.
             menu.Opening += (s, e) => favoriteItem.Checked = _library.IsFavorite(boton.Name);
 
+            var completedItem = new ToolStripMenuItem(Strings.MenuCompleted);
+            completedItem.Click += (s, e) => ToggleCompleted(boton);
+            menu.Opening += (s, e) => completedItem.Checked = _library.IsCompleted(boton.Name);
+
             var editItem = new ToolStripMenuItem(Strings.MenuEdit);
             editItem.Click += (s, e) => EditBatch(filePath);
 
@@ -458,6 +533,7 @@ namespace Doomer
             deleteItem.Click += (s, e) => DeleteBatch(filePath);
 
             menu.Items.Add(favoriteItem);
+            menu.Items.Add(completedItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(editItem);
             menu.Items.Add(changeImageItem);
@@ -478,7 +554,7 @@ namespace Doomer
             if (form.ShowDialog() != DialogResult.OK)
                 return;
 
-            // The library knows WADs by name, so a renamed one keeps its favorite and history.
+            // The library knows WADs by name, so a renamed one keeps its favorite, completion and history.
             if (form.Renamed is var (oldName, newName))
                 TrySaveLibrary(() => _library.Rename(oldName, newName));
 
@@ -763,34 +839,58 @@ namespace Doomer
             var overlay = new LoadingOverlay(boton, Strings.LoadingGame);
             var loading = true;
             lblStatus.Text = launching;
+            _inputBlocker.Block();
 
             // The batch only returns once the game is closed, so the loading lasts until the game's window
             // takes the focus from Doomer, or a while if it never does (e.g. it opens behind another window).
-            void StopLoading(object? s, EventArgs e)
+            // Either way the game is running by then, so Doomer gets out of its way.
+            void StopLoading(bool gameStarted)
             {
                 if (!loading)
                     return;
 
                 loading = false;
-                Deactivate -= StopLoading;
+                Deactivate -= GameTookFocus;
                 overlay.Dispose();
+                _inputBlocker.Unblock();
 
-                if (!IsDisposed && lblStatus.Text == launching)
+                if (IsDisposed)
+                    return;
+
+                if (lblStatus.Text == launching)
                     ApplyFilter();
+
+                if (gameStarted && WindowState != FormWindowState.Minimized)
+                {
+                    _stateBeforeGame = WindowState;
+                    _minimizedForGame = true;
+                    WindowState = FormWindowState.Minimized;
+                }
             }
 
-            Deactivate += StopLoading;
-            _ = Task.Delay(LoadingTimeout).ContinueWith(_ => StopLoading(null, EventArgs.Empty),
+            void GameTookFocus(object? s, EventArgs e) => StopLoading(gameStarted: true);
+
+            // Called as soon as the game closes, before any error about it is shown, so the window is back for it.
+            void GameClosed()
+            {
+                StopLoading(gameStarted: false);
+                _runningBatches.Remove(path);
+
+                if (_runningBatches.Count == 0)
+                    RestoreAfterGame();
+            }
+
+            Deactivate += GameTookFocus;
+            _ = Task.Delay(LoadingTimeout).ContinueWith(_ => StopLoading(gameStarted: true),
                 TaskScheduler.FromCurrentSynchronizationContext());
 
             try
             {
-                await LaunchAsync(boton.Name, path);
+                await LaunchAsync(boton.Name, path, GameClosed);
             }
             finally
             {
-                StopLoading(null, EventArgs.Empty);
-                _runningBatches.Remove(path);
+                GameClosed();
 
                 // The notice was about this game, which isn't running anymore.
                 if (!IsDisposed && lblStatus.Text == alreadyRunning)
@@ -798,7 +898,22 @@ namespace Doomer
             }
         }
 
-        private async Task LaunchAsync(string name, string path)
+        // Brings the window back as it was before a game minimized it, unless the user already did.
+        private void RestoreAfterGame()
+        {
+            if (!_minimizedForGame || IsDisposed)
+                return;
+
+            _minimizedForGame = false;
+
+            if (WindowState != FormWindowState.Minimized)
+                return;
+
+            WindowState = _stateBeforeGame;
+            Activate();
+        }
+
+        private async Task LaunchAsync(string name, string path, Action gameClosed)
         {
             // Recorded before launching, since RunAsync only returns once the game is closed.
             // Not being able to save it is no reason to keep the user from playing.
@@ -821,9 +936,12 @@ namespace Doomer
             }
             catch (Exception ex)
             {
+                gameClosed();
                 MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            gameClosed();
 
             // The console is hidden, so whatever went wrong would otherwise go unseen.
             if (errors is not null && !IsDisposed)
@@ -862,8 +980,9 @@ namespace Doomer
                 ? paths[0]
                 : null;
 
+        // Not while a game loads, when the window can't be used.
         private void Archive_DragEnter(object? sender, DragEventArgs e) =>
-            e.Effect = DroppedArchive(e) is not null ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Effect = !UseWaitCursor && DroppedArchive(e) is not null ? DragDropEffects.Copy : DragDropEffects.None;
 
         private void Archive_DragDrop(object? sender, DragEventArgs e)
         {

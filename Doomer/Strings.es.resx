@@ -96,6 +96,9 @@ Abre Configuración para corregir la ruta.</value>
   <data name="MenuFavorite" xml:space="preserve">
     <value>Favorito</value>
   </data>
+  <data name="MenuCompleted" xml:space="preserve">
+    <value>Completado</value>
+  </data>
   <data name="LibrarySaveError" xml:space="preserve">
     <value>No se pudo guardar el cambio:
 {0}</value>
@@ -559,5 +562,28 @@ Desactiva ★ Favoritos para ver todos tus WADs y marca algunos con la estrella 
   </data>
   <data name="NoFavoriteMatchesSearch" xml:space="preserve">
     <value>Ningún WAD favorito coincide con la búsqueda.</value>
+  </data>
+  <data name="MenuHideCompleted" xml:space="preserve">
+    <value>Ocultar completados</value>
+  </data>
+  <data name="MenuHideCompletedTooltip" xml:space="preserve">
+    <value>Ocultar los WADs que completaste</value>
+  </data>
+  <data name="StatusCompletedHidden" xml:space="preserve">
+    <value>completados ocultos</value>
+  </data>
+  <data name="NoPendingMatchesSearch" xml:space="preserve">
+    <value>Ningún WAD sin completar coincide con la búsqueda.</value>
+  </data>
+  <data name="NoPendingFavoriteMatchesSearch" xml:space="preserve">
+    <value>Ningún WAD favorito sin completar coincide con la búsqueda.</value>
+  </data>
+  <data name="AllCompleted" xml:space="preserve">
+    <value>¡Completaste todos tus WADs!
+Desactiva ☑ Ocultar completados para verlos.</value>
+  </data>
+  <data name="AllFavoritesCompleted" xml:space="preserve">
+    <value>¡Completaste todos tus WADs favoritos!
+Desactiva ☑ Ocultar completados o ★ Favoritos para ver más WADs.</value>
   </data>
 </root>

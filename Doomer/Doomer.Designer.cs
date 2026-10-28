@@ -27,6 +27,7 @@ namespace Doomer
             sortByNameToolStripMenuItem = new ToolStripMenuItem();
             sortByLastPlayedToolStripMenuItem = new ToolStripMenuItem();
             favoritesOnlyToolStripMenuItem = new ToolStripMenuItem();
+            hideCompletedToolStripMenuItem = new ToolStripMenuItem();
             settingsToolStripMenuItem = new ToolStripMenuItem();
             txtSearch = new ToolStripTextBox();
             statusStrip1 = new StatusStrip();
@@ -55,7 +56,7 @@ namespace Doomer
             // menuStrip1
             //
             menuStrip1.ImageScalingSize = new Size(20, 20);
-            menuStrip1.Items.AddRange(new ToolStripItem[] { addBatchFileToolStripMenuItem, refreshListToolStripMenuItem, sortToolStripMenuItem, favoritesOnlyToolStripMenuItem, settingsToolStripMenuItem, txtSearch });
+            menuStrip1.Items.AddRange(new ToolStripItem[] { addBatchFileToolStripMenuItem, refreshListToolStripMenuItem, sortToolStripMenuItem, favoritesOnlyToolStripMenuItem, hideCompletedToolStripMenuItem, settingsToolStripMenuItem, txtSearch });
             menuStrip1.Location = new Point(0, 0);
             menuStrip1.Name = "menuStrip1";
             menuStrip1.ShowItemToolTips = true;
@@ -105,6 +106,13 @@ namespace Doomer
             favoritesOnlyToolStripMenuItem.Size = new Size(84, 23);
             favoritesOnlyToolStripMenuItem.Text = "☆ Favorites";
             favoritesOnlyToolStripMenuItem.Click += FavoritesOnlyToolStripMenuItem_Click;
+            //
+            // hideCompletedToolStripMenuItem
+            //
+            hideCompletedToolStripMenuItem.Name = "hideCompletedToolStripMenuItem";
+            hideCompletedToolStripMenuItem.Size = new Size(130, 23);
+            hideCompletedToolStripMenuItem.Text = "☐ Hide completed";
+            hideCompletedToolStripMenuItem.Click += HideCompletedToolStripMenuItem_Click;
             //
             // settingsToolStripMenuItem
             //
@@ -226,6 +234,7 @@ namespace Doomer
         private ToolStripMenuItem sortByNameToolStripMenuItem;
         private ToolStripMenuItem sortByLastPlayedToolStripMenuItem;
         private ToolStripMenuItem favoritesOnlyToolStripMenuItem;
+        private ToolStripMenuItem hideCompletedToolStripMenuItem;
         private ToolStripMenuItem settingsToolStripMenuItem;
         private ToolStripTextBox txtSearch;
         private StatusStrip statusStrip1;

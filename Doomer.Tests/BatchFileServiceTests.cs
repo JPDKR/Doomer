@@ -55,6 +55,65 @@ namespace Doomer.Tests
                 command);
         }
 
+        [Theory]
+        [InlineData("\"E:\\DSDA\\dsda-doom.exe\"")]
+        [InlineData("dsda-doom")]
+        [InlineData("\"C:\\Games\\DSDA Doom\\dsda-doom-0.29.exe\"")]
+        public void TryParseCommand_ADsdaBatchWrittenWithIwadAndFile_StaysDsda(string executable)
+        {
+            var command = $"{executable} -iwad \"doom2.wad\" -file \"sigil.wad\" \"sigil.deh\" -skill 4";
+
+            Assert.True(BatchFileService.TryParseCommand(command, "plugins", out var port, out var iwad, out var wad,
+                out var extraFiles, out var plugins, out var arguments));
+            Assert.Equal(SourcePort.DSDADoom, port);
+            Assert.Equal("doom2", iwad);
+            Assert.Equal("sigil", wad);
+            Assert.Equal(["sigil.deh"], extraFiles);
+            Assert.Empty(plugins);
+            Assert.Equal("-skill 4", arguments);
+        }
+
+        [Fact]
+        public void TryParseCommand_FindsADsdaCommandAfterOtherLines()
+        {
+            const string batch = "@echo off\r\ncd /d E:\\dsda\r\n\"E:\\dsda\\dsda-doom\" \"doom2.wad\" \"sigil.wad\"\r\npause";
+
+            Assert.True(BatchFileService.TryParseCommand(batch, "plugins", out var port, out _, out var wad, out _, out _, out var arguments));
+            Assert.Equal(SourcePort.DSDADoom, port);
+            Assert.Equal("sigil", wad);
+            Assert.Empty(arguments);
+        }
+
+        [Fact]
+        public void MergeIntoBatch_KeepsTheLinesDoomerDoesntWrite()
+        {
+            const string original = "rem Doomer wiki: https://doomwiki.org/wiki/Old\r\n@echo off\r\ncd /d E:\\dsda\r\n" +
+                "\"E:\\dsda\\dsda-doom\" \"doom2.wad\" \"sigil.wad\"\r\npause\r\n";
+            var rebuilt = BatchFileService.SetWikiUrl(
+                BatchFileService.BuildDSDADoomCommand("E:\\dsda\\dsda-doom", "doom2", "sigil2"), "https://doomwiki.org/wiki/New");
+
+            Assert.Equal(
+                "rem Doomer wiki: https://doomwiki.org/wiki/New\r\n@echo off\r\ncd /d E:\\dsda\r\n" +
+                "\"E:\\dsda\\dsda-doom\" \"doom2.wad\" \"sigil2.wad\"\r\npause\r\n",
+                BatchFileService.MergeIntoBatch(original, rebuilt));
+        }
+
+        [Fact]
+        public void MergeIntoBatch_ReplacesTheOldPluginsFolderAndWikiLines()
+        {
+            var original = BatchFileService.SetWikiUrl(
+                BatchFileService.BuildGZDoomCommand(GZDoomPath, "old", "doom2", "sigil", ["a.pk3"]), "https://doomwiki.org/wiki/Sigil");
+            var rebuilt = BatchFileService.BuildGZDoomCommand(GZDoomPath, "new", "doom2", "sigil", ["b.pk3"]);
+
+            Assert.Equal(rebuilt, BatchFileService.MergeIntoBatch(original, rebuilt));
+        }
+
+        [Fact]
+        public void MergeIntoBatch_ReplacesABatchWithoutACommandItKnows()
+        {
+            Assert.Equal("new", BatchFileService.MergeIntoBatch("echo something else", "new"));
+        }
+
         [Fact]
         public void PercentSigns_AreEscapedForCmdAndReadBack()
         {

@@ -606,4 +606,7 @@ Turn off ☑ Hide completed or ★ Favorites to list more WADs.</value>
 
 Fix the file, or open Settings to set them again (saving them replaces the file).</value>
   </data>
+  <data name="BatchInUse" xml:space="preserve">
+    <value>{0} is running. Close the game first: Windows keeps reading its batch while it runs.</value>
+  </data>
 </root>

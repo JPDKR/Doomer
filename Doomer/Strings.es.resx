@@ -606,4 +606,7 @@ Desactiva ☑ Ocultar completados o ★ Favoritos para ver más WADs.</value>
 
 Corrige el archivo, o abre Configuración para volver a cargarla (al guardarla se reemplaza el archivo).</value>
   </data>
+  <data name="BatchInUse" xml:space="preserve">
+    <value>{0} está abierto. Cierra el juego primero: Windows sigue leyendo su batch mientras corre.</value>
+  </data>
 </root>

@@ -321,6 +321,7 @@ namespace Doomer
             var star = new FavoriteStar(boton, () => _library.IsFavorite(boton.Name));
             var check = new CompletedCheck(boton, () => _library.IsCompleted(boton.Name));
             var wiki = new WikiIcon(boton, () => _wikiPages.Contains(entry.File));
+            var playCount = new PlayCountBadge(boton, () => _library.GetPlayCount(boton.Name));
             boton.Click += (s, e) =>
             {
                 if (star.Pressed)
@@ -329,6 +330,8 @@ namespace Doomer
                     ToggleCompleted(boton);
                 else if (wiki.Pressed)
                     OpenWikiPage(entry.File);
+                else if (playCount.Pressed)
+                    SetPlayCount(boton);
                 else
                     Boton_Click(s!, e);
             };
@@ -439,6 +442,31 @@ namespace Doomer
                 ApplyFilter();
         }
 
+        // Asks how many times the WAD was played, so the count can include the times before Doomer kept it.
+        private void SetPlayCount(Button boton)
+        {
+            var text = _library.GetPlayCount(boton.Name).ToString();
+            int count;
+
+            while (true)
+            {
+                using var dlg = new NamePromptForm(Strings.PlayCountTitle, string.Format(Strings.PlayCountPrompt, boton.Name), text);
+
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                text = dlg.EnteredName;
+
+                if (int.TryParse(text, out count) && count >= 0)
+                    break;
+
+                MessageBox.Show(Strings.PlayCountInvalid, Strings.PlayCountTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            TrySaveLibrary(() => _library.SetPlayCount(boton.Name, count));
+            boton.Invalidate();
+        }
+
         private void ToggleCompleted(Button boton)
         {
             TrySaveLibrary(() => _library.SetCompleted(boton.Name, !_library.IsCompleted(boton.Name)));
@@ -509,6 +537,9 @@ namespace Doomer
             completedItem.Click += (s, e) => ToggleCompleted(boton);
             menu.Opening += (s, e) => completedItem.Checked = _library.IsCompleted(boton.Name);
 
+            var playCountItem = new ToolStripMenuItem(Strings.MenuPlayCount);
+            playCountItem.Click += (s, e) => SetPlayCount(boton);
+
             var editItem = new ToolStripMenuItem(Strings.MenuEdit);
             editItem.Click += (s, e) => EditBatch(filePath);
 
@@ -534,6 +565,7 @@ namespace Doomer
 
             menu.Items.Add(favoriteItem);
             menu.Items.Add(completedItem);
+            menu.Items.Add(playCountItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(editItem);
             menu.Items.Add(changeImageItem);
@@ -924,6 +956,9 @@ namespace Doomer
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
             }
+
+            // Its play count may have just shown up or gone up.
+            flowLayoutPanel1.Controls[name]?.Invalidate();
 
             if (_library.SortOrder == WadSortOrder.LastPlayed)
                 ApplyOrder();

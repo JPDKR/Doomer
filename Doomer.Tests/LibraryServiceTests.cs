@@ -114,6 +114,56 @@ namespace Doomer.Tests
         }
 
         [Fact]
+        public void PlayCount_GoesUpEachPlayAndFollowsRenames()
+        {
+            var library = new LibraryService(FilePath);
+            Assert.Equal(0, library.GetPlayCount("Sigil"));
+
+            library.MarkPlayed("Sigil", new DateTime(2026, 10, 1));
+            library.MarkPlayed("sigil", new DateTime(2026, 10, 2));
+            library.MarkPlayed("SIGIL", new DateTime(2026, 10, 3));
+            library.Rename("Sigil", "Sigil II");
+
+            var reloaded = new LibraryService(FilePath);
+            Assert.Equal(3, reloaded.GetPlayCount("Sigil II"));
+            Assert.Equal(0, reloaded.GetPlayCount("Sigil"));
+
+            reloaded.Forget("Sigil II");
+
+            Assert.Equal(0, new LibraryService(FilePath).GetPlayCount("Sigil II"));
+        }
+
+        [Fact]
+        public void AWadPlayedBeforeTheCountWasKept_CountsAsPlayedOnce()
+        {
+            File.WriteAllText(FilePath, "{\"LastPlayed\": {\"Sigil\": \"2026-10-01T00:00:00Z\"}}");
+
+            var library = new LibraryService(FilePath);
+            Assert.Equal(1, library.GetPlayCount("Sigil"));
+
+            library.MarkPlayed("Sigil", new DateTime(2026, 10, 2));
+
+            Assert.Equal(2, new LibraryService(FilePath).GetPlayCount("Sigil"));
+        }
+
+        [Fact]
+        public void SetPlayCount_ReplacesTheCountAndPlaysAddToIt()
+        {
+            var library = new LibraryService(FilePath);
+            library.MarkPlayed("Sunlust", new DateTime(2026, 10, 1));
+
+            library.SetPlayCount("sunlust", 4);
+            library.MarkPlayed("Sunlust", new DateTime(2026, 10, 2));
+
+            Assert.Equal(5, new LibraryService(FilePath).GetPlayCount("Sunlust"));
+
+            library.SetPlayCount("Sunlust", 0);
+
+            Assert.Equal(0, new LibraryService(FilePath).GetPlayCount("Sunlust"));
+            Assert.Throws<ArgumentOutOfRangeException>(() => library.SetPlayCount("Sunlust", -1));
+        }
+
+        [Fact]
         public void Forget_DropsTheWadsHistory()
         {
             var library = new LibraryService(FilePath);

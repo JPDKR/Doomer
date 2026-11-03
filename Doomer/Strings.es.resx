@@ -586,4 +586,16 @@ Desactiva ☑ Ocultar completados para verlos.</value>
     <value>¡Completaste todos tus WADs favoritos!
 Desactiva ☑ Ocultar completados o ★ Favoritos para ver más WADs.</value>
   </data>
+  <data name="MenuPlayCount" xml:space="preserve">
+    <value>Veces jugado...</value>
+  </data>
+  <data name="PlayCountTitle" xml:space="preserve">
+    <value>Veces jugado</value>
+  </data>
+  <data name="PlayCountPrompt" xml:space="preserve">
+    <value>¿Cuántas veces jugaste {0}?</value>
+  </data>
+  <data name="PlayCountInvalid" xml:space="preserve">
+    <value>Ingresa un número entero, 0 o más.</value>
+  </data>
 </root>

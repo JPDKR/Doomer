@@ -14,6 +14,9 @@ namespace Doomer
         // The IWADs set up in the settings, listed first and by name.
         private readonly List<NamedIWad> _namedIWads = IWadService.Configured(AppConfiguration.IWads);
         private readonly string? _editingFilePath;
+
+        // The batch being edited as it was read, so saving keeps the lines Doomer doesn't write itself.
+        private string? _originalBatch;
         // The edited batch's icon, shown in the Image box. Leaving it there keeps it; picking another replaces it.
         private string? _existingImagePath;
         // Set once an edited batch is saved under a new name, so the main window can carry over its favorite and history.
@@ -167,6 +170,7 @@ namespace Doomer
             try
             {
                 command = BatchFileService.ReadBatch(path);
+                _originalBatch = command;
             }
             catch (Exception ex)
             {
@@ -705,6 +709,9 @@ namespace Doomer
             }
 
             var (path, renaming, command, moves, imageSource, imageDestination, _) = plan;
+
+            if (_originalBatch is not null)
+                command = BatchFileService.MergeIntoBatch(_originalBatch, command);
 
             // Only the app's own temp files (a download or a pasted image) are moved; an image picked from
             // the user's files is copied, so it stays where they keep it.

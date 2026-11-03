@@ -31,15 +31,20 @@ namespace Doomer.Services
             "^" + Regex.Escape(Utf8CodePageLine) + "[ \\t]*(?:\\r?\\n|$)",
             RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
-        // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"] [<arguments>]
+        // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"] [<arguments>]. DSDA Doom takes these
+        // options too, so a batch written by hand that way is told apart by its executable's name.
         private static readonly Regex GZDoomPattern = new(
-            "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*(?<arguments>[^\\r\\n]*)",
+            "(?:(?<exe>\"[^\"]*\"|[^\\s\"]+)[ \\t]+)?-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*(?<arguments>[^\\r\\n]*)",
             RegexOptions.Compiled);
 
-        // <exe> "<iwad>" "<wad>" ["<extra file>"...] [<arguments>] — the executable may or may not be quoted.
+        // <exe> "<iwad>" "<wad>" ["<extra file>"...] [<arguments>] — the executable may or may not be quoted. On any
+        // line, so one written by hand can have others before it (@echo off, cd /d...).
         private static readonly Regex DSDADoomPattern = new(
-            "^\\s*(?:\"[^\"]*\"|\\S+)\\s+\"(?<iwad>[^\"]*)\"\\s+\"(?<wad>[^\"]*)\"(?:[ \\t]+\"(?<file>[^\"]*)\")*(?<arguments>[^\\r\\n]*)",
-            RegexOptions.Compiled);
+            "^[ \\t]*(?:\"[^\"]*\"|\\S+)[ \\t]+\"(?<iwad>[^\"]*)\"[ \\t]+\"(?<wad>[^\"]*)\"(?:[ \\t]+\"(?<file>[^\"]*)\")*(?<arguments>[^\\r\\n]*)",
+            RegexOptions.Compiled | RegexOptions.Multiline);
+
+        // The lines Doomer writes before the command, which it writes anew on every save.
+        private static readonly string[] MarkerLines = [Utf8CodePageLine, PluginsFolderMarker, WikiUrlMarker];
 
         // Written before a GZDoom command that has plugins, so they can be told apart from the extra files
         // even after the plugins folder is changed in the settings. cmd skips it. It goes first because a
@@ -294,18 +299,22 @@ namespace Doomer.Services
         public static bool TryParseCommand(string command, string pluginsFolder, out SourcePort port, out string iwad,
             out string wad, out List<string> extraFiles, out List<string> plugins, out string arguments)
         {
-            // Taken out first, since the DSDA Doom command has to be the first line.
+            // Taken out first, so they're never mistaken for the command.
             command = Utf8CodePagePattern.Replace(WikiUrlPattern.Replace(command, string.Empty), string.Empty);
             var match = GZDoomPattern.Match(command);
 
             if (match.Success)
             {
-                port = SourcePort.GZDoom;
+                port = IsDSDADoom(match.Groups["exe"].Value) ? SourcePort.DSDADoom : SourcePort.GZDoom;
                 iwad = StripWadExtension(UnescapePercent(match.Groups["iwad"].Value));
                 wad = StripWadExtension(UnescapePercent(match.Groups["wad"].Value));
                 extraFiles = [.. match.Groups["file"].Captures.Select(c => UnescapePercent(c.Value))];
                 plugins = [];
                 arguments = UnescapePercent(match.Groups["arguments"].Value.Trim());
+
+                // DSDA Doom has no plugins: everything after the WAD is an extra file.
+                if (port == SourcePort.DSDADoom)
+                    return true;
 
                 var written = PluginsFolderPattern.Match(command);
                 var prefix = (written.Success ? written.Groups["folder"].Value : pluginsFolder) + "/";
@@ -337,6 +346,39 @@ namespace Doomer.Services
             plugins = [];
             return false;
         }
+
+        // "E:\dsda\dsda-doom.exe", "dsda-doom", "C:\Games\DSDA Doom\dsda-doom-0.29.exe"...
+        private static bool IsDSDADoom(string executable)
+        {
+            var name = Path.GetFileName(executable.Trim('"'));
+            return name.Contains("dsda", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("prboom", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Puts a rebuilt batch in place of the one it was edited from, keeping the lines Doomer doesn't write itself
+        // (@echo off, cd /d, pause...) where they were around the command. Doomer's own lines (wiki page, plugins
+        // folder, code page) come from the rebuilt batch, since they may have changed. An original without a
+        // command Doomer recognizes is replaced whole.
+        public static string MergeIntoBatch(string original, string rebuilt)
+        {
+            var kept = original.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => !IsMarkerLine(l)).ToList();
+            var commandIndex = kept.FindIndex(l => GZDoomPattern.IsMatch(l) || DSDADoomPattern.IsMatch(l));
+
+            if (commandIndex < 0)
+                return rebuilt;
+
+            var lines = rebuilt.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+            var newCommandIndex = lines.FindIndex(l => !IsMarkerLine(l));
+
+            if (newCommandIndex < 0)
+                return rebuilt;
+
+            kept[commandIndex] = lines[newCommandIndex];
+            return string.Join("\r\n", lines.Where(IsMarkerLine).Concat(kept));
+        }
+
+        private static bool IsMarkerLine(string line) =>
+            MarkerLines.Any(m => line.TrimStart().StartsWith(m.Trim(), StringComparison.OrdinalIgnoreCase));
 
         private static bool ContainsQuote(string value) => value.Contains('"');
     }

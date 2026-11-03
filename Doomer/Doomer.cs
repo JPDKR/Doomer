@@ -585,8 +585,23 @@ namespace Doomer
             return menu;
         }
 
+        // cmd keeps reading a batch while its game runs and picks up where it left off once the game closes, so
+        // changing or deleting it meanwhile would make cmd run the wrong text (and report the batch as failed).
+        private bool RefuseWhileRunning(string filePath, string title)
+        {
+            if (!_runningBatches.Contains(filePath))
+                return false;
+
+            MessageBox.Show(string.Format(Strings.BatchInUse, Path.GetFileNameWithoutExtension(filePath)), title,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return true;
+        }
+
         private async void EditBatch(string filePath)
         {
+            if (RefuseWhileRunning(filePath, Strings.EditBatchTitle))
+                return;
+
             using var form = new BatchCreatorForm(filePath);
 
             if (form.ShowDialog() != DialogResult.OK)
@@ -723,6 +738,9 @@ namespace Doomer
             var filePath = (string)boton.Tag!;
             string batch;
 
+            if (RefuseWhileRunning(filePath, Strings.WikiUrlTitle))
+                return;
+
             try
             {
                 batch = BatchFileService.ReadBatch(filePath);
@@ -826,6 +844,9 @@ namespace Doomer
 
         private async void DeleteBatch(string filePath)
         {
+            if (RefuseWhileRunning(filePath, Strings.DeleteBatchTitle))
+                return;
+
             var name = Path.GetFileNameWithoutExtension(filePath);
             var imagePath = BatchFileService.GetImagePath(filePath, _folders.Images);
 

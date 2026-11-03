@@ -596,6 +596,6 @@ Desactiva ☑ Ocultar completados o ★ Favoritos para ver más WADs.</value>
     <value>¿Cuántas veces jugaste {0}?</value>
   </data>
   <data name="PlayCountInvalid" xml:space="preserve">
-    <value>Ingresa un número entero, 0 o más.</value>
+    <value>Ingresa un número entero de 0 a {0}.</value>
   </data>
 </root>

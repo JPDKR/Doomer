@@ -596,6 +596,6 @@ Turn off ☑ Hide completed or ★ Favorites to list more WADs.</value>
     <value>How many times did you play {0}?</value>
   </data>
   <data name="PlayCountInvalid" xml:space="preserve">
-    <value>Enter a whole number, 0 or more.</value>
+    <value>Enter a whole number from 0 to {0}.</value>
   </data>
 </root>

@@ -38,6 +38,14 @@ namespace Doomer.Tests
             Assert.Equal(expected, BatchFileService.GetImagePath(batchPath, images));
         }
 
+        [Theory]
+        [InlineData("")]
+        [InlineData("  ")]
+        public void GetImagePath_IsNullWithoutAnImagesFolder(string folder)
+        {
+            Assert.Null(BatchFileService.GetImagePath("D:\\batchs\\Sunlust.bat", new ImageSettings { Path = folder, Extension = ".png" }));
+        }
+
         [Fact]
         public void IsValidFileName_AcceptsNormalName()
         {

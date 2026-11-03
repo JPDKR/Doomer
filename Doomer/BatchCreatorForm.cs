@@ -22,6 +22,13 @@ namespace Doomer
         // Set once an edited batch is saved under a new name, so the main window can carry over its favorite and history.
         public (string OldName, string NewName)? Renamed { get; private set; }
 
+        // Set once a new batch is saved over an existing one, so the main window can drop that one's favorite and history.
+        public string? Replaced { get; private set; }
+
+        // The folder this form extracted an archive into, when it created it. Deleted if the form closes without
+        // saving or another archive is imported, so a cancelled import leaves nothing behind.
+        private string? _extractedFolder;
+
         // The temp file a Ctrl+V'd image was saved to, which is moved into the images folder instead of copied.
         private string? _pastedImagePath;
 
@@ -117,6 +124,9 @@ namespace Doomer
         {
             foreach (var file in _tempFiles)
                 TempFileService.TryDelete(file);
+
+            if (DialogResult != DialogResult.OK)
+                DeleteExtractedFolder();
 
             base.OnFormClosed(e);
         }
@@ -492,6 +502,7 @@ namespace Doomer
             }
 
             List<string> files;
+            var created = !Directory.Exists(destination);
             Enabled = false;
             UseWaitCursor = true;
 
@@ -501,6 +512,9 @@ namespace Doomer
             }
             catch (Exception ex)
             {
+                if (created)
+                    TryDeleteFolder(destination);
+
                 MessageBox.Show(string.Format(Strings.ExtractError, ex.Message), Strings.ExtractArchiveTitle,
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -514,7 +528,19 @@ namespace Doomer
             var wad = PickWad(ArchiveService.FindWadCandidates(files), destination);
 
             if (wad is null)
+            {
+                if (created)
+                    TryDeleteFolder(destination);
+
                 return;
+            }
+
+            // The archive imported before this one isn't used anymore.
+            if (!string.Equals(_extractedFolder, destination, StringComparison.OrdinalIgnoreCase))
+                DeleteExtractedFolder();
+
+            if (created)
+                _extractedFolder = destination;
 
             txtWad.Text = BatchFileService.StripWadExtension(wad);
             SetItems(lstExtraFiles, ArchiveService.FindExtraFiles(files, wad));
@@ -684,10 +710,7 @@ namespace Doomer
             return null;
         }
 
-        private string? GetImagePath(string batchPath) =>
-            string.IsNullOrWhiteSpace(_folders.Images.Path)
-                ? null
-                : BatchFileService.GetImagePath(batchPath, _folders.Images);
+        private string? GetImagePath(string batchPath) => BatchFileService.GetImagePath(batchPath, _folders.Images);
 
         private async void BtnCreate_Click(object sender, EventArgs e)
         {
@@ -744,6 +767,7 @@ namespace Doomer
             }
 
             var batchMoved = false;
+            var replacing = _editingFilePath is null && File.Exists(path);
 
             try
             {
@@ -769,6 +793,9 @@ namespace Doomer
 
             appliedMoves.Commit();
 
+            if (replacing)
+                Replaced = Path.GetFileNameWithoutExtension(path);
+
             if (renaming)
                 Renamed = (Path.GetFileNameWithoutExtension(_editingFilePath!), Path.GetFileNameWithoutExtension(path));
 
@@ -780,6 +807,9 @@ namespace Doomer
             {
                 if (imageDestination is not null)
                     ImageFileService.Save(imageSource, imageDestination, move: imageIsTemporary);
+                // The batch it replaced had its own icon, which isn't this one's.
+                else if (replacing && GetImagePath(path) is { } replacedImage && File.Exists(replacedImage))
+                    File.Delete(replacedImage);
 
                 // The old icon goes along with a renamed batch, or away once a new one took its place.
                 if (renaming && _existingImagePath is not null && GetImagePath(path) is { } renamedImage)
@@ -803,6 +833,25 @@ namespace Doomer
 
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        private void DeleteExtractedFolder()
+        {
+            if (_extractedFolder is not null)
+                TryDeleteFolder(_extractedFolder);
+
+            _extractedFolder = null;
+        }
+
+        private static void TryDeleteFolder(string folder)
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
         }
 
         // Only called when something already failed, so there's nothing more to do if this fails too.

@@ -40,6 +40,10 @@ namespace Doomer
         // Whether the click being handled went down and up on the icon while it was shown.
         public bool Pressed => _pressed && _overIcon && IsShown(_hovered);
 
+        // Whether the click being handled went down on the icon, wherever it came up. One that came up elsewhere
+        // does nothing, rather than launching the game the user didn't mean to.
+        public bool WentDownOnIcon => _pressed && IsShown(true);
+
         // Wider than it's tall for an icon that holds text.
         protected virtual int Width => Size;
 

@@ -609,4 +609,11 @@ Fix the file, or open Settings to set them again (saving them replaces the file)
   <data name="BatchInUse" xml:space="preserve">
     <value>{0} is running. Close the game first: Windows keeps reading its batch while it runs.</value>
   </data>
+  <data name="CantDeleteImage" xml:space="preserve">
+    <value>The batch was deleted, but its image couldn't be:
+{0}</value>
+  </data>
+  <data name="DownloadTooLarge" xml:space="preserve">
+    <value>The file is larger than {0} MB, which is too much for an image.</value>
+  </data>
 </root>

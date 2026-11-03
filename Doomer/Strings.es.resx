@@ -609,4 +609,11 @@ Corrige el archivo, o abre Configuración para volver a cargarla (al guardarla s
   <data name="BatchInUse" xml:space="preserve">
     <value>{0} está abierto. Cierra el juego primero: Windows sigue leyendo su batch mientras corre.</value>
   </data>
+  <data name="CantDeleteImage" xml:space="preserve">
+    <value>Se borró el batch, pero no su imagen:
+{0}</value>
+  </data>
+  <data name="DownloadTooLarge" xml:space="preserve">
+    <value>El archivo pesa más de {0} MB, demasiado para una imagen.</value>
+  </data>
 </root>

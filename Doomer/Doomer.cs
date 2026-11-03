@@ -238,9 +238,9 @@ namespace Doomer
             return entries;
         }
 
-        private static Bitmap? LoadIcon(string iconPath, Size size)
+        private static Bitmap? LoadIcon(string? iconPath, Size size)
         {
-            if (!File.Exists(iconPath))
+            if (iconPath is null || !File.Exists(iconPath))
                 return null;
 
             try
@@ -335,7 +335,7 @@ namespace Doomer
                     OpenWikiPage(entry.File);
                 else if (playCount.Pressed)
                     SetPlayCount(boton);
-                else
+                else if (!star.WentDownOnIcon && !check.WentDownOnIcon && !wiki.WentDownOnIcon && !playCount.WentDownOnIcon)
                     Boton_Click(s!, e);
             };
             EnableArchiveDrop(boton);
@@ -646,7 +646,7 @@ namespace Doomer
 
             try
             {
-                ImageFileService.Save(dlg.FileName, BatchFileService.GetImagePath(filePath, images), move: false);
+                ImageFileService.Save(dlg.FileName, BatchFileService.GetImagePath(filePath, images)!, move: false);
             }
             catch (Exception ex)
             {
@@ -829,9 +829,8 @@ namespace Doomer
                 File.Copy(filePath, newPath);
 
                 // An image left over with the new name would become its icon anyway, so the copy replaces it.
-                var imagePath = BatchFileService.GetImagePath(filePath, _folders.Images);
-                if (File.Exists(imagePath))
-                    File.Copy(imagePath, BatchFileService.GetImagePath(newPath, _folders.Images), overwrite: true);
+                if (BatchFileService.GetImagePath(filePath, _folders.Images) is { } imagePath && File.Exists(imagePath))
+                    File.Copy(imagePath, BatchFileService.GetImagePath(newPath, _folders.Images)!, overwrite: true);
             }
             catch (Exception ex)
             {
@@ -860,25 +859,35 @@ namespace Doomer
             try
             {
                 File.Delete(filePath);
-
-                if (File.Exists(imagePath))
-                    File.Delete(imagePath);
-
-                // A batch made later with the same name starts without this one's history.
-                try
-                {
-                    _library.Forget(name);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                }
-
-                await LoadButtonsBatchAsync();
             }
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Strings.CantDeleteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
+
+            // The batch is gone by now, so the list is refreshed and its history dropped even if its icon stays.
+            try
+            {
+                if (imagePath is not null && File.Exists(imagePath))
+                    File.Delete(imagePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Strings.CantDeleteImage, ex.Message), Strings.DeleteBatchTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            // A batch made later with the same name starts without this one's history.
+            try
+            {
+                _library.Forget(name);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            await LoadButtonsBatchAsync();
         }
 
         private async void Boton_Click(object sender, EventArgs e)
@@ -897,19 +906,21 @@ namespace Doomer
             var launching = "  " + string.Format(Strings.StatusLaunching, boton.Name);
             var overlay = new LoadingOverlay(boton, Strings.LoadingGame);
             var loading = true;
+            var launchedAt = DateTime.Now;
+            using var watch = new System.Windows.Forms.Timer { Interval = 250 };
             lblStatus.Text = launching;
             _inputBlocker.Block();
 
-            // The batch only returns once the game is closed, so the loading lasts until the game's window
-            // takes the focus from Doomer, or a while if it never does (e.g. it opens behind another window).
-            // Either way the game is running by then, so Doomer gets out of its way.
+            // The batch only returns once the game is closed, so the loading lasts until the game's window is in
+            // front, or a while if it never is (e.g. it opens behind another window). Either way the game is running
+            // by then, so Doomer gets out of its way. Switching to a window that was already open doesn't count.
             void StopLoading(bool gameStarted)
             {
                 if (!loading)
                     return;
 
                 loading = false;
-                Deactivate -= GameTookFocus;
+                watch.Stop();
                 overlay.Dispose();
                 _inputBlocker.Unblock();
 
@@ -927,11 +938,17 @@ namespace Doomer
                 }
             }
 
-            void GameTookFocus(object? s, EventArgs e) => StopLoading(gameStarted: true);
+            var closed = false;
 
             // Called as soon as the game closes, before any error about it is shown, so the window is back for it.
+            // Called again in the finally, so it only counts the first time: otherwise, after the user launched
+            // the same WAD again while an error about this run was shown, it would mark that new run as closed.
             void GameClosed()
             {
+                if (closed)
+                    return;
+
+                closed = true;
                 StopLoading(gameStarted: false);
                 _runningBatches.Remove(path);
 
@@ -939,7 +956,12 @@ namespace Doomer
                     RestoreAfterGame();
             }
 
-            Deactivate += GameTookFocus;
+            watch.Tick += (s, e) =>
+            {
+                if (ForegroundWindow.IsFromProcessStartedSince(launchedAt))
+                    StopLoading(gameStarted: true);
+            };
+            watch.Start();
             _ = Task.Delay(LoadingTimeout).ContinueWith(_ => StopLoading(gameStarted: true),
                 TaskScheduler.FromCurrentSynchronizationContext());
 
@@ -999,7 +1021,7 @@ namespace Doomer
             catch (Exception ex)
             {
                 gameClosed();
-                MessageBox.Show(string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, string.Format(Strings.CantExecuteFile, ex.Message), Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -1007,7 +1029,7 @@ namespace Doomer
 
             // The console is hidden, so whatever went wrong would otherwise go unseen.
             if (errors is not null && !IsDisposed)
-                MessageBox.Show(string.Format(Strings.BatchFailed, Path.GetFileNameWithoutExtension(path), errors),
+                MessageBox.Show(this, string.Format(Strings.BatchFailed, Path.GetFileNameWithoutExtension(path), errors),
                     Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
@@ -1020,6 +1042,10 @@ namespace Doomer
             {
                 if (form.ShowDialog() != DialogResult.OK)
                     return;
+
+                // A new batch saved over another starts without that one's favorite, completion and history.
+                if (form.Replaced is { } name)
+                    TrySaveLibrary(() => _library.Forget(name));
             }
 
             await LoadButtonsBatchAsync();

@@ -87,6 +87,17 @@ namespace Doomer.Services
             return hex.Length == 64 && hex.All(char.IsAsciiHexDigit) ? hex.ToLowerInvariant() : null;
         }
 
+        private static void TryDeleteFolder(string folder)
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
         public static bool HasSha256(string path, string expectedSha256)
         {
             using var stream = File.OpenRead(path);
@@ -96,6 +107,8 @@ namespace Doomer.Services
         // The installer runs silently with the user's rights, so it's only handed over once its hash matches
         // the one GitHub published for it; a release without one isn't installed at all. This catches a
         // corrupted or tampered download, not a bad release uploaded to the repository itself.
+        private static readonly TimeSpan InstallerStallTimeout = TimeSpan.FromMinutes(1);
+
         public static async Task<string> DownloadInstallerAsync(UpdateInfo update)
         {
             if (update.Sha256 is null)
@@ -105,9 +118,26 @@ namespace Doomer.Services
             var folder = Directory.CreateTempSubdirectory("Doomer-update-").FullName;
             var path = Path.Combine(folder, Path.GetFileName(update.InstallerName));
 
-            await using (var source = await Http.GetStreamAsync(update.InstallerUrl))
-            await using (var target = File.Create(path))
-                await source.CopyToAsync(target);
+            try
+            {
+                // A whole minute without a byte means the connection stalled, rather than waiting on it forever.
+                using var stall = new CancellationTokenSource(InstallerStallTimeout);
+                await using var source = await Http.GetStreamAsync(update.InstallerUrl, stall.Token);
+                await using var target = File.Create(path);
+                var buffer = new byte[81920];
+                int read;
+
+                while ((read = await source.ReadAsync(buffer, stall.Token)) > 0)
+                {
+                    await target.WriteAsync(buffer.AsMemory(0, read), stall.Token);
+                    stall.CancelAfter(InstallerStallTimeout);
+                }
+            }
+            catch
+            {
+                TryDeleteFolder(folder);
+                throw;
+            }
 
             if (HasSha256(path, update.Sha256))
                 return path;

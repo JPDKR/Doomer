@@ -586,4 +586,16 @@ Turn off ☑ Hide completed to list them.</value>
     <value>You've completed all your favorite WADs!
 Turn off ☑ Hide completed or ★ Favorites to list more WADs.</value>
   </data>
+  <data name="MenuPlayCount" xml:space="preserve">
+    <value>Times played...</value>
+  </data>
+  <data name="PlayCountTitle" xml:space="preserve">
+    <value>Times played</value>
+  </data>
+  <data name="PlayCountPrompt" xml:space="preserve">
+    <value>How many times did you play {0}?</value>
+  </data>
+  <data name="PlayCountInvalid" xml:space="preserve">
+    <value>Enter a whole number, 0 or more.</value>
+  </data>
 </root>

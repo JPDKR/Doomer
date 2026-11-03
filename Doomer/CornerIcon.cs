@@ -5,6 +5,7 @@ namespace Doomer
     internal enum Corner
     {
         TopLeft,
+        TopRight,
         BottomLeft,
         BottomRight
     }
@@ -39,6 +40,9 @@ namespace Doomer
         // Whether the click being handled went down and up on the icon while it was shown.
         public bool Pressed => _pressed && _overIcon && IsShown(_hovered);
 
+        // Wider than it's tall for an icon that holds text.
+        protected virtual int Width => Size;
+
         // Whether it's drawn, given whether the mouse is over the button.
         protected abstract bool IsShown(bool hovered);
 
@@ -47,6 +51,7 @@ namespace Doomer
         private Rectangle Bounds => _corner switch
         {
             Corner.TopLeft => new(Inset, Inset, Size, Size),
+            Corner.TopRight => new(_button.ClientSize.Width - Inset - Width, Inset, Width, Size),
             Corner.BottomLeft => new(Inset, _button.ClientSize.Height - Inset - Size, Size, Size),
             _ => new(_button.ClientSize.Width - Inset - Size, _button.ClientSize.Height - Inset - Size, Size, Size)
         };

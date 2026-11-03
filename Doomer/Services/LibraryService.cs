@@ -9,8 +9,8 @@ namespace Doomer.Services
         LastPlayed
     }
 
-    // What the user does with their WADs (favorites, which ones they finished, when each was last played,
-    // how the list is sorted),
+    // What the user does with their WADs (favorites, which ones they finished, when each was last played and
+    // how many times, how the list is sorted),
     // kept apart from the settings in its own file. WADs are known by their batch file's name.
     public class LibraryService
     {
@@ -18,6 +18,7 @@ namespace Doomer.Services
         private readonly HashSet<string> _favorites = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _completed = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _lastPlayed = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int> _playCount = new(StringComparer.OrdinalIgnoreCase);
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -60,6 +61,10 @@ namespace Doomer.Services
 
             foreach (var (name, when) in data.LastPlayed ?? [])
                 _lastPlayed[name] = when;
+
+            foreach (var (name, count) in data.PlayCount ?? [])
+                if (count >= 0)
+                    _playCount[name] = count;
         }
 
         public bool IsFavorite(string name) => _favorites.Contains(name);
@@ -67,6 +72,10 @@ namespace Doomer.Services
         public bool IsCompleted(string name) => _completed.Contains(name);
 
         public DateTime? GetLastPlayed(string name) => _lastPlayed.TryGetValue(name, out var when) ? when : null;
+
+        // A WAD played before the count was kept counts as played once.
+        public int GetPlayCount(string name) =>
+            _playCount.TryGetValue(name, out var count) ? count : _lastPlayed.ContainsKey(name) ? 1 : 0;
 
         // The setters save right away and throw if the file can't be written.
         public void SetSortOrder(WadSortOrder order)
@@ -109,7 +118,16 @@ namespace Doomer.Services
 
         public void MarkPlayed(string name, DateTime when)
         {
+            _playCount[name] = GetPlayCount(name) + 1;
             _lastPlayed[name] = when;
+            Save();
+        }
+
+        // For when the user enters it by hand, such as for the times played before Doomer counted them.
+        public void SetPlayCount(string name, int count)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            _playCount[name] = count;
             Save();
         }
 
@@ -119,8 +137,9 @@ namespace Doomer.Services
             var favorite = _favorites.Remove(oldName);
             var completed = _completed.Remove(oldName);
             var played = _lastPlayed.Remove(oldName, out var when);
+            var counted = _playCount.Remove(oldName, out var count);
 
-            if (!favorite && !completed && !played)
+            if (!favorite && !completed && !played && !counted)
                 return;
 
             if (favorite)
@@ -132,13 +151,16 @@ namespace Doomer.Services
             if (played)
                 _lastPlayed[newName] = when;
 
+            if (counted)
+                _playCount[newName] = count;
+
             Save();
         }
 
         // For a deleted batch, so a new one with the same name doesn't inherit its history.
         public void Forget(string name)
         {
-            if (_favorites.Remove(name) | _completed.Remove(name) | _lastPlayed.Remove(name))
+            if (_favorites.Remove(name) | _completed.Remove(name) | _lastPlayed.Remove(name) | _playCount.Remove(name))
                 Save();
         }
 
@@ -163,7 +185,8 @@ namespace Doomer.Services
                 HideCompleted = HideCompleted,
                 Favorites = [.. _favorites.Order(StringComparer.OrdinalIgnoreCase)],
                 Completed = [.. _completed.Order(StringComparer.OrdinalIgnoreCase)],
-                LastPlayed = new(_lastPlayed, StringComparer.OrdinalIgnoreCase)
+                LastPlayed = new(_lastPlayed, StringComparer.OrdinalIgnoreCase),
+                PlayCount = new(_playCount, StringComparer.OrdinalIgnoreCase)
             };
 
             AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(data, JsonOptions));
@@ -177,6 +200,7 @@ namespace Doomer.Services
             public List<string>? Favorites { get; set; }
             public List<string>? Completed { get; set; }
             public Dictionary<string, DateTime>? LastPlayed { get; set; }
+            public Dictionary<string, int>? PlayCount { get; set; }
         }
     }
 }

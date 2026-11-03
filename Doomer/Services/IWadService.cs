@@ -53,7 +53,7 @@ namespace Doomer.Services
 
                 try
                 {
-                    command = File.ReadAllText(file);
+                    command = BatchFileService.ReadBatch(file);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {

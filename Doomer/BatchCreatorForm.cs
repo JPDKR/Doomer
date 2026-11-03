@@ -166,7 +166,7 @@ namespace Doomer
 
             try
             {
-                command = File.ReadAllText(path);
+                command = BatchFileService.ReadBatch(path);
             }
             catch (Exception ex)
             {
@@ -723,9 +723,11 @@ namespace Doomer
                 _tempFiles.Add(downloaded);
             }
 
+            AppliedMoves appliedMoves;
+
             try
             {
-                WadMoveService.Apply(moves);
+                appliedMoves = WadMoveService.Apply(moves);
             }
             catch (Exception ex)
             {
@@ -745,7 +747,7 @@ namespace Doomer
                     batchMoved = true;
                 }
 
-                File.WriteAllText(path, command);
+                BatchFileService.WriteBatch(path, command);
             }
             catch (Exception ex)
             {
@@ -753,10 +755,12 @@ namespace Doomer
                 if (batchMoved)
                     TryMove(path, _editingFilePath!);
 
-                WadMoveService.Undo(moves);
+                appliedMoves.Undo();
                 MessageBox.Show(string.Format(Strings.SaveBatchError, ex.Message), Strings.BatchCreationTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            appliedMoves.Commit();
 
             if (renaming)
                 Renamed = (Path.GetFileNameWithoutExtension(_editingFilePath!), Path.GetFileNameWithoutExtension(path));

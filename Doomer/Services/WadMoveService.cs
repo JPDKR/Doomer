@@ -8,6 +8,49 @@ namespace Doomer.Services
     // The batches that load a moved file and now point to its new place, and the ones that couldn't be updated.
     public record BatchesUpdate(List<string> Updated, List<string> Failed);
 
+    // What WadMoveService.Apply did. Once the save that needed the moves is done, Commit deletes the files they
+    // replaced; if it failed, Undo puts everything back as it was.
+    public sealed class AppliedMoves
+    {
+        internal List<FileMove> Moved { get; } = [];
+
+        // Source: where the replaced file was. Destination: where it was put aside.
+        internal List<FileMove> Replaced { get; } = [];
+
+        // Only called when something already failed, so it goes as far as it can.
+        public void Undo()
+        {
+            foreach (var move in Enumerable.Reverse(Moved))
+                TryMove(move.Destination, move.Source);
+
+            foreach (var replaced in Enumerable.Reverse(Replaced))
+                TryMove(replaced.Destination, replaced.Source);
+
+            Moved.Clear();
+            Replaced.Clear();
+        }
+
+        public void Commit()
+        {
+            foreach (var replaced in Replaced)
+                TempFileService.TryDelete(replaced.Destination);
+
+            Moved.Clear();
+            Replaced.Clear();
+        }
+
+        private static void TryMove(string source, string destination)
+        {
+            try
+            {
+                File.Move(source, destination);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
     // A WAD picked from outside the WADs directory is moved into it. The extra files next to it go along,
     // and every batch that loads any of them is pointed to their new place, so none is left behind.
     public static class WadMoveService
@@ -54,40 +97,37 @@ namespace Doomer.Services
             return Path.IsPathRooted(file) ? FindMove(Path.GetFullPath(file), moves)?.Destination : null;
         }
 
-        // Moves the files in order. If one fails, the ones already moved go back before the error is rethrown.
-        public static void Apply(IReadOnlyList<FileMove> moves)
+        // Moves the files in order. A file already at a destination (one the user agreed to replace) is put aside
+        // rather than overwritten, so undoing the moves can bring it back. If a move fails, the ones already done
+        // are undone before the error is rethrown.
+        public static AppliedMoves Apply(IReadOnlyList<FileMove> moves)
         {
-            var done = new List<FileMove>();
+            var applied = new AppliedMoves();
 
             try
             {
                 foreach (var move in moves)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(move.Destination)!);
-                    File.Move(move.Source, move.Destination, overwrite: true);
-                    done.Add(move);
+
+                    if (File.Exists(move.Destination))
+                    {
+                        var aside = move.Destination + "." + Guid.NewGuid().ToString("N")[..8] + ".replaced";
+                        File.Move(move.Destination, aside);
+                        applied.Replaced.Add(new(move.Destination, aside));
+                    }
+
+                    File.Move(move.Source, move.Destination);
+                    applied.Moved.Add(move);
                 }
             }
             catch
             {
-                Undo(done);
+                applied.Undo();
                 throw;
             }
-        }
 
-        // Puts moved files back where they were, as far as it can: it's only called when something already failed.
-        public static void Undo(IEnumerable<FileMove> moves)
-        {
-            foreach (var move in moves.Reverse())
-            {
-                try
-                {
-                    File.Move(move.Destination, move.Source);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                }
-            }
+            return applied;
         }
 
         // Points the quoted paths of moved files in a batch command to their new place. Relative paths are
@@ -98,13 +138,13 @@ namespace Doomer.Services
 
             var updated = QuotedPathPattern.Replace(command, match =>
             {
-                var path = BatchFileService.ResolveWadPath(match.Groups["path"].Value, executable);
+                var path = BatchFileService.ResolveWadPath(BatchFileService.UnescapePercent(match.Groups["path"].Value), executable);
 
                 if (path is null || FindMove(path, moves) is not { } move)
                     return match.Value;
 
                 changed = true;
-                return $"\"{move.Destination}\"";
+                return $"\"{BatchFileService.EscapePercent(move.Destination)}\"";
             });
 
             return changed ? updated : null;
@@ -130,7 +170,7 @@ namespace Doomer.Services
 
                 try
                 {
-                    var command = File.ReadAllText(file);
+                    var command = BatchFileService.ReadBatch(file);
 
                     // A batch that can't be parsed still gets its full paths updated.
                     string? executable = null;
@@ -140,7 +180,7 @@ namespace Doomer.Services
                     if (UpdateCommand(command, executable, moves) is not { } updated)
                         continue;
 
-                    File.WriteAllText(file, updated);
+                    BatchFileService.WriteBatch(file, updated);
                     result.Updated.Add(name);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

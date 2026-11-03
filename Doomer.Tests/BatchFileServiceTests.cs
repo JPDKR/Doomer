@@ -55,6 +55,31 @@ namespace Doomer.Tests
                 command);
         }
 
+        [Fact]
+        public void PercentSigns_AreEscapedForCmdAndReadBack()
+        {
+            var command = BatchFileService.BuildGZDoomCommand(GZDoomPath, "plugins", "doom2", "wads/100%", [],
+                extraFiles: ["wads/50%.deh"], arguments: "+set name %USER%");
+
+            Assert.Equal(
+                "\"D:\\gzdoom\\gzdoom\" -iwad \"doom2.wad\" -file \"wads/100%%.wad\" \"wads/50%%.deh\" +set name %%USER%%",
+                command);
+
+            Assert.True(BatchFileService.TryParseCommand(command, "plugins", out _, out _, out var wad, out var extraFiles, out _, out var arguments));
+            Assert.Equal("wads/100%", wad);
+            Assert.Equal(["wads/50%.deh"], extraFiles);
+            Assert.Equal("+set name %USER%", arguments);
+        }
+
+        [Theory]
+        [InlineData("wads/eviternity.v1.1", "wads/eviternity.v1.1.wad")]
+        [InlineData("wads/Ancient Aliens v2.0", "wads/Ancient Aliens v2.0.wad")]
+        [InlineData("iwads/freedoom2.iwad", "iwads/freedoom2.iwad")]
+        public void EnsureWadExtension_TreatsADotInTheNameAsPartOfIt(string input, string expected)
+        {
+            Assert.Equal(expected, BatchFileService.EnsureWadExtension(input));
+        }
+
         [Theory]
         [InlineData("wads/doom2", "wads/doom2.wad")]
         [InlineData("wads/doom2.wad", "wads/doom2.wad")]

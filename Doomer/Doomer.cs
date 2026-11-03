@@ -190,7 +190,9 @@ namespace Doomer
             {
                 return;
             }
-            catch (Exception ex) when (ex is DirectoryNotFoundException or ArgumentException)
+            // A missing or unreadable folder (a disconnected network drive, no permission) is reported like a
+            // missing one, so the list doesn't stay stuck on "Loading".
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
             {
                 if (_loadCts != cts || IsDisposed)
                     return;
@@ -256,7 +258,8 @@ namespace Doomer
         {
             flowLayoutPanel1.SuspendLayout();
 
-            foreach (Control control in flowLayoutPanel1.Controls)
+            // A copy, since disposing a button takes it out of the collection and would skip the next one.
+            foreach (var control in flowLayoutPanel1.Controls.Cast<Control>().ToList())
             {
                 if (control is Button boton)
                 {
@@ -442,6 +445,9 @@ namespace Doomer
                 ApplyFilter();
         }
 
+        // Enough for any real count, and keeps the badge from growing over the rest of the button.
+        private const int MaxPlayCount = 9999;
+
         // Asks how many times the WAD was played, so the count can include the times before Doomer kept it.
         private void SetPlayCount(Button boton)
         {
@@ -457,10 +463,10 @@ namespace Doomer
 
                 text = dlg.EnteredName;
 
-                if (int.TryParse(text, out count) && count >= 0)
+                if (int.TryParse(text, out count) && count is >= 0 and <= MaxPlayCount)
                     break;
 
-                MessageBox.Show(Strings.PlayCountInvalid, Strings.PlayCountTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(string.Format(Strings.PlayCountInvalid, MaxPlayCount), Strings.PlayCountTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             TrySaveLibrary(() => _library.SetPlayCount(boton.Name, count));
@@ -644,7 +650,7 @@ namespace Doomer
 
             try
             {
-                command = File.ReadAllText(filePath);
+                command = BatchFileService.ReadBatch(filePath);
             }
             catch (Exception ex)
             {
@@ -685,7 +691,7 @@ namespace Doomer
         {
             try
             {
-                return BatchFileService.TryNormalizeWikiUrl(BatchFileService.GetWikiUrl(File.ReadAllText(filePath)), out var url) &&
+                return BatchFileService.TryNormalizeWikiUrl(BatchFileService.GetWikiUrl(BatchFileService.ReadBatch(filePath)), out var url) &&
                     url.Length > 0 ? url : null;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -719,7 +725,7 @@ namespace Doomer
 
             try
             {
-                batch = File.ReadAllText(filePath);
+                batch = BatchFileService.ReadBatch(filePath);
             }
             catch (Exception ex)
             {
@@ -748,7 +754,7 @@ namespace Doomer
 
             try
             {
-                File.WriteAllText(filePath, BatchFileService.SetWikiUrl(batch, url));
+                BatchFileService.WriteBatch(filePath, BatchFileService.SetWikiUrl(batch, url));
             }
             catch (Exception ex)
             {

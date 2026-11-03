@@ -31,7 +31,10 @@ namespace Doomer.Services
 
                 return ParseRelease(doc.RootElement, CurrentVersion);
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            // A connection dropped mid-answer surfaces as an IOException, and an answer in an unexpected shape as
+            // InvalidOperationException or KeyNotFoundException.
+            catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or
+                IOException or InvalidOperationException or KeyNotFoundException)
             {
                 return null;
             }

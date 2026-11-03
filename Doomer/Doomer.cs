@@ -442,6 +442,9 @@ namespace Doomer
                 ApplyFilter();
         }
 
+        // Enough for any real count, and keeps the badge from growing over the rest of the button.
+        private const int MaxPlayCount = 9999;
+
         // Asks how many times the WAD was played, so the count can include the times before Doomer kept it.
         private void SetPlayCount(Button boton)
         {
@@ -457,10 +460,10 @@ namespace Doomer
 
                 text = dlg.EnteredName;
 
-                if (int.TryParse(text, out count) && count >= 0)
+                if (int.TryParse(text, out count) && count is >= 0 and <= MaxPlayCount)
                     break;
 
-                MessageBox.Show(Strings.PlayCountInvalid, Strings.PlayCountTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(string.Format(Strings.PlayCountInvalid, MaxPlayCount), Strings.PlayCountTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             TrySaveLibrary(() => _library.SetPlayCount(boton.Name, count));

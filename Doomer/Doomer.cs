@@ -190,7 +190,9 @@ namespace Doomer
             {
                 return;
             }
-            catch (Exception ex) when (ex is DirectoryNotFoundException or ArgumentException)
+            // A missing or unreadable folder (a disconnected network drive, no permission) is reported like a
+            // missing one, so the list doesn't stay stuck on "Loading".
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
             {
                 if (_loadCts != cts || IsDisposed)
                     return;
@@ -256,7 +258,8 @@ namespace Doomer
         {
             flowLayoutPanel1.SuspendLayout();
 
-            foreach (Control control in flowLayoutPanel1.Controls)
+            // A copy, since disposing a button takes it out of the collection and would skip the next one.
+            foreach (var control in flowLayoutPanel1.Controls.Cast<Control>().ToList())
             {
                 if (control is Button boton)
                 {
@@ -647,7 +650,7 @@ namespace Doomer
 
             try
             {
-                command = File.ReadAllText(filePath);
+                command = BatchFileService.ReadBatch(filePath);
             }
             catch (Exception ex)
             {
@@ -688,7 +691,7 @@ namespace Doomer
         {
             try
             {
-                return BatchFileService.TryNormalizeWikiUrl(BatchFileService.GetWikiUrl(File.ReadAllText(filePath)), out var url) &&
+                return BatchFileService.TryNormalizeWikiUrl(BatchFileService.GetWikiUrl(BatchFileService.ReadBatch(filePath)), out var url) &&
                     url.Length > 0 ? url : null;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -722,7 +725,7 @@ namespace Doomer
 
             try
             {
-                batch = File.ReadAllText(filePath);
+                batch = BatchFileService.ReadBatch(filePath);
             }
             catch (Exception ex)
             {
@@ -751,7 +754,7 @@ namespace Doomer
 
             try
             {
-                File.WriteAllText(filePath, BatchFileService.SetWikiUrl(batch, url));
+                BatchFileService.WriteBatch(filePath, BatchFileService.SetWikiUrl(batch, url));
             }
             catch (Exception ex)
             {

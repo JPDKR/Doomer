@@ -29,9 +29,32 @@ namespace Doomer.Options
         public static IWadsSettings IWads { get; private set; } = default!;
         public static InterfaceSettings Interface { get; private set; } = default!;
 
+        // Why the settings file couldn't be read, so the app started with the defaults instead; null when it was.
+        public static string? LoadError { get; private set; }
+
         static AppConfiguration() => Load();
 
+        // A file that isn't valid JSON or holds a value of the wrong type (it can be edited by hand) leaves the
+        // defaults in place instead of keeping the app from starting, so it can still be fixed from Settings.
         public static void Load()
+        {
+            try
+            {
+                LoadFile();
+                LoadError = null;
+            }
+            catch (Exception ex) when (ex is InvalidDataException or FormatException or InvalidOperationException or JsonException)
+            {
+                var defaults = new AppSettingsRoot();
+                Ports = defaults.Ports;
+                Folders = defaults.Folders;
+                IWads = defaults.IWads;
+                Interface = defaults.Interface;
+                LoadError = ex.InnerException?.Message ?? ex.Message;
+            }
+        }
+
+        private static void LoadFile()
         {
             EnsureConfigFile();
 

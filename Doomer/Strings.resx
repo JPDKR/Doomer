@@ -76,7 +76,7 @@ Update now?</value>
 {0}</value>
   </data>
   <data name="BatchsDirNotFoundOpenSettings" xml:space="preserve">
-    <value>Batchs directory not found:
+    <value>Couldn't read the batches folder:
 {0}
 
 Open Settings to fix the path.</value>
@@ -597,5 +597,13 @@ Turn off ☑ Hide completed or ★ Favorites to list more WADs.</value>
   </data>
   <data name="PlayCountInvalid" xml:space="preserve">
     <value>Enter a whole number from 0 to {0}.</value>
+  </data>
+  <data name="SettingsLoadError" xml:space="preserve">
+    <value>The settings file couldn't be read, so Doomer started with the default settings:
+{0}
+
+{1}
+
+Fix the file, or open Settings to set them again (saving them replaces the file).</value>
   </data>
 </root>

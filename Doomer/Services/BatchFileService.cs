@@ -19,6 +19,18 @@ namespace Doomer.Services
         // The same kinds of files the WAD pickers offer.
         private static readonly string[] PluginExtensions = [".wad", ".pk3", ".pk7", ".zip", ".deh", ".bex"];
 
+        // What source ports load besides .wad, so a path ending in one of these isn't given ".wad".
+        private static readonly string[] LoadableExtensions =
+            [".wad", ".iwad", ".pk3", ".pk7", ".ipk3", ".ipk7", ".pke", ".zip", ".deh", ".bex", ".hhe", ".lmp"];
+
+        // cmd reads a batch in the console's OEM code page, which can't hold every character a path may have,
+        // so a batch with any non-ASCII text switches the console to UTF-8 (how it's saved) before running it.
+        private const string Utf8CodePageLine = "@chcp 65001>nul";
+
+        private static readonly Regex Utf8CodePagePattern = new(
+            "^" + Regex.Escape(Utf8CodePageLine) + "[ \\t]*(?:\\r?\\n|$)",
+            RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+
         // "<exe>" -iwad "<iwad>" -file "<wad>" ["<extra file>"...] ["<plugin>"] [<arguments>]
         private static readonly Regex GZDoomPattern = new(
             "-iwad \"(?<iwad>[^\"]*)\" -file \"(?<wad>[^\"]*)\"(?: \"(?<file>[^\"]*)\")*(?<arguments>[^\\r\\n]*)",
@@ -53,9 +65,17 @@ namespace Doomer.Services
             _ => "GZDoom"
         };
 
-        // Appends ".wad" only when the path has no extension, so .pk3/.zip/etc. are kept as-is.
-        public static string EnsureWadExtension(string path) =>
-            Path.HasExtension(path) ? path : path + WadExtension;
+        // Appends ".wad" unless the path already ends in something a source port loads (.wad, .pk3, .zip...) or names
+        // a file that exists. A dot in the name alone isn't an extension: "eviternity.v1.1" is "eviternity.v1.1.wad".
+        public static string EnsureWadExtension(string path)
+        {
+            var extension = Path.GetExtension(path.Trim());
+
+            return LoadableExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) ||
+                (extension.Length > 0 && File.Exists(path))
+                ? path
+                : path + WadExtension;
+        }
 
         public static string StripWadExtension(string path) =>
             path.EndsWith(WadExtension, StringComparison.OrdinalIgnoreCase) ? path[..^WadExtension.Length] : path;
@@ -171,8 +191,9 @@ namespace Doomer.Services
                 ContainsQuote(iwad) || ContainsQuote(wad) || plugins.Any(ContainsQuote) || extraFiles.Any(ContainsQuote))
                 throw new ArgumentException(Strings.GZDoomPathsWithQuotes);
 
-            var command = $"\"{executable}\" -iwad \"{EnsureWadExtension(iwad)}\" -file \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}" +
-                string.Concat(plugins.Select(p => $" \"{pluginsFolder}/{p}\"")) + FormatArguments(arguments);
+            var command = $"\"{EscapePercent(executable)}\" -iwad \"{EscapePercent(EnsureWadExtension(iwad))}\" " +
+                $"-file \"{EscapePercent(EnsureWadExtension(wad))}\"{QuoteFiles(extraFiles)}" +
+                string.Concat(plugins.Select(p => $" \"{EscapePercent($"{pluginsFolder}/{p}")}\"")) + FormatArguments(arguments);
 
             return plugins.Count == 0 ? command : $"{PluginsFolderMarker}{pluginsFolder}\r\n" + command;
         }
@@ -186,12 +207,33 @@ namespace Doomer.Services
             if (ContainsQuote(executable) || ContainsQuote(iwad) || ContainsQuote(wad) || extraFiles.Any(ContainsQuote))
                 throw new ArgumentException(Strings.DSDADoomPathsWithQuotes);
 
-            return $"\"{executable}\" \"{EnsureWadExtension(iwad)}\" \"{EnsureWadExtension(wad)}\"{QuoteFiles(extraFiles)}" +
-                FormatArguments(arguments);
+            return $"\"{EscapePercent(executable)}\" \"{EscapePercent(EnsureWadExtension(iwad))}\" " +
+                $"\"{EscapePercent(EnsureWadExtension(wad))}\"{QuoteFiles(extraFiles)}" + FormatArguments(arguments);
         }
 
         private static string QuoteFiles(IReadOnlyList<string> files) =>
-            string.Concat(files.Select(f => $" \"{EnsureWadExtension(f)}\""));
+            string.Concat(files.Select(f => $" \"{EscapePercent(EnsureWadExtension(f))}\""));
+
+        // cmd expands %...% in a batch even inside quotes, so a literal "%" (as in "100%.wad") is written "%%".
+        public static string EscapePercent(string text) => text.Replace("%", "%%");
+
+        public static string UnescapePercent(string text) => text.Replace("%%", "%");
+
+        // Reads a batch as UTF-8, or in the OEM code page cmd reads it in when it isn't valid UTF-8 (one written
+        // by hand in an older editor), so its accented paths aren't lost when Doomer saves it again.
+        public static string ReadBatch(string path) => ConsoleText.Decode(File.ReadAllBytes(path));
+
+        // Saves a batch atomically as UTF-8 without a BOM (cmd would run the BOM as part of the first command),
+        // starting with the switch to UTF-8 when it has any non-ASCII text.
+        public static void WriteBatch(string path, string batch)
+        {
+            batch = Utf8CodePagePattern.Replace(batch, string.Empty);
+
+            if (batch.Any(c => c > 127))
+                batch = Utf8CodePageLine + "\r\n" + batch;
+
+            AtomicFile.WriteAllText(path, batch);
+        }
 
         // Written as typed, quotes included, so they only have to stay on the command's line.
         private static string FormatArguments(string? arguments)
@@ -202,7 +244,7 @@ namespace Doomer.Services
             if (arguments.AsSpan().IndexOfAny('\r', '\n') >= 0)
                 throw new ArgumentException(Strings.ArgumentsWithLineBreaks);
 
-            return " " + arguments.Trim();
+            return " " + EscapePercent(arguments.Trim());
         }
 
         // The batch's Doom Wiki page as written in it, or null when it has none.
@@ -253,17 +295,17 @@ namespace Doomer.Services
             out string wad, out List<string> extraFiles, out List<string> plugins, out string arguments)
         {
             // Taken out first, since the DSDA Doom command has to be the first line.
-            command = WikiUrlPattern.Replace(command, string.Empty);
+            command = Utf8CodePagePattern.Replace(WikiUrlPattern.Replace(command, string.Empty), string.Empty);
             var match = GZDoomPattern.Match(command);
 
             if (match.Success)
             {
                 port = SourcePort.GZDoom;
-                iwad = StripWadExtension(match.Groups["iwad"].Value);
-                wad = StripWadExtension(match.Groups["wad"].Value);
-                extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
+                iwad = StripWadExtension(UnescapePercent(match.Groups["iwad"].Value));
+                wad = StripWadExtension(UnescapePercent(match.Groups["wad"].Value));
+                extraFiles = [.. match.Groups["file"].Captures.Select(c => UnescapePercent(c.Value))];
                 plugins = [];
-                arguments = match.Groups["arguments"].Value.Trim();
+                arguments = UnescapePercent(match.Groups["arguments"].Value.Trim());
 
                 var written = PluginsFolderPattern.Match(command);
                 var prefix = (written.Success ? written.Groups["folder"].Value : pluginsFolder) + "/";
@@ -281,11 +323,11 @@ namespace Doomer.Services
             if (match.Success)
             {
                 port = SourcePort.DSDADoom;
-                iwad = StripWadExtension(match.Groups["iwad"].Value);
-                wad = StripWadExtension(match.Groups["wad"].Value);
-                extraFiles = [.. match.Groups["file"].Captures.Select(c => c.Value)];
+                iwad = StripWadExtension(UnescapePercent(match.Groups["iwad"].Value));
+                wad = StripWadExtension(UnescapePercent(match.Groups["wad"].Value));
+                extraFiles = [.. match.Groups["file"].Captures.Select(c => UnescapePercent(c.Value))];
                 plugins = [];
-                arguments = match.Groups["arguments"].Value.Trim();
+                arguments = UnescapePercent(match.Groups["arguments"].Value.Trim());
                 return true;
             }
 

@@ -104,13 +104,70 @@ namespace Doomer.Tests
             var deh = CreateFile("Downloads\\extra\\sigil.deh");
             List<FileMove> moves = [new(wad, Path.Combine(Wads, "sigil.wad")), new(deh, Path.Combine(Wads, "extra\\sigil.deh"))];
 
-            WadMoveService.Apply(moves);
+            var applied = WadMoveService.Apply(moves);
 
             Assert.True(moves.All(m => File.Exists(m.Destination) && !File.Exists(m.Source)));
 
-            WadMoveService.Undo(moves);
+            applied.Undo();
 
             Assert.True(moves.All(m => File.Exists(m.Source) && !File.Exists(m.Destination)));
+        }
+
+        [Fact]
+        public void Undo_BringsBackTheFileAMoveReplaced()
+        {
+            var wad = CreateFile("Downloads\\sigil.wad");
+            var old = CreateFile("wads\\sigil.wad");
+
+            var applied = WadMoveService.Apply([new(wad, old)]);
+
+            Assert.Equal("Downloads\\sigil.wad", File.ReadAllText(old));
+
+            applied.Undo();
+
+            Assert.Equal("wads\\sigil.wad", File.ReadAllText(old));
+            Assert.Equal("Downloads\\sigil.wad", File.ReadAllText(wad));
+            Assert.Single(Directory.GetFiles(Wads));
+        }
+
+        [Fact]
+        public void Commit_DeletesTheFileAMoveReplaced()
+        {
+            var wad = CreateFile("Downloads\\sigil.wad");
+            var old = CreateFile("wads\\sigil.wad");
+
+            WadMoveService.Apply([new(wad, old)]).Commit();
+
+            Assert.Equal("Downloads\\sigil.wad", File.ReadAllText(old));
+            Assert.Single(Directory.GetFiles(Wads));
+        }
+
+        [Fact]
+        public void Apply_PutsBackTheReplacedFileWhenALaterMoveFails()
+        {
+            var wad = CreateFile("Downloads\\sigil.wad");
+            var old = CreateFile("wads\\sigil.wad");
+            var missing = Path.Combine(_root, "Downloads\\missing.deh");
+
+            Assert.Throws<FileNotFoundException>(() =>
+                WadMoveService.Apply([new(wad, old), new(missing, Path.Combine(Wads, "missing.deh"))]));
+
+            Assert.Equal("wads\\sigil.wad", File.ReadAllText(old));
+            Assert.True(File.Exists(wad));
+            Assert.Single(Directory.GetFiles(Wads));
+        }
+
+        [Fact]
+        public void UpdateCommand_ReadsAndWritesPercentSignsEscaped()
+        {
+            const string gzdoom = "E:\\gzdoom\\gzdoom.exe";
+            var wad = CreateFile("Downloads\\100%.wad");
+            var destination = Path.Combine(Wads, "100%.wad");
+            var command = BatchFileService.BuildGZDoomCommand(gzdoom, "plugins", "doom2", wad, []);
+
+            var updated = WadMoveService.UpdateCommand(command, gzdoom, [new(wad, destination)]);
+
+            Assert.Contains($"\"{destination.Replace("%", "%%")}\"", updated);
         }
 
         [Fact]

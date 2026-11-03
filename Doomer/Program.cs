@@ -12,6 +12,11 @@ namespace Doomer
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
             Localization.Apply(Options.AppConfiguration.Interface.Language);
+
+            if (Options.AppConfiguration.LoadError is { } error)
+                MessageBox.Show(string.Format(Strings.SettingsLoadError, Options.AppConfiguration.FilePath, error),
+                    Strings.ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
             Application.Run(new Doomer());
         }
     }

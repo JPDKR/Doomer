@@ -76,7 +76,7 @@
 {0}</value>
   </data>
   <data name="BatchsDirNotFoundOpenSettings" xml:space="preserve">
-    <value>No se encontró la carpeta de batches:
+    <value>No se pudo leer la carpeta de batches:
 {0}
 
 Abre Configuración para corregir la ruta.</value>
@@ -470,7 +470,7 @@ Corrígela primero en Configuración.</value>
 {1}</value>
   </data>
   <data name="BatchsDirNotFound" xml:space="preserve">
-    <value>No se encontró la carpeta de batches:
+    <value>No se pudo leer la carpeta de batches:
 {0}</value>
   </data>
   <data name="IWadNotFound" xml:space="preserve">
@@ -597,5 +597,13 @@ Desactiva ☑ Ocultar completados o ★ Favoritos para ver más WADs.</value>
   </data>
   <data name="PlayCountInvalid" xml:space="preserve">
     <value>Ingresa un número entero de 0 a {0}.</value>
+  </data>
+  <data name="SettingsLoadError" xml:space="preserve">
+    <value>No se pudo leer el archivo de configuración, así que Doomer arrancó con la configuración predeterminada:
+{0}
+
+{1}
+
+Corrige el archivo, o abre Configuración para volver a cargarla (al guardarla se reemplaza el archivo).</value>
   </data>
 </root>
